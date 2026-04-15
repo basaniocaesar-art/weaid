@@ -1,6 +1,6 @@
-import { getCompletedPayouts, updateBooking } from "../../../lib/supabase.js";
-import { notifyProviderPayout } from "../../../lib/whatsapp.js";
-import { sendPayoutNotification } from "../../../lib/email.js";
+import { getCompletedPayouts, updateBooking, getAffiliatesForPayout, getEarnedReferrals, markReferralsPaid, insertAffiliatePayout, resetAffiliatePendingPayout } from "../../../lib/supabase.js";
+import { notifyProviderPayout, notifyAffiliatePayout } from "../../../lib/whatsapp.js";
+import { sendPayoutNotification, sendAffiliatePayoutNotification } from "../../../lib/email.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -46,9 +46,38 @@ export default async function handler(req, res) {
       payoutsProcessed++;
     }
 
+    // ── Affiliate Payouts (min ₹100) ──
+    let affiliatePayoutsProcessed = 0;
+    const affiliates = await getAffiliatesForPayout(100);
+
+    for (const affiliate of affiliates) {
+      const earned = await getEarnedReferrals(affiliate.id);
+      if (!earned.length) continue;
+
+      const referralIds = earned.map((r) => r.id);
+      const amount = affiliate.pending_payout;
+
+      await insertAffiliatePayout({
+        affiliate_id: affiliate.id,
+        amount,
+        referral_ids: referralIds,
+        method: affiliate.upi_id ? "upi" : "bank_transfer",
+        status: "initiated",
+      });
+
+      await markReferralsPaid(referralIds);
+      await resetAffiliatePendingPayout(affiliate.id);
+
+      if (affiliate.phone) await notifyAffiliatePayout(affiliate.phone, amount).catch(() => {});
+      if (affiliate.email) await sendAffiliatePayoutNotification(affiliate.email, affiliate, amount).catch(() => {});
+
+      affiliatePayoutsProcessed++;
+    }
+
     return res.status(200).json({
       providers: payoutsProcessed,
       totalBookings: bookings.length,
+      affiliatePayouts: affiliatePayoutsProcessed,
     });
   } catch (err) {
     console.error("[cron/weekly-payout]", err);

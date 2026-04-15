@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeAid — Affiliate Dashboard</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090f; --bg2: #0e1117; --bg3: #161b27; --bg4: #1e2535;
+  --border: rgba(255,255,255,0.06); --border2: rgba(255,255,255,0.1);
+  --teal: #06b6d4; --teal-dim: rgba(6,182,212,0.12);
+  --indigo: #6366f1; --indigo-dim: rgba(99,102,241,0.12);
+  --green: #22c55e; --green-dim: rgba(34,197,94,0.12);
+  --amber: #f59e0b; --amber-dim: rgba(245,158,11,0.12);
+  --gold: #f0b429; --gold-dim: rgba(240,180,41,0.12);
+  --red: #ef4444; --red-dim: rgba(239,68,68,0.12);
+  --text: #e2e8f8; --muted: #4a5568; --muted2: #718096; --white: #ffffff;
+  --radius: 16px;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; }
+a { text-decoration:none; color:inherit; }
+
+/* SIDEBAR */
+.sidebar { width:240px; min-height:100vh; background:var(--bg2); border-right:1px solid var(--border); display:flex; flex-direction:column; position:fixed; top:0; left:0; bottom:0; z-index:50; }
+.sidebar-logo { padding:24px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.logo-mark { width:32px; height:32px; background:linear-gradient(135deg,var(--indigo),var(--teal)); border-radius:8px; display:flex; align-items:center; justify-content:center; font-size:0.8rem; font-weight:700; color:white; }
+.logo-text { font-family:'Playfair Display',serif; font-size:1.2rem; color:var(--white); }
+.logo-text span { color:var(--teal); }
+.logo-badge { margin-left:auto; background:var(--teal-dim); color:var(--teal); font-size:0.6rem; font-weight:700; padding:2px 7px; border-radius:4px; letter-spacing:0.5px; }
+
+.user-info { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; gap:10px; }
+.user-avatar { width:36px; height:36px; border-radius:8px; background:linear-gradient(135deg,var(--teal),var(--indigo)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.8rem; color:white; flex-shrink:0; }
+.user-name { font-size:0.82rem; font-weight:600; }
+.user-role { font-size:0.68rem; color:var(--teal); font-weight:500; }
+
+.sidebar-nav { flex:1; padding:12px 10px; overflow-y:auto; }
+.nav-section { font-size:0.6rem; font-weight:700; letter-spacing:1.5px; text-transform:uppercase; color:var(--muted); padding:0 10px; margin:14px 0 6px; }
+.nav-item { display:flex; align-items:center; gap:10px; padding:9px 10px; border-radius:8px; cursor:pointer; transition:all 0.2s; font-size:0.82rem; font-weight:500; color:var(--muted2); margin-bottom:1px; }
+.nav-item:hover { background:rgba(255,255,255,0.04); color:var(--text); }
+.nav-item.active { background:var(--teal-dim); color:var(--teal); }
+.nav-item .icon { font-size:0.95rem; width:18px; text-align:center; }
+
+.sidebar-footer { padding:12px 10px; border-top:1px solid var(--border); }
+
+/* MAIN */
+.main { margin-left:240px; flex:1; min-height:100vh; }
+.top-bar { height:60px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; padding:0 28px; background:var(--bg2); }
+.top-title { font-size:0.95rem; font-weight:600; }
+.top-tier { display:flex; align-items:center; gap:8px; }
+.tier-badge { padding:4px 12px; border-radius:100px; font-size:0.7rem; font-weight:700; text-transform:uppercase; letter-spacing:0.5px; }
+.tier-bronze { background:var(--amber-dim); color:var(--amber); }
+.tier-silver { background:rgba(192,192,192,0.15); color:#c0c0c0; }
+.tier-gold { background:var(--gold-dim); color:var(--gold); }
+.tier-platinum { background:var(--teal-dim); color:var(--teal); }
+
+.content { padding:24px 28px; }
+
+/* LOGIN SCREEN */
+.login-screen { display:flex; align-items:center; justify-content:center; min-height:100vh; background:var(--bg); }
+.login-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:40px; width:100%; max-width:440px; text-align:center; }
+.login-card h2 { font-family:'Playfair Display',serif; font-size:1.6rem; margin-bottom:6px; }
+.login-card p { color:var(--muted2); font-size:0.85rem; margin-bottom:24px; }
+.login-card input { width:100%; padding:12px 16px; background:var(--bg3); border:1px solid var(--border2); border-radius:10px; color:var(--text); font-size:0.9rem; font-family:inherit; margin-bottom:12px; outline:none; }
+.login-card input:focus { border-color:var(--teal); }
+.login-card .btn { width:100%; padding:12px; background:var(--teal); border:none; border-radius:10px; color:var(--bg); font-weight:700; font-size:0.9rem; cursor:pointer; font-family:inherit; margin-bottom:12px; }
+.login-card .btn:hover { opacity:0.9; }
+.login-card .btn-outline { width:100%; padding:12px; background:transparent; border:1.5px solid var(--border2); border-radius:10px; color:var(--text); font-weight:600; font-size:0.9rem; cursor:pointer; font-family:inherit; }
+.login-card .btn-outline:hover { border-color:var(--teal); color:var(--teal); }
+.login-card .divider { margin:16px 0; color:var(--muted); font-size:0.75rem; }
+.error-msg { color:var(--red); font-size:0.8rem; margin-bottom:8px; display:none; }
+
+/* STATS */
+.stats-row { display:grid; grid-template-columns:repeat(4,1fr); gap:16px; margin-bottom:24px; }
+.stat-card { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); padding:20px; }
+.stat-label { font-size:0.72rem; font-weight:600; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted2); margin-bottom:8px; }
+.stat-value { font-size:1.6rem; font-weight:700; }
+.stat-value.teal { color:var(--teal); }
+.stat-value.green { color:var(--green); }
+.stat-value.amber { color:var(--amber); }
+.stat-value.gold { color:var(--gold); }
+.stat-sub { font-size:0.72rem; color:var(--muted2); margin-top:4px; }
+
+/* REFERRAL LINK CARD */
+.ref-card { background:linear-gradient(135deg,rgba(6,182,212,0.08),rgba(99,102,241,0.08)); border:1px solid var(--border2); border-radius:var(--radius); padding:24px; margin-bottom:24px; }
+.ref-card h3 { font-size:1rem; margin-bottom:12px; }
+.ref-link-row { display:flex; gap:8px; margin-bottom:12px; }
+.ref-link-input { flex:1; padding:12px 16px; background:var(--bg); border:1px solid var(--border2); border-radius:10px; color:var(--teal); font-size:0.9rem; font-family:'Sora',monospace; font-weight:600; }
+.ref-btn { padding:12px 20px; border:none; border-radius:10px; font-weight:700; font-size:0.82rem; cursor:pointer; font-family:inherit; transition:all 0.2s; }
+.ref-btn.copy { background:var(--teal); color:var(--bg); }
+.ref-btn.copy:hover { opacity:0.9; }
+.ref-btn.wa { background:#25d366; color:white; }
+.ref-btn.wa:hover { opacity:0.9; }
+.ref-code-display { font-size:0.8rem; color:var(--muted2); }
+.ref-code-display strong { color:var(--gold); font-size:1rem; }
+
+/* SECTION */
+.section { background:var(--bg2); border:1px solid var(--border); border-radius:var(--radius); margin-bottom:24px; overflow:hidden; }
+.section-header { padding:16px 20px; border-bottom:1px solid var(--border); display:flex; align-items:center; justify-content:space-between; }
+.section-title { font-size:0.9rem; font-weight:600; }
+.section-badge { padding:3px 10px; background:var(--teal-dim); color:var(--teal); border-radius:100px; font-size:0.7rem; font-weight:700; }
+
+/* TABLE */
+table { width:100%; border-collapse:collapse; }
+th { padding:10px 16px; text-align:left; font-size:0.68rem; font-weight:700; text-transform:uppercase; letter-spacing:0.8px; color:var(--muted); background:var(--bg3); border-bottom:1px solid var(--border); }
+td { padding:12px 16px; font-size:0.82rem; border-bottom:1px solid var(--border); }
+tr:last-child td { border-bottom:none; }
+tr:hover { background:rgba(255,255,255,0.02); }
+.status { padding:3px 10px; border-radius:100px; font-size:0.68rem; font-weight:700; display:inline-block; }
+.status.earned { background:var(--green-dim); color:var(--green); }
+.status.pending { background:var(--amber-dim); color:var(--amber); }
+.status.paid { background:var(--teal-dim); color:var(--teal); }
+.status.cancelled { background:var(--red-dim); color:var(--red); }
+
+/* LEADERBOARD */
+.lb-rank { width:28px; height:28px; border-radius:50%; display:inline-flex; align-items:center; justify-content:center; font-weight:700; font-size:0.75rem; }
+.lb-rank.gold-r { background:var(--gold-dim); color:var(--gold); }
+.lb-rank.silver-r { background:rgba(192,192,192,0.15); color:#c0c0c0; }
+.lb-rank.bronze-r { background:var(--amber-dim); color:var(--amber); }
+.lb-rank.other { background:var(--bg3); color:var(--muted2); }
+.lb-you { background:var(--teal-dim) !important; }
+.lb-you td { color:var(--teal) !important; font-weight:600; }
+
+/* TIER PROGRESS */
+.tier-progress { margin-bottom:24px; }
+.tier-bar-bg { height:8px; background:var(--bg3); border-radius:100px; overflow:hidden; margin:12px 0 8px; }
+.tier-bar-fill { height:100%; border-radius:100px; transition:width 0.5s; }
+.tier-labels { display:flex; justify-content:space-between; font-size:0.68rem; color:var(--muted2); }
+.tier-labels .active-tier { color:var(--teal); font-weight:700; }
+
+/* MARKETING */
+.share-cards { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; padding:16px 20px; }
+.share-card { background:var(--bg3); border:1px solid var(--border); border-radius:10px; padding:14px; cursor:pointer; transition:all 0.2s; }
+.share-card:hover { border-color:var(--teal); }
+.share-card .label { font-size:0.72rem; font-weight:700; color:var(--teal); margin-bottom:6px; }
+.share-card .msg { font-size:0.78rem; color:var(--muted2); line-height:1.5; }
+.copied-toast { position:fixed; bottom:24px; right:24px; background:var(--green); color:white; padding:10px 20px; border-radius:10px; font-size:0.82rem; font-weight:600; opacity:0; transition:opacity 0.3s; pointer-events:none; z-index:999; }
+.copied-toast.show { opacity:1; }
+
+/* REGISTER FORM */
+.reg-row { display:grid; grid-template-columns:1fr 1fr; gap:12px; margin-bottom:12px; }
+.reg-row.full { grid-template-columns:1fr; }
+.reg-row input { padding:12px 16px; background:var(--bg3); border:1px solid var(--border2); border-radius:10px; color:var(--text); font-size:0.85rem; font-family:inherit; outline:none; }
+.reg-row input:focus { border-color:var(--teal); }
+
+/* RESPONSIVE */
+@media(max-width:900px){
+  .sidebar { display:none; }
+  .main { margin-left:0; }
+  .stats-row { grid-template-columns:repeat(2,1fr); }
+  .share-cards { grid-template-columns:1fr; }
+  .reg-row { grid-template-columns:1fr; }
+}
+@media(max-width:500px){
+  .stats-row { grid-template-columns:1fr; }
+  .ref-link-row { flex-direction:column; }
+}
+</style>
+</head>
+<body>
+
+<!-- LOGIN / REGISTER SCREEN -->
+<div id="authScreen" class="login-screen">
+  <div class="login-card">
+    <div style="width:48px;height:48px;background:linear-gradient(135deg,var(--teal),var(--indigo));border-radius:12px;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.2rem;color:white;margin:0 auto 16px;">W</div>
+    <h2>WeAid Affiliate Program</h2>
+    <p>Earn 10% commission on every booking you refer</p>
+
+    <!-- LOGIN TAB -->
+    <div id="loginTab">
+      <div id="loginError" class="error-msg"></div>
+      <input type="email" id="loginEmail" placeholder="Enter your email">
+      <button class="btn" onclick="doLogin()">Sign In</button>
+      <div class="divider">— or —</div>
+      <button class="btn-outline" onclick="showRegister()">Create Affiliate Account</button>
+    </div>
+
+    <!-- REGISTER TAB -->
+    <div id="registerTab" style="display:none;">
+      <div id="regError" class="error-msg"></div>
+      <div class="reg-row">
+        <input type="text" id="regName" placeholder="Full Name">
+        <input type="tel" id="regPhone" placeholder="Phone Number">
+      </div>
+      <div class="reg-row full">
+        <input type="email" id="regEmail" placeholder="Email Address">
+      </div>
+      <div class="reg-row full">
+        <input type="text" id="regUpi" placeholder="UPI ID (for payouts, optional)">
+      </div>
+      <button class="btn" onclick="doRegister()" style="margin-top:4px;">Create Account</button>
+      <div class="divider">— or —</div>
+      <button class="btn-outline" onclick="showLogin()">Already have an account? Sign In</button>
+    </div>
+  </div>
+</div>
+
+<!-- DASHBOARD -->
+<div id="dashScreen" style="display:none; width:100%;">
+
+<!-- Sidebar -->
+<div class="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark">W</div>
+    <div class="logo-text">We<span>Aid</span></div>
+    <div class="logo-badge">AFFILIATE</div>
+  </div>
+  <div class="user-info" id="sidebarUser">
+    <div class="user-avatar" id="userAvatar">A</div>
+    <div>
+      <div class="user-name" id="userName">Affiliate</div>
+      <div class="user-role" id="userTier">Bronze</div>
+    </div>
+  </div>
+  <div class="sidebar-nav">
+    <div class="nav-section">Menu</div>
+    <div class="nav-item active" onclick="showTab('overview')"><span class="icon">📊</span> Overview</div>
+    <div class="nav-item" onclick="showTab('referrals')"><span class="icon">🔗</span> Referrals</div>
+    <div class="nav-item" onclick="showTab('leaderboard')"><span class="icon">🏆</span> Leaderboard</div>
+    <div class="nav-item" onclick="showTab('payouts')"><span class="icon">💰</span> Payouts</div>
+    <div class="nav-item" onclick="showTab('marketing')"><span class="icon">📣</span> Marketing</div>
+  </div>
+  <div class="sidebar-footer">
+    <div class="nav-item" onclick="logout()"><span class="icon">🚪</span> Sign Out</div>
+  </div>
+</div>
+
+<!-- Main Content -->
+<div class="main">
+  <div class="top-bar">
+    <div class="top-title">Affiliate Dashboard</div>
+    <div class="top-tier">
+      <span class="tier-badge tier-bronze" id="topTierBadge">BRONZE</span>
+    </div>
+  </div>
+
+  <div class="content">
+
+    <!-- OVERVIEW TAB -->
+    <div id="tab-overview">
+      <div class="stats-row">
+        <div class="stat-card">
+          <div class="stat-label">Total Earnings</div>
+          <div class="stat-value green" id="statEarnings">₹0</div>
+          <div class="stat-sub">Lifetime</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Pending Payout</div>
+          <div class="stat-value amber" id="statPending">₹0</div>
+          <div class="stat-sub">Processed every Monday</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Total Referrals</div>
+          <div class="stat-value teal" id="statReferrals">0</div>
+          <div class="stat-sub">Completed bookings</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">This Month</div>
+          <div class="stat-value gold" id="statMonth">0</div>
+          <div class="stat-sub" id="statMonthEarnings">₹0 earned</div>
+        </div>
+      </div>
+
+      <!-- Referral Link -->
+      <div class="ref-card">
+        <h3>Your Referral Link</h3>
+        <div class="ref-link-row">
+          <input type="text" class="ref-link-input" id="refLinkInput" readonly>
+          <button class="ref-btn copy" onclick="copyLink()">Copy</button>
+          <button class="ref-btn wa" onclick="shareWhatsApp()">WhatsApp</button>
+        </div>
+        <div class="ref-code-display">Your code: <strong id="refCodeDisplay">—</strong></div>
+      </div>
+
+      <!-- Tier Progress -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Tier Progress</div>
+          <div class="section-badge" id="tierLabel">Bronze</div>
+        </div>
+        <div style="padding:16px 20px;">
+          <div class="tier-bar-bg">
+            <div class="tier-bar-fill" id="tierBarFill" style="width:0%;background:linear-gradient(90deg,var(--teal),var(--indigo));"></div>
+          </div>
+          <div class="tier-labels">
+            <span id="tl-bronze" class="active-tier">Bronze (0)</span>
+            <span id="tl-silver">Silver (5)</span>
+            <span id="tl-gold">Gold (15)</span>
+            <span id="tl-platinum">Platinum (30)</span>
+          </div>
+          <div style="margin-top:12px;font-size:0.78rem;color:var(--muted2);" id="tierHint">Get 5 referrals this month to reach Silver and earn a ₹500 bonus!</div>
+        </div>
+      </div>
+
+      <!-- Recent Referrals -->
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Recent Referrals</div>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Service</th><th>Booking Value</th><th>Commission</th><th>Status</th></tr></thead>
+          <tbody id="recentReferralsBody"><tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px;">No referrals yet. Share your link to get started!</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- REFERRALS TAB -->
+    <div id="tab-referrals" style="display:none;">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">All Referrals</div>
+          <div class="section-badge" id="totalRefBadge">0 total</div>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Service</th><th>Booking Value</th><th>Platform Commission</th><th>Your Commission</th><th>Status</th></tr></thead>
+          <tbody id="allReferralsBody"><tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">No referrals yet</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- LEADERBOARD TAB -->
+    <div id="tab-leaderboard" style="display:none;">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Monthly Leaderboard</div>
+          <div class="section-badge" id="lbMonth">—</div>
+        </div>
+        <div style="padding:16px 20px;background:var(--bg3);border-bottom:1px solid var(--border);font-size:0.8rem;color:var(--muted2);">
+          <strong style="color:var(--gold);">Prizes:</strong> 1st place ₹3,000 &nbsp;|&nbsp; 2nd place ₹1,500 &nbsp;|&nbsp; 3rd place ₹750 &nbsp;|&nbsp; Plus tier bonuses!
+        </div>
+        <table>
+          <thead><tr><th>Rank</th><th>Affiliate</th><th>Referrals</th><th>Tier</th></tr></thead>
+          <tbody id="leaderboardBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px;">Loading...</td></tr></tbody>
+        </table>
+      </div>
+
+      <!-- Tier Bonuses Info -->
+      <div class="section">
+        <div class="section-header"><div class="section-title">Tier Rewards</div></div>
+        <table>
+          <thead><tr><th>Tier</th><th>Monthly Referrals</th><th>Monthly Bonus</th><th>Commission Rate</th></tr></thead>
+          <tbody>
+            <tr><td><span class="tier-badge tier-bronze">Bronze</span></td><td>0 – 4</td><td>—</td><td>10%</td></tr>
+            <tr><td><span class="tier-badge tier-silver">Silver</span></td><td>5 – 14</td><td>₹500</td><td>10%</td></tr>
+            <tr><td><span class="tier-badge tier-gold">Gold</span></td><td>15 – 29</td><td>₹2,000</td><td>12%</td></tr>
+            <tr><td><span class="tier-badge tier-platinum">Platinum</span></td><td>30+</td><td>₹5,000</td><td>15%</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- PAYOUTS TAB -->
+    <div id="tab-payouts" style="display:none;">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-title">Payout History</div>
+        </div>
+        <table>
+          <thead><tr><th>Date</th><th>Amount</th><th>Method</th><th>Status</th></tr></thead>
+          <tbody id="payoutsBody"><tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px;">No payouts yet. Min ₹100 balance required.</td></tr></tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- MARKETING TAB -->
+    <div id="tab-marketing" style="display:none;">
+      <div class="section">
+        <div class="section-header"><div class="section-title">Ready-to-Share Messages</div></div>
+        <div class="share-cards" id="shareCards"></div>
+      </div>
+    </div>
+
+  </div>
+</div>
+</div>
+
+<div class="copied-toast" id="toast">Copied!</div>
+
+<script>
+const API = '';
+let affiliate = null;
+let affiliateId = null;
+
+// ── AUTH ──
+function showRegister() { document.getElementById('loginTab').style.display='none'; document.getElementById('registerTab').style.display='block'; }
+function showLogin() { document.getElementById('registerTab').style.display='none'; document.getElementById('loginTab').style.display='block'; }
+
+async function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  if (!email) return showError('loginError','Please enter your email');
+  try {
+    const r = await fetch(API+'/api/affiliate/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d = await r.json();
+    if (!r.ok) return showError('loginError',d.error||'Login failed');
+    localStorage.setItem('weaid_affiliate',JSON.stringify(d.affiliate));
+    enterDashboard(d.affiliate);
+  } catch(e) { showError('loginError','Connection error'); }
+}
+
+async function doRegister() {
+  const name=document.getElementById('regName').value.trim();
+  const phone=document.getElementById('regPhone').value.trim();
+  const email=document.getElementById('regEmail').value.trim();
+  const upiId=document.getElementById('regUpi').value.trim();
+  if(!name||!email||!phone) return showError('regError','Name, email and phone are required');
+  try {
+    const r = await fetch(API+'/api/affiliate/register',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,email,phone,upiId:upiId||undefined})});
+    const d = await r.json();
+    if(!r.ok) return showError('regError',d.error||'Registration failed');
+    // Now login to get full data
+    const r2 = await fetch(API+'/api/affiliate/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email})});
+    const d2 = await r2.json();
+    localStorage.setItem('weaid_affiliate',JSON.stringify(d2.affiliate));
+    enterDashboard(d2.affiliate);
+  } catch(e) { showError('regError','Connection error'); }
+}
+
+function showError(id,msg) { const el=document.getElementById(id); el.textContent=msg; el.style.display='block'; setTimeout(()=>el.style.display='none',4000); }
+
+function logout() { localStorage.removeItem('weaid_affiliate'); location.reload(); }
+
+// ── DASHBOARD ──
+function enterDashboard(aff) {
+  affiliate = aff;
+  affiliateId = aff.id;
+  document.getElementById('authScreen').style.display='none';
+  document.getElementById('dashScreen').style.display='flex';
+  document.getElementById('userName').textContent=aff.name;
+  document.getElementById('userAvatar').textContent=aff.name[0].toUpperCase();
+  document.getElementById('userTier').textContent=capitalize(aff.tier);
+  updateTierBadge(aff.tier);
+  loadDashboard();
+  loadLeaderboard();
+}
+
+async function loadDashboard() {
+  try {
+    const r = await fetch(API+'/api/affiliate/dashboard?affiliateId='+affiliateId);
+    const d = await r.json();
+    if(!r.ok) return;
+
+    document.getElementById('statEarnings').textContent='₹'+d.stats.totalEarnings.toLocaleString('en-IN');
+    document.getElementById('statPending').textContent='₹'+d.stats.pendingPayout.toLocaleString('en-IN');
+    document.getElementById('statReferrals').textContent=d.stats.totalReferrals;
+    document.getElementById('statMonth').textContent=d.stats.thisMonthReferrals;
+    document.getElementById('statMonthEarnings').textContent='₹'+d.stats.thisMonthEarnings.toLocaleString('en-IN')+' earned';
+
+    const refUrl = d.shareUrl || ('https://weaid.in/?ref='+d.affiliate.refCode);
+    document.getElementById('refLinkInput').value=refUrl;
+    document.getElementById('refCodeDisplay').textContent=d.affiliate.refCode;
+
+    updateTierProgress(d.stats.thisMonthReferrals, d.affiliate.tier);
+    renderRecentReferrals(d.recentReferrals);
+    renderShareCards(d.affiliate.refCode, refUrl);
+  } catch(e) { console.error('Dashboard load error',e); }
+}
+
+async function loadAllReferrals() {
+  try {
+    const r = await fetch(API+'/api/affiliate/referrals?affiliateId='+affiliateId+'&limit=50');
+    const d = await r.json();
+    document.getElementById('totalRefBadge').textContent=d.total+' total';
+    renderAllReferrals(d.referrals);
+  } catch(e) {}
+}
+
+async function loadPayouts() {
+  try {
+    const r = await fetch(API+'/api/affiliate/payouts?affiliateId='+affiliateId);
+    const d = await r.json();
+    renderPayouts(d.payouts);
+  } catch(e) {}
+}
+
+async function loadLeaderboard() {
+  try {
+    const month = new Date().toISOString().slice(0,7);
+    const r = await fetch(API+'/api/affiliate/leaderboard?month='+month);
+    const d = await r.json();
+    document.getElementById('lbMonth').textContent=formatMonth(d.currentMonth);
+    renderLeaderboard(d.leaderboard);
+  } catch(e) {}
+}
+
+// ── RENDER ──
+function renderRecentReferrals(refs) {
+  const tbody = document.getElementById('recentReferralsBody');
+  if(!refs||!refs.length) { tbody.innerHTML='<tr><td colspan="5" style="text-align:center;color:var(--muted);padding:32px;">No referrals yet. Share your link to get started!</td></tr>'; return; }
+  tbody.innerHTML=refs.map(r=>`<tr>
+    <td>${formatDate(r.created_at)}</td>
+    <td>${capitalize(r.service)}</td>
+    <td>₹${r.booking_total.toLocaleString('en-IN')}</td>
+    <td style="color:var(--green);font-weight:600;">₹${r.affiliate_commission}</td>
+    <td><span class="status ${r.status}">${capitalize(r.status)}</span></td>
+  </tr>`).join('');
+}
+
+function renderAllReferrals(refs) {
+  const tbody = document.getElementById('allReferralsBody');
+  if(!refs||!refs.length) { tbody.innerHTML='<tr><td colspan="6" style="text-align:center;color:var(--muted);padding:32px;">No referrals yet</td></tr>'; return; }
+  tbody.innerHTML=refs.map(r=>`<tr>
+    <td>${formatDate(r.created_at)}</td>
+    <td>${capitalize(r.service)}</td>
+    <td>₹${r.booking_total.toLocaleString('en-IN')}</td>
+    <td>₹${r.platform_commission}</td>
+    <td style="color:var(--green);font-weight:600;">₹${r.affiliate_commission}</td>
+    <td><span class="status ${r.status}">${capitalize(r.status)}</span></td>
+  </tr>`).join('');
+}
+
+function renderLeaderboard(lb) {
+  const tbody = document.getElementById('leaderboardBody');
+  if(!lb||!lb.length) { tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px;">No entries yet this month</td></tr>'; return; }
+  tbody.innerHTML=lb.map(e=>{
+    const isYou = e.affiliateId===affiliateId;
+    const rankClass = e.rank===1?'gold-r':e.rank===2?'silver-r':e.rank===3?'bronze-r':'other';
+    return `<tr class="${isYou?'lb-you':''}">
+      <td><span class="lb-rank ${rankClass}">${e.rank}</span></td>
+      <td>${isYou?'<strong>You</strong>':e.name}</td>
+      <td>${e.referralCount}</td>
+      <td><span class="tier-badge tier-${e.tier}">${capitalize(e.tier)}</span></td>
+    </tr>`;
+  }).join('');
+}
+
+function renderPayouts(payouts) {
+  const tbody = document.getElementById('payoutsBody');
+  if(!payouts||!payouts.length) { tbody.innerHTML='<tr><td colspan="4" style="text-align:center;color:var(--muted);padding:32px;">No payouts yet. Min ₹100 balance required.</td></tr>'; return; }
+  tbody.innerHTML=payouts.map(p=>`<tr>
+    <td>${formatDate(p.created_at)}</td>
+    <td style="color:var(--green);font-weight:600;">₹${p.amount.toLocaleString('en-IN')}</td>
+    <td>${capitalize(p.method)}</td>
+    <td><span class="status ${p.status==='completed'?'paid':p.status}">${capitalize(p.status)}</span></td>
+  </tr>`).join('');
+}
+
+function renderShareCards(code, url) {
+  const messages = [
+    { label:'WhatsApp Message', msg:`Hey! I use WeAid for home services — amazing quality at fair prices. Use my link and we both benefit: ${url}` },
+    { label:'Social Media Post', msg:`Just discovered WeAid — India's best home services platform! Try it out: ${url} #WeAid #HomeServices` },
+    { label:'Personal Referral', msg:`I've been using WeAid for ${['plumbing','electrical','cleaning','AC service'][Math.floor(Math.random()*4)]} — really professional. Here's my referral link if you want to check it out: ${url}` },
+    { label:'Group Share', msg:`Anyone need home services? WeAid is great for electricians, plumbers, cleaners & more. Use my code ${code} for a seamless experience: ${url}` },
+  ];
+  document.getElementById('shareCards').innerHTML=messages.map(m=>`
+    <div class="share-card" onclick="copyText('${m.msg.replace(/'/g,"\\'")}')">
+      <div class="label">${m.label}</div>
+      <div class="msg">${m.msg}</div>
+    </div>
+  `).join('');
+}
+
+function updateTierProgress(monthlyRefs, currentTier) {
+  const thresholds = {bronze:0,silver:5,gold:15,platinum:30};
+  const tiers = ['bronze','silver','gold','platinum'];
+  const currentIdx = tiers.indexOf(currentTier);
+  const nextTier = tiers[Math.min(currentIdx+1,3)];
+  const nextThreshold = thresholds[nextTier];
+  const prevThreshold = thresholds[currentTier];
+  const range = nextThreshold - prevThreshold || 30;
+  const progress = Math.min(((monthlyRefs - prevThreshold) / range) * 100, 100);
+
+  document.getElementById('tierBarFill').style.width = progress+'%';
+  document.getElementById('tierLabel').textContent = capitalize(currentTier);
+
+  tiers.forEach(t => {
+    const el = document.getElementById('tl-'+t);
+    if(el) { el.className = t===currentTier ? 'active-tier' : ''; }
+  });
+
+  const bonuses = {silver:500,gold:2000,platinum:5000};
+  if(currentTier==='platinum') {
+    document.getElementById('tierHint').textContent='You\'re at the highest tier! Keep up the great work!';
+  } else {
+    const needed = nextThreshold - monthlyRefs;
+    document.getElementById('tierHint').textContent=`Get ${needed} more referral${needed!==1?'s':''} this month to reach ${capitalize(nextTier)} and earn a ₹${bonuses[nextTier].toLocaleString('en-IN')} bonus!`;
+  }
+}
+
+function updateTierBadge(tier) {
+  const badge = document.getElementById('topTierBadge');
+  badge.textContent = tier.toUpperCase();
+  badge.className = 'tier-badge tier-'+tier;
+}
+
+// ── TABS ──
+function showTab(tab) {
+  ['overview','referrals','leaderboard','payouts','marketing'].forEach(t=>{
+    document.getElementById('tab-'+t).style.display = t===tab?'block':'none';
+  });
+  document.querySelectorAll('.nav-item').forEach(el=>el.classList.remove('active'));
+  event.target.closest('.nav-item').classList.add('active');
+
+  if(tab==='referrals') loadAllReferrals();
+  if(tab==='payouts') loadPayouts();
+  if(tab==='leaderboard') loadLeaderboard();
+}
+
+// ── ACTIONS ──
+function copyLink() {
+  const input = document.getElementById('refLinkInput');
+  navigator.clipboard.writeText(input.value).then(()=>showToast('Link copied!')).catch(()=>{input.select();document.execCommand('copy');showToast('Link copied!');});
+}
+
+function shareWhatsApp() {
+  const url = document.getElementById('refLinkInput').value;
+  const msg = encodeURIComponent('Check out WeAid for home services! '+url);
+  window.open('https://wa.me/?text='+msg,'_blank');
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(()=>showToast('Message copied!')).catch(()=>showToast('Copy failed'));
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'),2000);
+}
+
+// ── UTILS ──
+function capitalize(s) { return s?s.charAt(0).toUpperCase()+s.slice(1):''; }
+function formatDate(d) { return new Date(d).toLocaleDateString('en-IN',{day:'numeric',month:'short',year:'numeric'}); }
+function formatMonth(m) { const [y,mo]=m.split('-'); return new Date(y,mo-1).toLocaleDateString('en-IN',{month:'long',year:'numeric'}); }
+
+// ── INIT ──
+(function(){
+  const saved = localStorage.getItem('weaid_affiliate');
+  if(saved) {
+    try { enterDashboard(JSON.parse(saved)); } catch(e) { localStorage.removeItem('weaid_affiliate'); }
+  }
+})();
+</script>
+</body>
+</html>

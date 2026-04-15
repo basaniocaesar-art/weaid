@@ -822,6 +822,31 @@ function toggleMute(){muted=!muted;vEls.forEach(el=>el.muted=muted);document.get
 
 new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){if(vEls[cur])vEls[cur].play().catch(()=>{});}else{vEls.forEach(el=>el.pause());}});},{threshold:0.1}).observe(document.getElementById('heroSec'));
 
+// ── AFFILIATE REF CODE TRACKING ──────────────────────────────────────────────
+(function(){
+  const params=new URLSearchParams(window.location.search);
+  const ref=params.get('ref');
+  if(ref){
+    fetch('/api/affiliate/track',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({refCode:ref})})
+    .then(r=>r.json()).then(d=>{
+      if(d.valid){
+        localStorage.setItem('weaid_ref',ref);
+        localStorage.setItem('weaid_ref_ts',Date.now().toString());
+      }
+    }).catch(()=>{});
+  }
+})();
+
+// Helper: get valid ref code (30-day expiry)
+function getRefCode(){
+  const ref=localStorage.getItem('weaid_ref');
+  const ts=parseInt(localStorage.getItem('weaid_ref_ts')||'0');
+  if(ref && (Date.now()-ts < 30*86400*1000)) return ref;
+  localStorage.removeItem('weaid_ref');
+  localStorage.removeItem('weaid_ref_ts');
+  return null;
+}
+
 // ── INIT ──────────────────────────────────────────────────────────────────────
 calcPrice();
 renderJobs('all');

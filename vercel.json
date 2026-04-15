@@ -5,10 +5,12 @@
     { "source": "/login", "destination": "/weaid-login.html" },
     { "source": "/dashboard", "destination": "/weaid-user.html" },
     { "source": "/provider", "destination": "/weaid-provider.html" },
-    { "source": "/admin", "destination": "/weaid-admin.html" }
+    { "source": "/admin", "destination": "/weaid-admin.html" },
+    { "source": "/affiliate", "destination": "/weaid-affiliate.html" }
   ],
   "crons": [
     { "path": "/api/cron/tick", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/weekly-payout", "schedule": "0 6 * * 1" }
+    { "path": "/api/cron/weekly-payout", "schedule": "0 6 * * 1" },
+    { "path": "/api/cron/affiliate-month-end", "schedule": "0 8 1 * *" }
   ]
 }

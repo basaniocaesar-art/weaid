@@ -2,6 +2,7 @@ import { calculatePrice } from "../../../lib/pricing.js";
 import { insertBooking } from "../../../lib/supabase.js";
 import { createOrder } from "../../../lib/razorpay.js";
 import { createCheckoutSession } from "../../../lib/stripe.js";
+import { lookupAffiliateByRefCode } from "../../../lib/affiliate.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -9,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { service, city, scope, slot, customer, gateway = "stripe" } = req.body;
+    const { service, city, scope, slot, customer, gateway = "stripe", refCode } = req.body;
 
     if (!service || !city || !scope || !customer) {
       return res.status(400).json({ error: "Missing required fields: service, city, scope, customer" });
@@ -18,7 +19,14 @@ export default async function handler(req, res) {
     // 1. Calculate price
     const price = calculatePrice({ service, city, scope, slot });
 
-    // 2. Store booking
+    // 2. Look up affiliate if ref code provided
+    let affiliateId = null;
+    if (refCode) {
+      const affiliate = await lookupAffiliateByRefCode(refCode);
+      if (affiliate) affiliateId = affiliate.id;
+    }
+
+    // 3. Store booking
     const booking = await insertBooking({
       service,
       city,
@@ -34,6 +42,8 @@ export default async function handler(req, res) {
       commission: price.commission,
       provider_earnings: price.providerEarnings,
       payment_gateway: gateway,
+      ref_code: refCode || null,
+      affiliate_id: affiliateId,
       status: "pending_payment",
     });
 
