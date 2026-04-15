@@ -6,7 +6,9 @@
     { "source": "/dashboard", "destination": "/weaid-user.html" },
     { "source": "/provider", "destination": "/weaid-provider.html" },
     { "source": "/admin", "destination": "/weaid-admin.html" },
-    { "source": "/affiliate", "destination": "/weaid-affiliate.html" }
+    { "source": "/affiliate", "destination": "/weaid-affiliate.html" },
+    { "source": "/post-job", "destination": "/weaid-post-job.html" },
+    { "source": "/jobs", "destination": "/weaid-jobs.html" }
   ],
   "crons": [
     { "path": "/api/cron/tick", "schedule": "0 9 * * *" },

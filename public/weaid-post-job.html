@@ -1,0 +1,380 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeAid — Post a Job</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
+<style>
+:root{--bg:#07090f;--bg2:#0e1117;--bg3:#161b27;--bg4:#1e2535;--teal:#00c9b1;--teal2:#00a896;--tdim:rgba(0,201,177,0.1);--gold:#f0b429;--gdim:rgba(240,180,41,0.1);--green:#22c55e;--text:#eef2ff;--t2:#8892aa;--t3:#4a5568;--w:#fff;--bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);--font:'DM Sans',sans-serif;--serif:'Fraunces',serif;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);min-height:100vh;-webkit-font-smoothing:antialiased;}
+a{text-decoration:none;color:inherit;}
+
+/* NAV */
+.nav{position:fixed;top:0;left:0;right:0;z-index:200;height:72px;padding:0 60px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,9,15,0.95);backdrop-filter:blur(24px);border-bottom:1px solid var(--bdr);}
+.nlgo{display:flex;align-items:center;gap:10px;}
+.nlgo-mark{width:38px;height:38px;border-radius:10px;background:linear-gradient(135deg,var(--teal),#0099ff);display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1rem;color:var(--bg);}
+.nlgo-txt{font-family:var(--serif);font-size:1.4rem;font-weight:700;color:var(--w);}
+.nlgo-txt span{color:var(--teal);}
+.nlinks{display:flex;align-items:center;gap:24px;}
+.nlinks a{font-size:0.85rem;font-weight:500;color:var(--t2);transition:color 0.2s;}
+.nlinks a:hover{color:var(--teal);}
+.btn-post{padding:9px 20px;background:var(--gold);border-radius:100px;font-size:0.83rem;font-weight:700;color:var(--bg);transition:all 0.2s;}
+.btn-post:hover{opacity:0.9;transform:translateY(-1px);}
+
+/* CONTAINER */
+.container{max-width:720px;margin:0 auto;padding:100px 24px 60px;}
+.page-title{font-family:var(--serif);font-size:2.2rem;font-weight:700;margin-bottom:8px;}
+.page-sub{color:var(--t2);font-size:0.95rem;margin-bottom:32px;}
+
+/* FORM */
+.form-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:32px;margin-bottom:24px;}
+.form-section{margin-bottom:24px;}
+.form-section:last-child{margin-bottom:0;}
+.form-label{font-size:0.78rem;font-weight:700;text-transform:uppercase;letter-spacing:0.8px;color:var(--t2);margin-bottom:8px;}
+.form-label .req{color:var(--gold);margin-left:2px;}
+
+input[type="text"],input[type="email"],input[type="tel"],input[type="number"],select,textarea{
+  width:100%;padding:12px 16px;background:var(--bg3);border:1px solid var(--bdr2);border-radius:10px;color:var(--text);font-size:0.9rem;font-family:inherit;outline:none;transition:border-color 0.2s;
+}
+input:focus,select:focus,textarea:focus{border-color:var(--teal);}
+select{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%238892aa' fill='none' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 14px center;}
+select option{background:var(--bg3);color:var(--text);}
+textarea{resize:vertical;min-height:100px;}
+
+.row-2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;}
+
+/* PRICING MODE */
+.mode-cards{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;}
+.mode-card{padding:14px;background:var(--bg3);border:2px solid var(--bdr2);border-radius:10px;cursor:pointer;text-align:center;transition:all 0.2s;}
+.mode-card:hover{border-color:var(--t2);}
+.mode-card.active{border-color:var(--teal);background:var(--tdim);}
+.mode-card .mc-title{font-size:0.82rem;font-weight:700;margin-bottom:4px;}
+.mode-card .mc-desc{font-size:0.7rem;color:var(--t2);}
+
+/* SKILLS */
+.skills-row{display:flex;flex-wrap:wrap;gap:8px;}
+.skill-tag{padding:6px 14px;border:1px solid var(--bdr2);border-radius:100px;font-size:0.78rem;font-weight:500;color:var(--t2);cursor:pointer;transition:all 0.2s;}
+.skill-tag:hover{border-color:var(--teal);color:var(--teal);}
+.skill-tag.on{background:var(--tdim);border-color:var(--teal);color:var(--teal);}
+
+/* FIXED PRICE PREVIEW */
+.price-preview{background:var(--tdim);border:1px solid var(--teal);border-radius:10px;padding:16px;margin-top:12px;display:none;}
+.price-preview .pp-label{font-size:0.72rem;font-weight:700;color:var(--teal);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:4px;}
+.price-preview .pp-value{font-size:1.4rem;font-weight:800;color:var(--teal);}
+
+/* SUBMIT */
+.btn-submit{width:100%;padding:14px;background:var(--teal);border:none;border-radius:12px;color:var(--bg);font-size:1rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all 0.2s;}
+.btn-submit:hover{background:var(--teal2);transform:translateY(-1px);}
+.btn-submit:disabled{opacity:0.5;cursor:not-allowed;transform:none;}
+
+/* SUCCESS */
+.success-card{background:var(--bg2);border:1px solid var(--teal);border-radius:16px;padding:40px;text-align:center;display:none;}
+.success-card .check{width:64px;height:64px;border-radius:50%;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.8rem;margin:0 auto 16px;}
+.success-card h3{font-family:var(--serif);font-size:1.4rem;margin-bottom:8px;}
+.success-card p{color:var(--t2);font-size:0.9rem;margin-bottom:20px;}
+.success-card .btn-link{display:inline-block;padding:10px 24px;background:var(--teal);border-radius:100px;font-weight:700;font-size:0.85rem;color:var(--bg);}
+
+/* ERROR */
+.error-msg{color:#ef4444;font-size:0.82rem;margin-bottom:12px;display:none;}
+
+/* CUSTOMER INFO */
+.customer-section{background:var(--bg3);border:1px solid var(--bdr);border-radius:12px;padding:20px;margin-top:24px;}
+.customer-section h4{font-size:0.85rem;font-weight:700;margin-bottom:12px;}
+
+@media(max-width:600px){
+  .nav{padding:0 20px;}
+  .container{padding:88px 16px 40px;}
+  .mode-cards{grid-template-columns:1fr;}
+  .row-2,.row-3{grid-template-columns:1fr;}
+  .nlinks{display:none;}
+}
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav class="nav">
+  <a href="/" class="nlgo"><div class="nlgo-mark">W</div><div class="nlgo-txt">We<span>Aid</span></div></a>
+  <div class="nlinks">
+    <a href="/">Home</a>
+    <a href="/jobs">Browse Jobs</a>
+    <a href="/affiliate">Affiliate</a>
+    <a href="/login">Sign In</a>
+    <a href="/post-job" class="btn-post">Post a Job</a>
+  </div>
+</nav>
+
+<div class="container">
+  <h1 class="page-title">Post a Job</h1>
+  <p class="page-sub">Describe what you need done and get quotes from verified professionals across India.</p>
+
+  <!-- FORM -->
+  <div id="formSection">
+    <div id="formError" class="error-msg"></div>
+
+    <div class="form-card">
+      <div class="form-section">
+        <div class="form-label">Job Title <span class="req">*</span></div>
+        <input type="text" id="jobTitle" placeholder="e.g. Fix leaking tap in bathroom">
+      </div>
+
+      <div class="form-section">
+        <div class="form-label">Category <span class="req">*</span></div>
+        <select id="jobCategory">
+          <option value="">Select a category</option>
+          <optgroup label="Home Services">
+            <option value="electrical">Electrical Work</option>
+            <option value="plumbing">Plumbing</option>
+            <option value="cleaning">Deep Cleaning</option>
+            <option value="ac">AC & Appliance Repair</option>
+            <option value="carpentry">Carpentry</option>
+            <option value="renovation">Renovation</option>
+            <option value="painting">Painting & Waterproofing</option>
+            <option value="pest_control">Pest Control</option>
+            <option value="cctv">CCTV & Security</option>
+          </optgroup>
+          <optgroup label="Transport">
+            <option value="pickup">Airport Pickup/Drop</option>
+            <option value="local_transport">Local Transport</option>
+            <option value="packers">Packers & Movers</option>
+          </optgroup>
+          <optgroup label="Professional Services">
+            <option value="caretaking">Caretaking</option>
+            <option value="photography">Photography & Video</option>
+            <option value="it_repair">IT & Computer Repair</option>
+            <option value="tutoring">Tutoring & Teaching</option>
+            <option value="event">Event Management</option>
+            <option value="cooking">Cooking & Catering</option>
+            <option value="healthcare">Healthcare & Nursing</option>
+          </optgroup>
+          <optgroup label="Other">
+            <option value="other">Other</option>
+          </optgroup>
+        </select>
+      </div>
+
+      <div class="form-section">
+        <div class="form-label">Description</div>
+        <textarea id="jobDesc" placeholder="Describe the work needed, any specifics, materials required, etc."></textarea>
+      </div>
+
+      <div class="form-section">
+        <div class="row-2">
+          <div>
+            <div class="form-label">City <span class="req">*</span></div>
+            <select id="jobCity">
+              <option value="">Select city</option>
+              <option value="mumbai">Mumbai</option>
+              <option value="delhi">Delhi NCR</option>
+              <option value="bangalore">Bangalore</option>
+              <option value="hyderabad">Hyderabad</option>
+              <option value="chennai">Chennai</option>
+              <option value="pune">Pune</option>
+              <option value="kochi">Kochi</option>
+              <option value="ahmedabad">Ahmedabad</option>
+              <option value="jaipur">Jaipur</option>
+              <option value="kolkata">Kolkata</option>
+            </select>
+          </div>
+          <div>
+            <div class="form-label">Scope</div>
+            <select id="jobScope">
+              <option value="small">Small</option>
+              <option value="medium">Medium</option>
+              <option value="large">Large</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="form-section">
+        <div class="row-3">
+          <div>
+            <div class="form-label">Budget Min (₹)</div>
+            <input type="number" id="budgetMin" placeholder="e.g. 500">
+          </div>
+          <div>
+            <div class="form-label">Budget Max (₹)</div>
+            <input type="number" id="budgetMax" placeholder="e.g. 2000">
+          </div>
+          <div>
+            <div class="form-label">When Needed</div>
+            <select id="jobWhen">
+              <option value="flexible">Flexible</option>
+              <option value="today">Today (Urgent)</option>
+              <option value="this_week">This Week</option>
+              <option value="next_week">Next Week</option>
+            </select>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PRICING MODE -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="form-label">How should providers respond?</div>
+        <div class="mode-cards">
+          <div class="mode-card active" onclick="setMode('both')">
+            <div class="mc-title">Both</div>
+            <div class="mc-desc">Bid or accept fixed price</div>
+          </div>
+          <div class="mode-card" onclick="setMode('bid')">
+            <div class="mc-title">Bidding Only</div>
+            <div class="mc-desc">Providers submit quotes</div>
+          </div>
+          <div class="mode-card" onclick="setMode('fixed')">
+            <div class="mc-title">Fixed Price</div>
+            <div class="mc-desc">WeAid calculated price</div>
+          </div>
+        </div>
+        <div class="price-preview" id="pricePreview">
+          <div class="pp-label">WeAid Fixed Price</div>
+          <div class="pp-value" id="fixedPriceVal">—</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- SKILLS -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="form-label">Skills / Expertise Needed</div>
+        <div class="skills-row" id="skillsRow">
+          <div class="skill-tag" onclick="toggleSkill(this)">Licensed Electrician</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Plumber</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Painter</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Carpenter</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">AC Technician</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Deep Cleaning</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Waterproofing</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">CCTV Install</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Heavy Lifting</div>
+          <div class="skill-tag" onclick="toggleSkill(this)">Vehicle Driving</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOMER INFO -->
+    <div class="form-card">
+      <div class="form-section">
+        <div class="form-label">Your Details <span class="req">*</span></div>
+        <div class="row-2" style="margin-bottom:12px;">
+          <input type="text" id="custName" placeholder="Your Name">
+          <input type="tel" id="custPhone" placeholder="Phone Number">
+        </div>
+        <input type="email" id="custEmail" placeholder="Email (optional)">
+      </div>
+    </div>
+
+    <button class="btn-submit" id="submitBtn" onclick="postJob()">Post Job</button>
+  </div>
+
+  <!-- SUCCESS -->
+  <div class="success-card" id="successCard">
+    <div class="check">✓</div>
+    <h3>Job Posted Successfully!</h3>
+    <p>Your job is now live. Matching providers will be notified and can start bidding.</p>
+    <a href="/jobs" class="btn-link">View Jobs Board</a>
+  </div>
+</div>
+
+<script>
+let pricingMode = 'both';
+
+function setMode(mode) {
+  pricingMode = mode;
+  document.querySelectorAll('.mode-card').forEach(c => c.classList.remove('active'));
+  event.target.closest('.mode-card').classList.add('active');
+  const pp = document.getElementById('pricePreview');
+  if (mode === 'fixed' || mode === 'both') {
+    pp.style.display = 'block';
+    calcFixedPrice();
+  } else {
+    pp.style.display = 'none';
+  }
+}
+
+function calcFixedPrice() {
+  const cat = document.getElementById('jobCategory').value;
+  const city = document.getElementById('jobCity').value;
+  const scope = document.getElementById('jobScope').value;
+  const bases = {electrical:499,plumbing:399,cleaning:1499,ac:599,carpentry:699,renovation:5000,pickup:799,caretaking:999};
+  const areas = {mumbai:1.5,delhi:1.45,bangalore:1.4,hyderabad:1.35,chennai:1.35,pune:1.3,kochi:1.15,ahmedabad:1.15,jaipur:1.1};
+  const scopes = {small:1,medium:1.6,large:2.8};
+  const base = bases[cat];
+  if (!base || !city) { document.getElementById('fixedPriceVal').textContent = 'Select category & city'; return; }
+  const price = Math.round(base * (areas[city]||0.9) * (scopes[scope]||1)) + 49;
+  document.getElementById('fixedPriceVal').textContent = '₹' + price.toLocaleString('en-IN');
+}
+
+function toggleSkill(el) { el.classList.toggle('on'); }
+
+function getSelectedSkills() {
+  return Array.from(document.querySelectorAll('.skill-tag.on')).map(el => el.textContent);
+}
+
+async function postJob() {
+  const title = document.getElementById('jobTitle').value.trim();
+  const category = document.getElementById('jobCategory').value;
+  const city = document.getElementById('jobCity').value;
+  const desc = document.getElementById('jobDesc').value.trim();
+  const budgetMin = parseInt(document.getElementById('budgetMin').value) || null;
+  const budgetMax = parseInt(document.getElementById('budgetMax').value) || null;
+  const whenNeeded = document.getElementById('jobWhen').value;
+  const scope = document.getElementById('jobScope').value;
+  const name = document.getElementById('custName').value.trim();
+  const phone = document.getElementById('custPhone').value.trim();
+  const email = document.getElementById('custEmail').value.trim();
+
+  if (!title || !category || !city || !name || !phone) {
+    showError('Please fill in all required fields (title, category, city, name, phone)');
+    return;
+  }
+
+  const btn = document.getElementById('submitBtn');
+  btn.disabled = true;
+  btn.textContent = 'Posting...';
+
+  try {
+    const r = await fetch('/api/jobs/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title, category, city, description: desc,
+        budgetMin, budgetMax, whenNeeded, scope,
+        skills: getSelectedSkills(),
+        pricingMode,
+        customer: { name, phone, email: email || null },
+      }),
+    });
+    const d = await r.json();
+    if (!r.ok) { showError(d.error || 'Failed to post job'); btn.disabled = false; btn.textContent = 'Post Job'; return; }
+    document.getElementById('formSection').style.display = 'none';
+    document.getElementById('successCard').style.display = 'block';
+  } catch (e) {
+    showError('Connection error. Please try again.');
+    btn.disabled = false;
+    btn.textContent = 'Post Job';
+  }
+}
+
+function showError(msg) {
+  const el = document.getElementById('formError');
+  el.textContent = msg;
+  el.style.display = 'block';
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  setTimeout(() => el.style.display = 'none', 5000);
+}
+
+// Auto-calc price on change
+['jobCategory','jobCity','jobScope'].forEach(id => {
+  document.getElementById(id).addEventListener('change', () => {
+    if (pricingMode !== 'bid') calcFixedPrice();
+  });
+});
+</script>
+</body>
+</html>
