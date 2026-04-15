@@ -1,0 +1,907 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeAid — Home Services Across India</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --teal: #0d6e6e;
+    --teal-light: #12908f;
+    --teal-dark: #084e4e;
+    --gold: #c9933a;
+    --gold-light: #e8b86d;
+    --cream: #fdf6ec;
+    --cream-dark: #f5e9d4;
+    --text: #1a1a1a;
+    --text-muted: #5a5a5a;
+    --white: #ffffff;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text);
+    overflow-x: hidden;
+  }
+
+  /* NAV */
+  nav {
+    position: fixed; top: 0; left: 0; right: 0;
+    z-index: 100;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 18px 48px;
+    background: rgba(253,246,236,0.92);
+    backdrop-filter: blur(12px);
+    border-bottom: 1px solid rgba(201,147,58,0.15);
+  }
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.7rem;
+    font-weight: 700;
+    color: var(--teal-dark);
+    letter-spacing: -0.5px;
+  }
+  .logo span { color: var(--gold); }
+  .nav-links { display: flex; gap: 32px; align-items: center; }
+  .nav-links a {
+    text-decoration: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: color 0.2s;
+  }
+  .nav-links a:hover { color: var(--teal); }
+  .nav-cta {
+    background: var(--teal);
+    color: var(--white) !important;
+    padding: 10px 24px;
+    border-radius: 100px;
+    font-weight: 600 !important;
+    transition: background 0.2s !important;
+  }
+  .nav-cta:hover { background: var(--teal-dark) !important; color: var(--white) !important; }
+
+  /* HERO */
+  .hero {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    padding: 120px 48px 80px;
+    position: relative;
+    overflow: hidden;
+  }
+  .hero::before {
+    content: '';
+    position: absolute; top: 0; right: 0;
+    width: 55%; height: 100%;
+    background: linear-gradient(135deg, var(--teal-dark) 0%, var(--teal) 40%, #1a9e9e 100%);
+    clip-path: polygon(12% 0%, 100% 0%, 100% 100%, 0% 100%);
+    z-index: 0;
+  }
+  .hero-pattern {
+    position: absolute; top: 0; right: 0;
+    width: 55%; height: 100%;
+    background-image: radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px);
+    background-size: 28px 28px;
+    clip-path: polygon(12% 0%, 100% 0%, 100% 100%, 0% 100%);
+    z-index: 1;
+  }
+  .hero-content {
+    position: relative; z-index: 2;
+    max-width: 560px;
+  }
+  .hero-badge {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: rgba(201,147,58,0.12);
+    border: 1px solid rgba(201,147,58,0.3);
+    padding: 6px 16px;
+    border-radius: 100px;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--gold);
+    letter-spacing: 0.5px;
+    margin-bottom: 28px;
+    text-transform: uppercase;
+  }
+  .hero-badge::before { content: '●'; font-size: 0.5rem; }
+  h1 {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(2.8rem, 5vw, 4rem);
+    font-weight: 700;
+    line-height: 1.1;
+    color: var(--teal-dark);
+    margin-bottom: 20px;
+  }
+  h1 em {
+    font-style: italic;
+    color: var(--gold);
+  }
+  .hero-sub {
+    font-size: 1.05rem;
+    color: var(--text-muted);
+    line-height: 1.7;
+    margin-bottom: 36px;
+    max-width: 440px;
+  }
+  .hero-actions { display: flex; gap: 16px; flex-wrap: wrap; align-items: center; }
+  .btn-primary {
+    background: var(--teal);
+    color: var(--white);
+    padding: 14px 32px;
+    border-radius: 100px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: none; cursor: pointer;
+    transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+  }
+  .btn-primary:hover { background: var(--teal-dark); transform: translateY(-1px); }
+  .btn-secondary {
+    background: transparent;
+    color: var(--teal);
+    padding: 14px 32px;
+    border-radius: 100px;
+    font-size: 0.95rem;
+    font-weight: 600;
+    text-decoration: none;
+    border: 2px solid var(--teal);
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-secondary:hover { background: var(--teal); color: var(--white); }
+  .hero-stats {
+    display: flex; gap: 40px; margin-top: 52px;
+  }
+  .stat-item {}
+  .stat-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem;
+    font-weight: 700;
+    color: var(--teal-dark);
+  }
+  .stat-label { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+
+  /* FLOATING CARD */
+  .hero-card {
+    position: absolute;
+    right: 80px; top: 50%;
+    transform: translateY(-50%);
+    z-index: 3;
+    background: white;
+    border-radius: 20px;
+    padding: 28px;
+    width: 280px;
+    box-shadow: 0 24px 64px rgba(8,78,78,0.25);
+    animation: float 4s ease-in-out infinite;
+  }
+  @keyframes float {
+    0%, 100% { transform: translateY(-50%) translateY(0px); }
+    50% { transform: translateY(-50%) translateY(-12px); }
+  }
+  .card-header {
+    display: flex; align-items: center; gap: 12px;
+    margin-bottom: 20px;
+  }
+  .card-icon {
+    width: 44px; height: 44px;
+    background: var(--teal);
+    border-radius: 12px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1.2rem;
+  }
+  .card-title { font-weight: 600; font-size: 0.95rem; }
+  .card-subtitle { font-size: 0.75rem; color: var(--text-muted); }
+  .card-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid #f0f0f0;
+    font-size: 0.85rem;
+  }
+  .card-row:last-child { border-bottom: none; }
+  .card-status {
+    font-size: 0.72rem; font-weight: 600;
+    padding: 3px 10px; border-radius: 100px;
+  }
+  .status-confirmed { background: #e6f7f0; color: #1a8a5a; }
+  .status-pending { background: #fff8e6; color: #c9933a; }
+  .status-done { background: #e8f4ff; color: #1a6abf; }
+
+  /* TRUST BAR */
+  .trust-bar {
+    background: var(--teal-dark);
+    padding: 20px 48px;
+    display: flex; align-items: center; justify-content: center; gap: 60px;
+    flex-wrap: wrap;
+  }
+  .trust-item {
+    display: flex; align-items: center; gap: 10px;
+    color: rgba(255,255,255,0.8);
+    font-size: 0.85rem; font-weight: 500;
+  }
+  .trust-item span { font-size: 1.1rem; }
+
+  /* SERVICES */
+  .section { padding: 90px 48px; }
+  .section-label {
+    font-size: 0.75rem; font-weight: 700;
+    letter-spacing: 2px; text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
+  .section-title {
+    font-family: 'Playfair Display', serif;
+    font-size: clamp(1.8rem, 3vw, 2.6rem);
+    font-weight: 700;
+    color: var(--teal-dark);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .section-sub {
+    font-size: 1rem;
+    color: var(--text-muted);
+    max-width: 500px;
+    line-height: 1.7;
+    margin-bottom: 52px;
+  }
+
+  .services-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 24px;
+  }
+  .service-card {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 28px;
+    cursor: pointer;
+    transition: all 0.25s;
+    border: 2px solid transparent;
+    position: relative;
+    overflow: hidden;
+  }
+  .service-card::before {
+    content: '';
+    position: absolute; bottom: 0; left: 0; right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--teal), var(--gold));
+    transform: scaleX(0);
+    transition: transform 0.25s;
+  }
+  .service-card:hover { transform: translateY(-4px); box-shadow: 0 16px 40px rgba(8,78,78,0.12); border-color: rgba(13,110,110,0.1); }
+  .service-card:hover::before { transform: scaleX(1); }
+  .service-emoji { font-size: 2.2rem; margin-bottom: 16px; display: block; }
+  .service-name {
+    font-weight: 700; font-size: 1rem;
+    color: var(--teal-dark);
+    margin-bottom: 8px;
+  }
+  .service-desc { font-size: 0.85rem; color: var(--text-muted); line-height: 1.6; margin-bottom: 16px; }
+  .service-price {
+    font-size: 0.8rem; font-weight: 600;
+    color: var(--gold);
+  }
+  .service-arrow {
+    position: absolute; top: 28px; right: 28px;
+    color: var(--teal-light); font-size: 1.1rem;
+    opacity: 0; transition: opacity 0.2s;
+  }
+  .service-card:hover .service-arrow { opacity: 1; }
+
+  /* HOW IT WORKS */
+  .how-section { background: var(--teal-dark); padding: 90px 48px; }
+  .how-section .section-title { color: white; }
+  .how-section .section-label { color: var(--gold-light); }
+  .how-section .section-sub { color: rgba(255,255,255,0.6); }
+  .steps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+    gap: 32px;
+  }
+  .step-card {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 20px;
+    padding: 36px 28px;
+    position: relative;
+  }
+  .step-num {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    font-weight: 700;
+    color: rgba(201,147,58,0.25);
+    line-height: 1;
+    margin-bottom: 16px;
+  }
+  .step-title { font-weight: 700; font-size: 1rem; color: white; margin-bottom: 10px; }
+  .step-desc { font-size: 0.85rem; color: rgba(255,255,255,0.55); line-height: 1.6; }
+  .step-icon { font-size: 1.6rem; margin-bottom: 12px; }
+
+  /* BOOKING FORM */
+  .booking-section { background: white; padding: 90px 48px; }
+  .booking-wrap {
+    max-width: 1100px; margin: 0 auto;
+    display: grid; grid-template-columns: 1fr 1fr; gap: 80px; align-items: start;
+  }
+  .booking-form {
+    background: var(--cream);
+    border-radius: 24px;
+    padding: 40px;
+    border: 1px solid var(--cream-dark);
+  }
+  .form-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.5rem; font-weight: 700;
+    color: var(--teal-dark);
+    margin-bottom: 28px;
+  }
+  .form-row { margin-bottom: 20px; }
+  .form-row label {
+    display: block;
+    font-size: 0.8rem; font-weight: 600;
+    color: var(--text-muted);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 8px;
+  }
+  .form-row input,
+  .form-row select,
+  .form-row textarea {
+    width: 100%;
+    padding: 13px 16px;
+    border: 1.5px solid #e0d8cc;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.9rem;
+    background: white;
+    color: var(--text);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-row input:focus,
+  .form-row select:focus,
+  .form-row textarea:focus { border-color: var(--teal); }
+  .form-row textarea { min-height: 100px; resize: vertical; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .submit-btn {
+    width: 100%;
+    background: var(--teal);
+    color: white;
+    border: none; cursor: pointer;
+    padding: 16px;
+    border-radius: 12px;
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem; font-weight: 600;
+    transition: all 0.2s;
+    margin-top: 8px;
+  }
+  .submit-btn:hover { background: var(--teal-dark); transform: translateY(-1px); }
+
+  .booking-info {}
+  .info-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 2rem; font-weight: 700;
+    color: var(--teal-dark);
+    margin-bottom: 16px;
+    line-height: 1.2;
+  }
+  .info-desc { font-size: 0.95rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 36px; }
+  .info-features { display: flex; flex-direction: column; gap: 18px; }
+  .feature-item { display: flex; gap: 16px; align-items: flex-start; }
+  .feature-icon {
+    width: 40px; height: 40px; min-width: 40px;
+    background: rgba(13,110,110,0.08);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 1rem;
+  }
+  .feature-text h4 { font-weight: 600; font-size: 0.9rem; margin-bottom: 4px; color: var(--teal-dark); }
+  .feature-text p { font-size: 0.82rem; color: var(--text-muted); line-height: 1.5; }
+
+  /* TESTIMONIALS */
+  .testimonials { padding: 90px 48px; background: var(--cream-dark); }
+  .testimonials-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 24px; margin-top: 0;
+  }
+  .testimonial-card {
+    background: white;
+    border-radius: 20px;
+    padding: 32px 28px;
+    border: 1px solid rgba(201,147,58,0.1);
+  }
+  .stars { color: var(--gold); font-size: 0.9rem; margin-bottom: 16px; letter-spacing: 2px; }
+  .testimonial-text { font-size: 0.9rem; color: var(--text-muted); line-height: 1.7; margin-bottom: 24px; font-style: italic; }
+  .testimonial-author { display: flex; align-items: center; gap: 12px; }
+  .author-avatar {
+    width: 40px; height: 40px;
+    background: linear-gradient(135deg, var(--teal), var(--gold));
+    border-radius: 50%;
+    display: flex; align-items: center; justify-content: center;
+    color: white; font-weight: 700; font-size: 0.9rem;
+  }
+  .author-name { font-weight: 600; font-size: 0.88rem; }
+  .author-location { font-size: 0.75rem; color: var(--text-muted); }
+
+  /* FOOTER */
+  footer {
+    background: var(--teal-dark);
+    color: rgba(255,255,255,0.7);
+    padding: 60px 48px 32px;
+  }
+  .footer-top {
+    display: grid; grid-template-columns: 2fr 1fr 1fr 1fr;
+    gap: 48px; margin-bottom: 48px;
+  }
+  .footer-logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 1.6rem; font-weight: 700;
+    color: white; margin-bottom: 14px;
+  }
+  .footer-logo span { color: var(--gold-light); }
+  .footer-desc { font-size: 0.85rem; line-height: 1.7; max-width: 260px; }
+  .footer-col h4 { color: white; font-size: 0.85rem; font-weight: 700; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 16px; }
+  .footer-col a { display: block; font-size: 0.83rem; color: rgba(255,255,255,0.55); text-decoration: none; margin-bottom: 10px; transition: color 0.2s; }
+  .footer-col a:hover { color: var(--gold-light); }
+  .footer-bottom { border-top: 1px solid rgba(255,255,255,0.08); padding-top: 24px; display: flex; justify-content: space-between; align-items: center; font-size: 0.8rem; }
+
+  /* MODAL */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    backdrop-filter: blur(4px);
+    z-index: 200;
+    align-items: center; justify-content: center;
+  }
+  .modal-overlay.active { display: flex; }
+  .modal {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    width: 90%; max-width: 480px;
+    position: relative;
+    animation: modalIn 0.3s ease;
+  }
+  @keyframes modalIn {
+    from { opacity: 0; transform: translateY(20px) scale(0.97); }
+    to { opacity: 1; transform: translateY(0) scale(1); }
+  }
+  .modal-close {
+    position: absolute; top: 16px; right: 20px;
+    background: none; border: none; font-size: 1.4rem;
+    cursor: pointer; color: var(--text-muted);
+  }
+  .modal-icon { font-size: 2.5rem; margin-bottom: 12px; }
+  .modal-title { font-family: 'Playfair Display', serif; font-size: 1.4rem; font-weight: 700; color: var(--teal-dark); margin-bottom: 8px; }
+  .modal-sub { font-size: 0.88rem; color: var(--text-muted); margin-bottom: 24px; line-height: 1.6; }
+  .modal-price {
+    background: var(--cream);
+    border-radius: 12px;
+    padding: 16px 20px;
+    margin-bottom: 24px;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .modal-price-label { font-size: 0.8rem; color: var(--text-muted); }
+  .modal-price-val { font-weight: 700; color: var(--gold); font-size: 1rem; }
+
+  /* ANIMATIONS */
+  .fade-up {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.6s ease, transform 0.6s ease;
+  }
+  .fade-up.visible { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    nav { padding: 14px 20px; }
+    .nav-links { display: none; }
+    .hero { padding: 100px 20px 60px; flex-direction: column; }
+    .hero::before { width: 100%; height: 40%; top: auto; bottom: 0; clip-path: none; }
+    .hero-pattern { display: none; }
+    .hero-card { display: none; }
+    .section, .how-section, .booking-section, .testimonials { padding: 60px 20px; }
+    .booking-wrap { grid-template-columns: 1fr; gap: 40px; }
+    .footer-top { grid-template-columns: 1fr 1fr; gap: 32px; }
+    .trust-bar { gap: 24px; padding: 20px; }
+    .form-grid { grid-template-columns: 1fr; }
+  }
+</style>
+</head>
+<body>
+
+<!-- NAV -->
+<nav>
+  <div class="logo">We<span>Aid</span></div>
+  <div class="nav-links">
+    <a href="#services">Services</a>
+    <a href="#how">How it works</a>
+    <a href="#testimonials">Reviews</a>
+    <a href="#booking" class="nav-cta">Book Now</a>
+  </div>
+</nav>
+
+<!-- HERO -->
+<section class="hero">
+  <div class="hero-content fade-up visible">
+    <div class="hero-badge">India's Trusted Home Services</div>
+    <h1>Your home,<br><em>cared for</em> wherever you are.</h1>
+    <p class="hero-sub">Electrical, plumbing, renovation, airport pickups and more — managed by trusted professionals across India.</p>
+    <div class="hero-actions">
+      <a href="#booking" class="btn-primary">Book a Service →</a>
+      <a href="#services" class="btn-secondary">See All Services</a>
+    </div>
+    <div class="hero-stats">
+      <div class="stat-item">
+        <div class="stat-num">500+</div>
+        <div class="stat-label">Jobs Completed</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">4.9★</div>
+        <div class="stat-label">Average Rating</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-num">24hr</div>
+        <div class="stat-label">Response Time</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Floating Card -->
+  <div class="hero-card">
+    <div class="card-header">
+      <div class="card-icon">🏠</div>
+      <div>
+        <div class="card-title">Active Jobs</div>
+        <div class="card-subtitle">Today, India</div>
+      </div>
+    </div>
+    <div class="card-row">
+      <span>Electrical repair</span>
+      <span class="card-status status-confirmed">Confirmed</span>
+    </div>
+    <div class="card-row">
+      <span>Plumbing fix</span>
+      <span class="card-status status-pending">Scheduled</span>
+    </div>
+    <div class="card-row">
+      <span>Airport pickup</span>
+      <span class="card-status status-done">Completed</span>
+    </div>
+  </div>
+</section>
+
+<!-- TRUST BAR -->
+<div class="trust-bar">
+  <div class="trust-item"><span>✓</span> Verified Professionals</div>
+  <div class="trust-item"><span>📸</span> Photo Reports Sent</div>
+  <div class="trust-item"><span>💬</span> WhatsApp Updates</div>
+  <div class="trust-item"><span>🔒</span> Secure Payments</div>
+  <div class="trust-item"><span>⭐</span> Satisfaction Guaranteed</div>
+</div>
+
+<!-- SERVICES -->
+<section class="section" id="services">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label">What We Do</div>
+    <div class="section-title">Every service your<br>home needs.</div>
+    <p class="section-sub">From urgent repairs to long-term maintenance — we connect you with trusted, vetted professionals across Kerala.</p>
+    <div class="services-grid">
+      <div class="service-card fade-up" onclick="openModal('Electrical Work','⚡','Wiring, repairs, fan installation, MCB, short circuit fixes, new connections and more.','Starting ₹499')">
+        <span class="service-emoji">⚡</span>
+        <div class="service-name">Electrical Work</div>
+        <div class="service-desc">Wiring, fan installation, MCB, short circuits, new connections.</div>
+        <div class="service-price">Starting ₹499</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('Plumbing','🔧','Pipe leaks, tank cleaning, tap replacement, drainage, bathroom fitting and more.','Starting ₹399')">
+        <span class="service-emoji">🔧</span>
+        <div class="service-name">Plumbing</div>
+        <div class="service-desc">Pipe leaks, tank cleaning, tap replacement, drainage issues.</div>
+        <div class="service-price">Starting ₹399</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('Home Renovation','🏗️','Painting, tiling, false ceiling, waterproofing, kitchen remodelling and more.','Get Quote')">
+        <span class="service-emoji">🏗️</span>
+        <div class="service-name">Home Renovation</div>
+        <div class="service-desc">Painting, tiling, waterproofing, kitchen and bathroom remodelling.</div>
+        <div class="service-price">Get Quote</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('Airport Pickup & Drop','🚗','Reliable pickup and drop service to/from major airports across India — any time, any city.','Starting ₹799')">
+        <span class="service-emoji">🚗</span>
+        <div class="service-name">Airport Pickup & Drop</div>
+        <div class="service-desc">Reliable transfers to/from major airports across India — any time, any city.</div>
+        <div class="service-price">Starting ₹799</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('Deep Cleaning','🧹','Full home deep cleaning, sofa/carpet cleaning, kitchen degreasing, post-construction cleanup.','Starting ₹1,499')">
+        <span class="service-emoji">🧹</span>
+        <div class="service-name">Deep Cleaning</div>
+        <div class="service-desc">Full home cleaning, sofa/carpet, kitchen degreasing, post-construction.</div>
+        <div class="service-price">Starting ₹1,499</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('AC Service & Repair','❄️','AC installation, gas refill, servicing, repair and annual maintenance contracts.','Starting ₹599')">
+        <span class="service-emoji">❄️</span>
+        <div class="service-name">AC Service & Repair</div>
+        <div class="service-desc">Installation, gas refill, servicing, repair and AMC contracts.</div>
+        <div class="service-price">Starting ₹599</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('Carpentry & Furniture','🪑','Door repair, furniture assembly, custom woodwork, wardrobes and kitchen cabinets.','Starting ₹699')">
+        <span class="service-emoji">🪑</span>
+        <div class="service-name">Carpentry & Furniture</div>
+        <div class="service-desc">Door repair, furniture assembly, custom woodwork, wardrobes.</div>
+        <div class="service-price">Starting ₹699</div>
+        <div class="service-arrow">→</div>
+      </div>
+      <div class="service-card fade-up" onclick="openModal('Property Caretaking','🏡','Home watch service for NRIs and frequent travellers — monthly visits, photos, bill payments, vendor coordination.','₹999/month')">
+        <span class="service-emoji">🏡</span>
+        <div class="service-name">Property Caretaking</div>
+        <div class="service-desc">Home watch service for NRIs & frequent travellers — visits, photos, bill payments, vendor coordination.</div>
+        <div class="service-price">₹999/month</div>
+        <div class="service-arrow">→</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section class="how-section" id="how">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label">Simple Process</div>
+    <div class="section-title" style="color:white">How WeAid works</div>
+    <p class="section-sub">Book in minutes, track in real time, pay only when satisfied.</p>
+    <div class="steps-grid">
+      <div class="step-card fade-up">
+        <div class="step-num">01</div>
+        <div class="step-icon">📋</div>
+        <div class="step-title">Book Online</div>
+        <div class="step-desc">Choose your service, pick a date and time, describe the job. Takes under 2 minutes.</div>
+      </div>
+      <div class="step-card fade-up">
+        <div class="step-num">02</div>
+        <div class="step-icon">✅</div>
+        <div class="step-title">We Match & Confirm</div>
+        <div class="step-desc">We assign a verified local professional and send you a confirmation on WhatsApp.</div>
+      </div>
+      <div class="step-card fade-up">
+        <div class="step-num">03</div>
+        <div class="step-icon">🔨</div>
+        <div class="step-title">Job Gets Done</div>
+        <div class="step-desc">Professional arrives at your property. You get live WhatsApp updates and before/after photos.</div>
+      </div>
+      <div class="step-card fade-up">
+        <div class="step-num">04</div>
+        <div class="step-icon">💸</div>
+        <div class="step-title">Pay & Review</div>
+        <div class="step-desc">Pay securely online or on-site. Rate the service. We handle any follow-up if needed.</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- BOOKING FORM -->
+<section class="booking-section" id="booking">
+  <div class="booking-wrap">
+    <div class="booking-info fade-up">
+      <div class="section-label">Book a Service</div>
+      <div class="info-title">Get help at your property — from anywhere in the world.</div>
+      <p class="info-desc">Whether you're overseas or just too busy — we coordinate everything on the ground for you, anywhere in India.</p>
+      <div class="info-features">
+        <div class="feature-item">
+          <div class="feature-icon">📸</div>
+          <div class="feature-text">
+            <h4>Photo & Video Reports</h4>
+            <p>Before and after photos sent to your WhatsApp or email after every job.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🛡️</div>
+          <div class="feature-text">
+            <h4>Vetted Professionals Only</h4>
+            <p>Every worker is background-checked and rated by previous customers.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">💬</div>
+          <div class="feature-text">
+            <h4>WhatsApp Coordination</h4>
+            <p>Dedicated support via WhatsApp — no app download needed.</p>
+          </div>
+        </div>
+        <div class="feature-item">
+          <div class="feature-icon">🔄</div>
+          <div class="feature-text">
+            <h4>Free Redo Guarantee</h4>
+            <p>Not happy? We'll send someone back at no extra charge.</p>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="booking-form fade-up">
+      <div class="form-title">Request a Service</div>
+      <div class="form-row">
+        <label>Your Name</label>
+        <input type="text" placeholder="e.g. Rajan Nair">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Phone / WhatsApp</label>
+          <input type="tel" placeholder="+91 or overseas">
+        </div>
+        <div class="form-row">
+          <label>Email</label>
+          <input type="email" placeholder="you@email.com">
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Service Needed</label>
+        <select>
+          <option value="">Select a service...</option>
+          <option>Electrical Work</option>
+          <option>Plumbing</option>
+          <option>Home Renovation</option>
+          <option>Airport Pickup / Drop</option>
+          <option>Deep Cleaning</option>
+          <option>AC Service & Repair</option>
+          <option>Carpentry & Furniture</option>
+          <option>Property Caretaking (NRI)</option>
+          <option>Other</option>
+        </select>
+      </div>
+      <div class="form-row">
+        <label>Property Location in Kerala</label>
+        <input type="text" placeholder="e.g. Mumbai, Delhi, Bangalore, Chennai...">
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>Preferred Date</label>
+          <input type="date">
+        </div>
+        <div class="form-row">
+          <label>Preferred Time</label>
+          <select>
+            <option>Morning (8am–12pm)</option>
+            <option>Afternoon (12pm–4pm)</option>
+            <option>Evening (4pm–7pm)</option>
+            <option>Flexible</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>Describe the Job</label>
+        <textarea placeholder="Tell us what needs to be done. The more detail, the better we can help."></textarea>
+      </div>
+      <button class="submit-btn" onclick="handleSubmit()">Send My Request →</button>
+    </div>
+  </div>
+</section>
+
+<!-- TESTIMONIALS -->
+<section class="testimonials" id="testimonials">
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="section-label">Reviews</div>
+    <div class="section-title">Trusted by families<br>across India & beyond.</div>
+    <p class="section-sub" style="margin-bottom:40px">What our customers say about WeAid.</p>
+    <div class="testimonials-grid">
+      <div class="testimonial-card fade-up">
+        <div class="stars">★★★★★</div>
+        <div class="testimonial-text">"I'm in Dubai and my parents' house had a major plumbing issue. WeAid sent someone the next morning, fixed it, and sent me photos. Absolutely brilliant service."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar">AS</div>
+          <div>
+            <div class="author-name">Arun Suresh</div>
+            <div class="author-location">Dubai, UAE</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card fade-up">
+        <div class="stars">★★★★★</div>
+        <div class="testimonial-text">"Used WeAid for full interior painting before my house warming. They coordinated everything — I didn't have to chase anyone. On time, clean work."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar">PM</div>
+          <div>
+            <div class="author-name">Priya Menon</div>
+            <div class="author-location">Bangalore, India</div>
+          </div>
+        </div>
+      </div>
+      <div class="testimonial-card fade-up">
+        <div class="stars">★★★★★</div>
+        <div class="testimonial-text">"Airport pickup was seamless. Driver was on time, car was clean, even helped with luggage. Will use WeAid every time I travel."</div>
+        <div class="testimonial-author">
+          <div class="author-avatar">RK</div>
+          <div>
+            <div class="author-name">Reena Krishnan</div>
+            <div class="author-location">London, UK</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- FOOTER -->
+<footer>
+  <div style="max-width:1100px;margin:0 auto">
+    <div class="footer-top">
+      <div>
+        <div class="footer-logo">We<span>Aid</span></div>
+        <div class="footer-desc">India's trusted home services platform. Connecting NRIs and busy families with verified professionals nationwide.</div>
+      </div>
+      <div class="footer-col">
+        <h4>Services</h4>
+        <a href="#">Electrical</a>
+        <a href="#">Plumbing</a>
+        <a href="#">Renovation</a>
+        <a href="#">Cleaning</a>
+        <a href="#">Airport Transfers</a>
+      </div>
+      <div class="footer-col">
+        <h4>Company</h4>
+        <a href="#">About Us</a>
+        <a href="#">How It Works</a>
+        <a href="#">Become a Pro</a>
+        <a href="#">Careers</a>
+      </div>
+      <div class="footer-col">
+        <h4>Contact</h4>
+        <a href="#">WhatsApp Us</a>
+        <a href="#">hello@weaid.in</a>
+        <a href="#">India</a>
+        <a href="#">+91 98XXX XXXXX</a>
+      </div>
+    </div>
+    <div class="footer-bottom">
+      <span>© 2024 WeAid.in — All rights reserved</span>
+      <span>Made with ♥ in India</span>
+    </div>
+  </div>
+</footer>
+
+<!-- SERVICE MODAL -->
+<div class="modal-overlay" id="modal" onclick="closeModalOutside(event)">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal()">✕</button>
+    <div class="modal-icon" id="modal-icon"></div>
+    <div class="modal-title" id="modal-title"></div>
+    <div class="modal-sub" id="modal-sub"></div>
+    <div class="modal-price">
+      <span class="modal-price-label">Pricing</span>
+      <span class="modal-price-val" id="modal-price"></span>
+    </div>
+    <a href="#booking" class="btn-primary" style="display:block;text-align:center;text-decoration:none" onclick="closeModal()">Book This Service →</a>
+  </div>
+</div>
+
+<script>
+  // Fade-up observer
+  const observer = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('visible'); } });
+  }, { threshold: 0.1 });
+  document.querySelectorAll('.fade-up').forEach(el => observer.observe(el));
+
+  // Modal
+  function openModal(title, icon, desc, price) {
+    document.getElementById('modal-title').textContent = title;
+    document.getElementById('modal-icon').textContent = icon;
+    document.getElementById('modal-sub').textContent = desc;
+    document.getElementById('modal-price').textContent = price;
+    document.getElementById('modal').classList.add('active');
+  }
+  function closeModal() { document.getElementById('modal').classList.remove('active'); }
+  function closeModalOutside(e) { if (e.target.id === 'modal') closeModal(); }
+
+  // Form submit
+  function handleSubmit() {
+    alert('Thank you! We\'ll contact you on WhatsApp within 2 hours to confirm your booking.');
+  }
+</script>
+</body>
+</html>

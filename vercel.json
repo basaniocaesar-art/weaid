@@ -1,0 +1,14 @@
+{
+  "rewrites": [
+    { "source": "/", "destination": "/weaid.html" },
+    { "source": "/blog", "destination": "/weaid-blog.html" },
+    { "source": "/login", "destination": "/weaid-login.html" },
+    { "source": "/dashboard", "destination": "/weaid-user.html" },
+    { "source": "/provider", "destination": "/weaid-provider.html" },
+    { "source": "/admin", "destination": "/weaid-admin.html" }
+  ],
+  "crons": [
+    { "path": "/api/cron/tick", "schedule": "*/10 * * * *" },
+    { "path": "/api/cron/weekly-payout", "schedule": "0 6 * * 1" }
+  ]
+}

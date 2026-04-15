@@ -1,0 +1,169 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeAid — Sign In</title>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,500&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #07090f;
+  --bg2: #0e1117;
+  --bg3: #161b27;
+  --border: rgba(255,255,255,0.08);
+  --teal: #00c9b1;
+  --gold: #f0b429;
+  --indigo: #6366f1;
+  --text: #e8eef8;
+  --muted: #6b7a99;
+  --white: #ffffff;
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
+
+.bg-glow { position:fixed; inset:0; pointer-events:none; }
+.glow-1 { position:absolute; top:-20%; left:-10%; width:600px; height:600px; background:radial-gradient(circle, rgba(99,102,241,0.08), transparent 70%); }
+.glow-2 { position:absolute; bottom:-20%; right:-10%; width:500px; height:500px; background:radial-gradient(circle, rgba(0,201,177,0.07), transparent 70%); }
+
+.login-wrap { position:relative; z-index:10; width:100%; max-width:460px; padding:24px; }
+
+.logo-center { text-align:center; margin-bottom:36px; }
+.logo-mark-lg { width:52px; height:52px; background:linear-gradient(135deg,var(--teal),var(--indigo)); border-radius:14px; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:700; color:white; margin-bottom:14px; }
+.logo-name { font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:700; color:var(--white); }
+.logo-name span { color:var(--teal); }
+.logo-tag { font-size:0.82rem; color:var(--muted); margin-top:6px; }
+
+.role-tabs { display:flex; gap:8px; margin-bottom:28px; background:var(--bg2); border-radius:12px; padding:6px; border:1px solid var(--border); }
+.role-tab { flex:1; padding:10px 8px; border-radius:8px; text-align:center; cursor:pointer; font-size:0.78rem; font-weight:600; color:var(--muted); transition:all 0.2s; }
+.role-tab.active { background:var(--bg3); color:var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
+.role-tab .tab-icon { font-size:1rem; display:block; margin-bottom:3px; }
+
+.login-card { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:36px; }
+.card-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; margin-bottom:6px; }
+.card-sub { font-size:0.82rem; color:var(--muted); margin-bottom:28px; }
+
+.form-field { margin-bottom:18px; }
+.form-field label { display:block; font-size:0.7rem; font-weight:600; color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; }
+.form-field input { width:100%; padding:13px 16px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Sora',sans-serif; font-size:0.88rem; outline:none; transition:border-color 0.2s; }
+.form-field input:focus { border-color:var(--teal); }
+
+.forgot { text-align:right; margin-top:-12px; margin-bottom:20px; }
+.forgot a { font-size:0.75rem; color:var(--teal); text-decoration:none; }
+
+.login-btn { width:100%; padding:14px; border:none; border-radius:12px; font-family:'Sora',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
+.login-btn:hover { transform:translateY(-1px); }
+.btn-customer { background:linear-gradient(135deg,var(--teal),#0099ff); color:var(--bg); }
+.btn-customer:hover { box-shadow:0 8px 24px rgba(0,201,177,0.3); }
+.btn-provider { background:linear-gradient(135deg,var(--gold),#ff6b35); color:var(--bg); }
+.btn-provider:hover { box-shadow:0 8px 24px rgba(240,180,41,0.3); }
+.btn-admin { background:linear-gradient(135deg,var(--indigo),var(--teal)); color:white; }
+.btn-admin:hover { box-shadow:0 8px 24px rgba(99,102,241,0.3); }
+
+.divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
+.divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
+.divider span { font-size:0.72rem; color:var(--muted); }
+
+.register-link { text-align:center; font-size:0.8rem; color:var(--muted); margin-top:20px; }
+.register-link a { color:var(--teal); text-decoration:none; font-weight:600; }
+
+.demo-note { background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.15); border-radius:10px; padding:12px 16px; margin-top:16px; font-size:0.75rem; color:var(--muted); text-align:center; line-height:1.6; }
+.demo-note strong { color:var(--indigo); }
+
+.back-home { text-align:center; margin-top:20px; }
+.back-home a { font-size:0.78rem; color:var(--muted); text-decoration:none; }
+.back-home a:hover { color:var(--teal); }
+</style>
+</head>
+<body>
+<div class="bg-glow"><div class="glow-1"></div><div class="glow-2"></div></div>
+
+<div class="login-wrap">
+  <div class="logo-center">
+    <div class="logo-mark-lg">W</div>
+    <div class="logo-name">We<span>Aid</span></div>
+    <div class="logo-tag">India's Home Services Platform</div>
+  </div>
+
+  <div class="role-tabs">
+    <div class="role-tab active" onclick="setRole('customer',this)"><span class="tab-icon">👤</span>Customer</div>
+    <div class="role-tab" onclick="setRole('provider',this)"><span class="tab-icon">🔨</span>Provider</div>
+    <div class="role-tab" onclick="setRole('admin',this)"><span class="tab-icon">⚙️</span>Admin</div>
+  </div>
+
+  <div class="login-card">
+    <div class="card-title" id="card-title">Welcome back</div>
+    <div class="card-sub" id="card-sub">Sign in to your customer account</div>
+
+    <div class="form-field">
+      <label>Email / Phone</label>
+      <input type="text" id="email-input" placeholder="Enter your email or phone">
+    </div>
+    <div class="form-field">
+      <label>Password</label>
+      <input type="password" placeholder="••••••••••">
+    </div>
+    <div class="forgot"><a href="#">Forgot password?</a></div>
+
+    <button class="login-btn btn-customer" id="login-btn" onclick="doLogin()">Sign In as Customer →</button>
+
+    <div class="divider"><span>or</span></div>
+
+    <div class="register-link">
+      Don't have an account? <a href="#" id="register-link">Create one free</a>
+    </div>
+
+    <div class="demo-note">
+      <strong>Demo Mode</strong> — Use any email/password to enter.<br>
+      Customer → User Dashboard · Provider → Provider Panel · Admin → Admin Panel
+    </div>
+  </div>
+
+  <div class="back-home">
+    <a href="weaid.html">← Back to WeAid.in</a>
+  </div>
+</div>
+
+<script>
+let currentRole = 'customer';
+
+function setRole(role, el) {
+  currentRole = role;
+  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+
+  const btn = document.getElementById('login-btn');
+  const title = document.getElementById('card-title');
+  const sub = document.getElementById('card-sub');
+  const reg = document.getElementById('register-link');
+
+  if (role === 'customer') {
+    title.textContent = 'Welcome back';
+    sub.textContent = 'Sign in to your customer account';
+    btn.className = 'login-btn btn-customer';
+    btn.textContent = 'Sign In as Customer →';
+    reg.textContent = 'Create one free';
+  } else if (role === 'provider') {
+    title.textContent = 'Provider Login';
+    sub.textContent = 'Sign in to manage your jobs & earnings';
+    btn.className = 'login-btn btn-provider';
+    btn.textContent = 'Sign In as Provider →';
+    reg.textContent = 'Register as a Pro';
+  } else {
+    title.textContent = 'Admin Access';
+    sub.textContent = 'Restricted to authorised administrators';
+    btn.className = 'login-btn btn-admin';
+    btn.textContent = 'Sign In as Admin →';
+    reg.textContent = 'Contact support';
+  }
+}
+
+function doLogin() {
+  const email = document.getElementById('email-input').value;
+  if (!email) { alert('Please enter your email or phone'); return; }
+  if (currentRole === 'customer') window.location.href = 'weaid-user.html';
+  else if (currentRole === 'provider') window.location.href = 'weaid-provider.html';
+  else window.location.href = 'weaid-admin.html';
+}
+</script>
+</body>
+</html>
