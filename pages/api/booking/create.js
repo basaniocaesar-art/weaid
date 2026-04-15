@@ -1,4 +1,7 @@
-import { createBooking, confirmPayment } from "../../../lib/orchestrator.js";
+import { calculatePrice } from "../../../lib/pricing.js";
+import { insertBooking } from "../../../lib/supabase.js";
+import { createOrder } from "../../../lib/razorpay.js";
+import { createCheckoutSession } from "../../../lib/stripe.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -6,19 +9,54 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { service, city, scope, slot, customer } = req.body;
+    const { service, city, scope, slot, customer, gateway = "stripe" } = req.body;
 
     if (!service || !city || !scope || !customer) {
       return res.status(400).json({ error: "Missing required fields: service, city, scope, customer" });
     }
 
-    const result = await createBooking({ service, city, scope, slot, customer });
+    // 1. Calculate price
+    const price = calculatePrice({ service, city, scope, slot });
+
+    // 2. Store booking
+    const booking = await insertBooking({
+      service,
+      city,
+      scope,
+      slot,
+      customer_id: customer.id,
+      customer_name: customer.name,
+      customer_phone: customer.phone,
+      customer_email: customer.email,
+      subtotal: price.subtotal,
+      platform_fee: price.platformFee,
+      total: price.total,
+      commission: price.commission,
+      provider_earnings: price.providerEarnings,
+      payment_gateway: gateway,
+      status: "pending_payment",
+    });
+
+    // 3. Create payment session based on chosen gateway
+    let payment;
+
+    if (gateway === "stripe") {
+      const session = await createCheckoutSession({
+        amount: price.total,
+        bookingId: booking.id,
+        customerEmail: customer.email,
+      });
+      payment = { gateway: "stripe", sessionId: session.id, url: session.url };
+    } else {
+      const order = await createOrder(price.total, `booking_${booking.id}`);
+      payment = { gateway: "razorpay", orderId: order.id };
+    }
 
     return res.status(201).json({
-      bookingId: result.booking.id,
-      orderId: result.order.id,
-      amount: result.price.total,
-      breakdown: result.price,
+      bookingId: booking.id,
+      amount: price.total,
+      breakdown: price,
+      payment,
     });
   } catch (err) {
     console.error("[booking/create]", err);
