@@ -61,7 +61,24 @@ a{text-decoration:none;color:inherit;}
 @keyframes blink{0%,100%{opacity:1;}50%{opacity:0.3;}}
 .hero h1{font-family:var(--serif);font-size:clamp(2.8rem,5vw,4.4rem);font-weight:700;line-height:1.08;color:var(--w);margin-bottom:22px;letter-spacing:-0.04em;}
 .hero h1 em{font-style:italic;color:var(--teal);}
-.hsub{font-size:1.05rem;color:var(--t2);line-height:1.78;max-width:520px;margin-bottom:38px;}
+.hsub{font-size:1.05rem;color:var(--t2);line-height:1.78;max-width:520px;margin-bottom:28px;}
+.search-wrap{position:relative;max-width:540px;margin-bottom:28px;}
+.search-input{width:100%;padding:16px 52px 16px 20px;background:rgba(255,255,255,0.06);backdrop-filter:blur(12px);border:1.5px solid var(--bdr2);border-radius:14px;color:var(--w);font-size:1rem;font-family:var(--font);outline:none;transition:border-color 0.2s;}
+.search-input::placeholder{color:var(--t2);}
+.search-input:focus{border-color:var(--teal);background:rgba(255,255,255,0.09);}
+.search-icon{position:absolute;right:16px;top:50%;transform:translateY(-50%);width:20px;height:20px;color:var(--t2);pointer-events:none;}
+.search-results{position:absolute;top:calc(100% + 6px);left:0;right:0;background:var(--bg2);border:1px solid var(--bdr2);border-radius:12px;max-height:360px;overflow-y:auto;z-index:100;display:none;box-shadow:0 12px 40px rgba(0,0,0,0.5);}
+.search-results.open{display:block;}
+.sr-section{padding:8px 14px 4px;font-size:0.65rem;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--t3);}
+.sr-item{display:flex;align-items:center;gap:12px;padding:10px 14px;cursor:pointer;transition:background 0.15s;border-radius:8px;margin:0 6px;}
+.sr-item:hover{background:rgba(255,255,255,0.05);}
+.sr-item .sr-icon{width:36px;height:36px;border-radius:10px;background:var(--tdim);display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0;}
+.sr-item .sr-text{flex:1;}
+.sr-item .sr-name{font-size:0.88rem;font-weight:600;color:var(--w);}
+.sr-item .sr-meta{font-size:0.72rem;color:var(--t2);margin-top:1px;}
+.sr-item .sr-price{font-size:0.82rem;font-weight:700;color:var(--teal);flex-shrink:0;}
+.sr-empty{padding:20px;text-align:center;font-size:0.85rem;color:var(--t2);}
+.sr-loading{padding:16px;text-align:center;font-size:0.82rem;color:var(--t2);}
 .hacts{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:52px;}
 .btn-pri{display:inline-flex;align-items:center;gap:8px;padding:15px 32px;background:var(--teal);border-radius:100px;font-size:0.92rem;font-weight:700;color:var(--bg);transition:all 0.25s;}
 .btn-pri:hover{background:var(--teal2);transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,201,177,0.4);}
@@ -337,6 +354,11 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);}
     <div class="eyebrow">India's most trusted home services</div>
     <h1>Your home deserves<br><em>expert care,</em><br>wherever you are.</h1>
     <p class="hsub">From urgent repairs to full renovations — WeAid connects you with verified professionals across 50+ cities. Book in 60 seconds, pay upfront, track in real time.</p>
+    <div class="search-wrap">
+      <input type="text" class="search-input" id="heroSearch" placeholder="What service do you need? (e.g. plumber, AC repair)" autocomplete="off">
+      <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+      <div class="search-results" id="searchResults"></div>
+    </div>
     <div class="hacts"><a href="#pricing" class="btn-pri">Book &amp; Pay →</a><a href="#how" class="btn-out">How it works</a></div>
     <div class="htrust">
       <div class="avs"><span>RS</span><span>AP</span><span>VN</span><span>SM</span><span>+</span></div>
@@ -829,6 +851,64 @@ function playAt(i){
 function toggleMute(){muted=!muted;vEls.forEach(el=>el.muted=muted);document.getElementById('vmuteBtn').textContent=muted?'🔇':'🔊';}
 
 new IntersectionObserver(entries=>{entries.forEach(e=>{if(e.isIntersecting){if(vEls[cur])vEls[cur].play().catch(()=>{});}else{vEls.forEach(el=>el.pause());}});},{threshold:0.1}).observe(document.getElementById('heroSec'));
+
+// ── HERO SEARCH ─────────────────────────────────────────────────────────────
+(function(){
+  const input=document.getElementById('heroSearch');
+  const results=document.getElementById('searchResults');
+  let timer=null;
+
+  input.addEventListener('input',function(){
+    clearTimeout(timer);
+    const q=this.value.trim();
+    if(q.length<2){results.classList.remove('open');return;}
+    results.innerHTML='<div class="sr-loading">Searching...</div>';
+    results.classList.add('open');
+    timer=setTimeout(()=>doSearch(q),300);
+  });
+
+  input.addEventListener('focus',function(){
+    if(this.value.trim().length>=2) results.classList.add('open');
+  });
+
+  document.addEventListener('click',function(e){
+    if(!e.target.closest('.search-wrap')) results.classList.remove('open');
+  });
+
+  async function doSearch(q){
+    try{
+      const r=await fetch('/api/search?q='+encodeURIComponent(q)+'&city=mumbai');
+      const d=await r.json();
+      let html='';
+      if(d.services&&d.services.length){
+        html+='<div class="sr-section">Services</div>';
+        html+=d.services.map(s=>`<div class="sr-item" onclick="window.location.hash='pricing'">
+          <div class="sr-icon">${s.icon}</div>
+          <div class="sr-text"><div class="sr-name">${s.name}</div><div class="sr-meta">Verified professionals available</div></div>
+          ${s.startingPrice?`<div class="sr-price">From ₹${s.startingPrice.toLocaleString('en-IN')}</div>`:''}
+        </div>`).join('');
+      }
+      if(d.jobs&&d.jobs.length){
+        html+='<div class="sr-section">Open Jobs</div>';
+        html+=d.jobs.slice(0,5).map(j=>{
+          const budget=j.budget_min&&j.budget_max?`₹${j.budget_min}-${j.budget_max}`:j.fixed_price?`₹${j.fixed_price}`:'';
+          return `<div class="sr-item" onclick="window.location.href='/jobs'">
+            <div class="sr-icon">📋</div>
+            <div class="sr-text"><div class="sr-name">${esc(j.title)}</div><div class="sr-meta">${capitalize(j.city)} · ${j.bid_count} bids</div></div>
+            ${budget?`<div class="sr-price">${budget}</div>`:''}
+          </div>`;
+        }).join('');
+      }
+      if(!html) html='<div class="sr-empty">No results found. Try "plumber", "electrician", or "cleaning"</div>';
+      results.innerHTML=html;
+    }catch(e){
+      results.innerHTML='<div class="sr-empty">Search unavailable</div>';
+    }
+  }
+
+  function esc(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML;}
+  function capitalize(s){return s?s.charAt(0).toUpperCase()+s.slice(1):'';}
+})();
 
 // ── AFFILIATE REF CODE TRACKING ──────────────────────────────────────────────
 (function(){
