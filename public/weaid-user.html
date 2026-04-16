@@ -677,15 +677,15 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 
 <script>
 // ── AUTH GUARD ──
-const WEAID_SB_URL = 'https://wiaqqveznjlyxahyrtcm.supabase.co';
-const WEAID_SB_KEY = localStorage.getItem('weaid_anon_key') || '';
 let weaidUser = null;
+let weaidSb = null;
 
 (async function authGuard() {
-  if (!WEAID_SB_KEY) { console.warn('Auth not configured'); return; }
   try {
-    const sb = window.supabase.createClient(WEAID_SB_URL, WEAID_SB_KEY);
-    const { data: { session } } = await sb.auth.getSession();
+    const cfg = await fetch('/api/config').then(r => r.json());
+    if (!cfg.supabaseUrl || !cfg.supabaseAnonKey) { console.warn('Auth not configured'); return; }
+    weaidSb = window.supabase.createClient(cfg.supabaseUrl, cfg.supabaseAnonKey);
+    const { data: { session } } = await weaidSb.auth.getSession();
     if (!session) { window.location.href = '/login'; return; }
     const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + session.access_token } });
     const user = await res.json();
@@ -696,12 +696,7 @@ let weaidUser = null;
 })();
 
 async function weaidLogout() {
-  try {
-    if (WEAID_SB_KEY) {
-      const sb = window.supabase.createClient(WEAID_SB_URL, WEAID_SB_KEY);
-      await sb.auth.signOut();
-    }
-  } catch (e) {}
+  try { if (weaidSb) await weaidSb.auth.signOut(); } catch (e) {}
   window.location.href = '/login';
 }
 
