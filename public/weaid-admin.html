@@ -165,6 +165,7 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 
 @media (max-width:1200px) { .stats-row { grid-template-columns:repeat(3,1fr); } .grid-3 { grid-template-columns:1fr; } .grid-2 { grid-template-columns:1fr; } }
 </style>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 </head>
 <body>
 
@@ -194,7 +195,7 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
     <div class="nav-item" onclick="showSection('settings',this)"><span class="icon">⚙️</span> Settings</div>
   </nav>
   <div class="sidebar-footer">
-    <div class="nav-item" style="color:var(--red)" onclick="window.location='index.html'"><span class="icon">🚪</span> Sign Out</div>
+    <div class="nav-item" style="color:var(--red)" onclick="weaidLogout()"><span class="icon">🚪</span> Sign Out</div>
   </div>
 </aside>
 
@@ -441,6 +442,35 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 </main>
 
 <script>
+// ── AUTH GUARD ──
+const WEAID_SB_URL = 'https://wiaqqveznjlyxahyrtcm.supabase.co';
+const WEAID_SB_KEY = localStorage.getItem('weaid_anon_key') || '';
+let weaidUser = null;
+
+(async function authGuard() {
+  if (!WEAID_SB_KEY) { console.warn('Auth not configured'); return; }
+  try {
+    const sb = window.supabase.createClient(WEAID_SB_URL, WEAID_SB_KEY);
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) { window.location.href = '/login'; return; }
+    const res = await fetch('/api/auth/me', { headers: { 'Authorization': 'Bearer ' + session.access_token } });
+    const user = await res.json();
+    if (!user.role || user.role !== 'admin') { window.location.href = '/login'; return; }
+    weaidUser = user;
+    window._weaidSession = session;
+  } catch (e) { console.warn('Auth check failed:', e); }
+})();
+
+async function weaidLogout() {
+  try {
+    if (WEAID_SB_KEY) {
+      const sb = window.supabase.createClient(WEAID_SB_URL, WEAID_SB_KEY);
+      await sb.auth.signOut();
+    }
+  } catch (e) {}
+  window.location.href = '/login';
+}
+
 function showSection(name, el) {
   document.querySelectorAll('[id^="section-"]').forEach(s => s.className = 'section-hidden');
   document.getElementById('section-' + name).className = 'section-visible';

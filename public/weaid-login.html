@@ -11,18 +11,13 @@
 <meta property="og:url" content="https://weaid.in">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2306b6d4'/><text x='16' y='23' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold' font-size='18'>W</text></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;500;600;700&family=Playfair+Display:ital,wght@0,700;1,500&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
 :root {
-  --bg: #07090f;
-  --bg2: #0e1117;
-  --bg3: #161b27;
-  --border: rgba(255,255,255,0.08);
-  --teal: #00c9b1;
-  --gold: #f0b429;
-  --indigo: #6366f1;
-  --text: #e8eef8;
-  --muted: #6b7a99;
-  --white: #ffffff;
+  --bg: #07090f; --bg2: #0e1117; --bg3: #161b27;
+  --border: rgba(255,255,255,0.08); --teal: #00c9b1; --gold: #f0b429;
+  --indigo: #6366f1; --text: #e8eef8; --muted: #6b7a99; --white: #ffffff;
+  --red: #ef4444; --green: #22c55e;
 }
 * { margin:0; padding:0; box-sizing:border-box; }
 body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); min-height:100vh; display:flex; align-items:center; justify-content:center; position:relative; overflow:hidden; }
@@ -39,11 +34,6 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 .logo-name span { color:var(--teal); }
 .logo-tag { font-size:0.82rem; color:var(--muted); margin-top:6px; }
 
-.role-tabs { display:flex; gap:8px; margin-bottom:28px; background:var(--bg2); border-radius:12px; padding:6px; border:1px solid var(--border); }
-.role-tab { flex:1; padding:10px 8px; border-radius:8px; text-align:center; cursor:pointer; font-size:0.78rem; font-weight:600; color:var(--muted); transition:all 0.2s; }
-.role-tab.active { background:var(--bg3); color:var(--white); box-shadow:0 2px 8px rgba(0,0,0,0.3); }
-.role-tab .tab-icon { font-size:1rem; display:block; margin-bottom:3px; }
-
 .login-card { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:36px; }
 .card-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; margin-bottom:6px; }
 .card-sub { font-size:0.82rem; color:var(--muted); margin-bottom:28px; }
@@ -52,32 +42,57 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 .form-field label { display:block; font-size:0.7rem; font-weight:600; color:var(--muted); letter-spacing:0.5px; text-transform:uppercase; margin-bottom:8px; }
 .form-field input { width:100%; padding:13px 16px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Sora',sans-serif; font-size:0.88rem; outline:none; transition:border-color 0.2s; }
 .form-field input:focus { border-color:var(--teal); }
+.form-field input::placeholder { color:var(--muted); }
 
-.forgot { text-align:right; margin-top:-12px; margin-bottom:20px; }
-.forgot a { font-size:0.75rem; color:var(--teal); text-decoration:none; }
+.phone-row { display:flex; gap:8px; }
+.country-code { width:80px; padding:13px 12px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Sora',sans-serif; font-size:0.88rem; text-align:center; outline:none; }
+.phone-input { flex:1; }
 
-.login-btn { width:100%; padding:14px; border:none; border-radius:12px; font-family:'Sora',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; }
-.login-btn:hover { transform:translateY(-1px); }
-.btn-customer { background:linear-gradient(135deg,var(--teal),#0099ff); color:var(--bg); }
-.btn-customer:hover { box-shadow:0 8px 24px rgba(0,201,177,0.3); }
-.btn-provider { background:linear-gradient(135deg,var(--gold),#ff6b35); color:var(--bg); }
-.btn-provider:hover { box-shadow:0 8px 24px rgba(240,180,41,0.3); }
-.btn-admin { background:linear-gradient(135deg,var(--indigo),var(--teal)); color:white; }
-.btn-admin:hover { box-shadow:0 8px 24px rgba(99,102,241,0.3); }
+/* OTP Input */
+.otp-row { display:flex; gap:8px; justify-content:center; margin:20px 0; }
+.otp-digit { width:48px; height:56px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--white); font-family:'Sora',sans-serif; font-size:1.4rem; font-weight:700; text-align:center; outline:none; transition:border-color 0.2s; }
+.otp-digit:focus { border-color:var(--teal); }
 
-.divider { display:flex; align-items:center; gap:12px; margin:20px 0; }
-.divider::before, .divider::after { content:''; flex:1; height:1px; background:var(--border); }
-.divider span { font-size:0.72rem; color:var(--muted); }
+/* Buttons */
+.login-btn { width:100%; padding:14px; border:none; border-radius:12px; font-family:'Sora',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; background:linear-gradient(135deg,var(--teal),#0099ff); color:var(--bg); }
+.login-btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,201,177,0.3); }
+.login-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
 
-.register-link { text-align:center; font-size:0.8rem; color:var(--muted); margin-top:20px; }
-.register-link a { color:var(--teal); text-decoration:none; font-weight:600; }
+/* Role Selection */
+.role-cards { display:flex; gap:12px; margin:20px 0; }
+.role-card { flex:1; padding:20px 16px; background:var(--bg3); border:2px solid var(--border); border-radius:14px; text-align:center; cursor:pointer; transition:all 0.2s; }
+.role-card:hover { border-color:var(--muted); }
+.role-card.selected { border-color:var(--teal); background:rgba(0,201,177,0.08); }
+.role-card .rc-icon { font-size:1.8rem; margin-bottom:8px; }
+.role-card .rc-name { font-size:0.88rem; font-weight:700; margin-bottom:4px; }
+.role-card .rc-desc { font-size:0.72rem; color:var(--muted); }
 
-.demo-note { background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.15); border-radius:10px; padding:12px 16px; margin-top:16px; font-size:0.75rem; color:var(--muted); text-align:center; line-height:1.6; }
-.demo-note strong { color:var(--indigo); }
+/* Timer & Resend */
+.timer-row { text-align:center; margin-top:16px; font-size:0.8rem; color:var(--muted); }
+.resend-btn { background:none; border:none; color:var(--teal); font-family:inherit; font-size:0.8rem; font-weight:600; cursor:pointer; padding:0; }
+.resend-btn:disabled { color:var(--muted); cursor:not-allowed; }
+
+/* Error/Success */
+.msg { padding:10px 14px; border-radius:8px; font-size:0.8rem; margin-bottom:16px; display:none; }
+.msg.error { background:rgba(239,68,68,0.1); border:1px solid rgba(239,68,68,0.2); color:var(--red); display:block; }
+.msg.success { background:rgba(34,197,94,0.1); border:1px solid rgba(34,197,94,0.2); color:var(--green); display:block; }
+
+/* Steps */
+.step { display:none; }
+.step.active { display:block; }
 
 .back-home { text-align:center; margin-top:20px; }
 .back-home a { font-size:0.78rem; color:var(--muted); text-decoration:none; }
 .back-home a:hover { color:var(--teal); }
+
+.change-phone { text-align:center; margin-top:12px; }
+.change-phone a { font-size:0.78rem; color:var(--teal); text-decoration:none; cursor:pointer; }
+
+@media(max-width:500px){
+  .login-wrap { padding:16px; }
+  .otp-digit { width:42px; height:50px; font-size:1.2rem; }
+  .role-cards { flex-direction:column; }
+}
 </style>
 </head>
 <body>
@@ -90,86 +105,311 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
     <div class="logo-tag">India's Home Services Platform</div>
   </div>
 
-  <div class="role-tabs">
-    <div class="role-tab active" onclick="setRole('customer',this)"><span class="tab-icon">👤</span>Customer</div>
-    <div class="role-tab" onclick="setRole('provider',this)"><span class="tab-icon">🔨</span>Provider</div>
-    <div class="role-tab" onclick="setRole('admin',this)"><span class="tab-icon">⚙️</span>Admin</div>
-  </div>
-
   <div class="login-card">
-    <div class="card-title" id="card-title">Welcome back</div>
-    <div class="card-sub" id="card-sub">Sign in to your customer account</div>
-
-    <div class="form-field">
-      <label>Email / Phone</label>
-      <input type="text" id="email-input" placeholder="Enter your email or phone">
-    </div>
-    <div class="form-field">
-      <label>Password</label>
-      <input type="password" placeholder="••••••••••">
-    </div>
-    <div class="forgot"><a href="#">Forgot password?</a></div>
-
-    <button class="login-btn btn-customer" id="login-btn" onclick="doLogin()">Sign In as Customer →</button>
-
-    <div class="divider"><span>or</span></div>
-
-    <div class="register-link">
-      Don't have an account? <a href="#" id="register-link">Create one free</a>
+    <!-- STEP 1: Phone Number -->
+    <div class="step active" id="step1">
+      <div class="card-title">Sign in with Phone</div>
+      <div class="card-sub">We'll send a 6-digit OTP to verify your number</div>
+      <div id="msg1" class="msg"></div>
+      <div class="form-field">
+        <label>Phone Number</label>
+        <div class="phone-row">
+          <input type="text" class="country-code" value="+91" readonly>
+          <input type="tel" class="phone-input" id="phoneInput" placeholder="9876543210" maxlength="10" autofocus>
+        </div>
+      </div>
+      <button class="login-btn" id="sendOtpBtn" onclick="sendOTP()">Send OTP →</button>
     </div>
 
-    <div class="demo-note">
-      <strong>Demo Mode</strong> — Use any email/password to enter.<br>
-      Customer → User Dashboard · Provider → Provider Panel · Admin → Admin Panel
+    <!-- STEP 2: OTP Verification -->
+    <div class="step" id="step2">
+      <div class="card-title">Enter OTP</div>
+      <div class="card-sub">Sent to <strong id="otpPhoneDisplay">+91 98765 43210</strong></div>
+      <div id="msg2" class="msg"></div>
+      <div class="otp-row">
+        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="0">
+        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="1">
+        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="2">
+        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="3">
+        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="4">
+        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="5">
+      </div>
+      <button class="login-btn" id="verifyBtn" onclick="verifyOTP()">Verify & Sign In →</button>
+      <div class="timer-row" id="timerRow">
+        Resend OTP in <span id="countdown">30</span>s
+      </div>
+      <div class="timer-row" id="resendRow" style="display:none;">
+        <button class="resend-btn" onclick="sendOTP()">Resend OTP</button>
+      </div>
+      <div class="change-phone"><a onclick="goStep(1)">← Change phone number</a></div>
+    </div>
+
+    <!-- STEP 3: Role Selection (new users) -->
+    <div class="step" id="step3">
+      <div class="card-title">Almost there!</div>
+      <div class="card-sub">How will you use WeAid?</div>
+      <div id="msg3" class="msg"></div>
+      <div class="form-field">
+        <label>Your Name</label>
+        <input type="text" id="nameInput" placeholder="Enter your full name">
+      </div>
+      <div class="role-cards">
+        <div class="role-card selected" onclick="selectRole('customer',this)">
+          <div class="rc-icon">👤</div>
+          <div class="rc-name">Customer</div>
+          <div class="rc-desc">Book home services</div>
+        </div>
+        <div class="role-card" onclick="selectRole('provider',this)">
+          <div class="rc-icon">🔨</div>
+          <div class="rc-name">Provider</div>
+          <div class="rc-desc">Offer your services</div>
+        </div>
+      </div>
+      <button class="login-btn" onclick="setRole()">Get Started →</button>
     </div>
   </div>
 
   <div class="back-home">
-    <a href="weaid.html">← Back to WeAid.in</a>
+    <a href="/">← Back to WeAid.in</a>
   </div>
 </div>
 
 <script>
-let currentRole = 'customer';
+// Supabase client config — uses anon key for client-side auth
+const SUPABASE_URL = 'https://wiaqqveznjlyxahyrtcm.supabase.co';
+const SUPABASE_ANON_KEY = window.__WEAID_ANON_KEY || localStorage.getItem('weaid_anon_key') || '';
 
-function setRole(role, el) {
-  currentRole = role;
-  document.querySelectorAll('.role-tab').forEach(t => t.classList.remove('active'));
-  el.classList.add('active');
+let sb = null;
+let currentPhone = '';
+let selectedRole = 'customer';
+let countdownTimer = null;
 
-  const btn = document.getElementById('login-btn');
-  const title = document.getElementById('card-title');
-  const sub = document.getElementById('card-sub');
-  const reg = document.getElementById('register-link');
+// Initialize Supabase client
+function initSupabase() {
+  // Try to get anon key from meta tag or env
+  const metaKey = document.querySelector('meta[name="supabase-anon-key"]')?.content;
+  const key = metaKey || SUPABASE_ANON_KEY;
+  if (!key) {
+    console.warn('Supabase anon key not found. Set NEXT_PUBLIC_SUPABASE_ANON_KEY env var.');
+    return false;
+  }
+  sb = window.supabase.createClient(SUPABASE_URL, key);
+  return true;
+}
 
-  if (role === 'customer') {
-    title.textContent = 'Welcome back';
-    sub.textContent = 'Sign in to your customer account';
-    btn.className = 'login-btn btn-customer';
-    btn.textContent = 'Sign In as Customer →';
-    reg.textContent = 'Create one free';
-  } else if (role === 'provider') {
-    title.textContent = 'Provider Login';
-    sub.textContent = 'Sign in to manage your jobs & earnings';
-    btn.className = 'login-btn btn-provider';
-    btn.textContent = 'Sign In as Provider →';
-    reg.textContent = 'Register as a Pro';
-  } else {
-    title.textContent = 'Admin Access';
-    sub.textContent = 'Restricted to authorised administrators';
-    btn.className = 'login-btn btn-admin';
-    btn.textContent = 'Sign In as Admin →';
-    reg.textContent = 'Contact support';
+// Step navigation
+function goStep(n) {
+  document.querySelectorAll('.step').forEach(s => s.classList.remove('active'));
+  document.getElementById('step' + n).classList.add('active');
+}
+
+function showMsg(stepNum, text, type) {
+  const el = document.getElementById('msg' + stepNum);
+  el.textContent = text;
+  el.className = 'msg ' + type;
+  setTimeout(() => { el.className = 'msg'; }, 5000);
+}
+
+// STEP 1: Send OTP
+async function sendOTP() {
+  const phone = document.getElementById('phoneInput').value.replace(/\D/g, '');
+  if (phone.length !== 10) {
+    showMsg(1, 'Please enter a valid 10-digit phone number', 'error');
+    return;
+  }
+
+  currentPhone = '+91' + phone;
+  const btn = document.getElementById('sendOtpBtn');
+  btn.disabled = true;
+  btn.textContent = 'Sending...';
+
+  if (!sb) {
+    // Fallback: demo mode if Supabase not configured
+    showMsg(1, 'Auth not configured. Contact admin to set up Supabase Auth.', 'error');
+    btn.disabled = false;
+    btn.textContent = 'Send OTP →';
+    return;
+  }
+
+  try {
+    const { error } = await sb.auth.signInWithOtp({ phone: currentPhone });
+    if (error) {
+      showMsg(1, error.message || 'Failed to send OTP', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Send OTP →';
+      return;
+    }
+
+    // Move to OTP step
+    document.getElementById('otpPhoneDisplay').textContent = '+91 ' + phone.replace(/(\d{5})(\d{5})/, '$1 $2');
+    goStep(2);
+    startCountdown();
+    document.querySelector('.otp-digit[data-idx="0"]').focus();
+  } catch (e) {
+    showMsg(1, 'Connection error. Please try again.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Send OTP →';
+}
+
+// STEP 2: Verify OTP
+async function verifyOTP() {
+  const digits = document.querySelectorAll('.otp-digit');
+  const token = Array.from(digits).map(d => d.value).join('');
+  if (token.length !== 6) {
+    showMsg(2, 'Please enter the complete 6-digit code', 'error');
+    return;
+  }
+
+  const btn = document.getElementById('verifyBtn');
+  btn.disabled = true;
+  btn.textContent = 'Verifying...';
+
+  try {
+    const { data, error } = await sb.auth.verifyOtp({
+      phone: currentPhone,
+      token,
+      type: 'sms',
+    });
+
+    if (error) {
+      showMsg(2, error.message || 'Invalid OTP. Please try again.', 'error');
+      btn.disabled = false;
+      btn.textContent = 'Verify & Sign In →';
+      return;
+    }
+
+    // Check if user has a role set
+    const session = data.session;
+    const res = await fetch('/api/auth/me', {
+      headers: { 'Authorization': 'Bearer ' + session.access_token },
+    });
+    const user = await res.json();
+
+    if (user.isNewUser || !user.role) {
+      // New user — show role selection
+      goStep(3);
+    } else {
+      // Existing user — redirect to dashboard
+      redirectToDashboard(user.role);
+    }
+  } catch (e) {
+    showMsg(2, 'Verification failed. Please try again.', 'error');
+  }
+
+  btn.disabled = false;
+  btn.textContent = 'Verify & Sign In →';
+}
+
+// STEP 3: Set Role
+function selectRole(role, el) {
+  selectedRole = role;
+  document.querySelectorAll('.role-card').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+}
+
+async function setRole() {
+  const name = document.getElementById('nameInput').value.trim();
+  if (!name) {
+    showMsg(3, 'Please enter your name', 'error');
+    return;
+  }
+
+  try {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      showMsg(3, 'Session expired. Please start over.', 'error');
+      goStep(1);
+      return;
+    }
+
+    const res = await fetch('/api/auth/set-role', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': 'Bearer ' + session.access_token,
+      },
+      body: JSON.stringify({ role: selectedRole, name }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showMsg(3, data.error || 'Failed to set role', 'error');
+      return;
+    }
+
+    redirectToDashboard(selectedRole);
+  } catch (e) {
+    showMsg(3, 'Connection error. Please try again.', 'error');
   }
 }
 
-function doLogin() {
-  const email = document.getElementById('email-input').value;
-  if (!email) { alert('Please enter your email or phone'); return; }
-  if (currentRole === 'customer') window.location.href = 'weaid-user.html';
-  else if (currentRole === 'provider') window.location.href = 'weaid-provider.html';
-  else window.location.href = 'weaid-admin.html';
+function redirectToDashboard(role) {
+  if (role === 'provider') window.location.href = '/provider';
+  else if (role === 'admin') window.location.href = '/admin';
+  else window.location.href = '/dashboard';
 }
+
+// OTP input auto-focus
+document.querySelectorAll('.otp-digit').forEach((input, idx, all) => {
+  input.addEventListener('input', function() {
+    if (this.value && idx < 5) all[idx + 1].focus();
+  });
+  input.addEventListener('keydown', function(e) {
+    if (e.key === 'Backspace' && !this.value && idx > 0) all[idx - 1].focus();
+  });
+  // Allow paste of full OTP
+  input.addEventListener('paste', function(e) {
+    e.preventDefault();
+    const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
+    paste.split('').forEach((ch, i) => { if (all[i]) all[i].value = ch; });
+    if (paste.length === 6) verifyOTP();
+  });
+});
+
+// Enter key on phone input
+document.getElementById('phoneInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') sendOTP();
+});
+
+// Countdown timer
+function startCountdown() {
+  let sec = 30;
+  document.getElementById('timerRow').style.display = 'block';
+  document.getElementById('resendRow').style.display = 'none';
+  document.getElementById('countdown').textContent = sec;
+
+  clearInterval(countdownTimer);
+  countdownTimer = setInterval(() => {
+    sec--;
+    document.getElementById('countdown').textContent = sec;
+    if (sec <= 0) {
+      clearInterval(countdownTimer);
+      document.getElementById('timerRow').style.display = 'none';
+      document.getElementById('resendRow').style.display = 'block';
+    }
+  }, 1000);
+}
+
+// Check if already logged in
+async function checkSession() {
+  if (!sb) return;
+  const { data: { session } } = await sb.auth.getSession();
+  if (session) {
+    try {
+      const res = await fetch('/api/auth/me', {
+        headers: { 'Authorization': 'Bearer ' + session.access_token },
+      });
+      const user = await res.json();
+      if (user.role) redirectToDashboard(user.role);
+    } catch (e) {}
+  }
+}
+
+// Init
+const initialized = initSupabase();
+if (initialized) checkSession();
 </script>
 <!-- WhatsApp Chat Button -->
 <a href="https://wa.me/919876543210?text=Hi%20WeAid%2C%20I%20need%20help%20with%20a%20service" target="_blank" rel="noopener" style="position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:9999;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
