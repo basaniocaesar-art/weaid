@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WeAid — Post a Job</title>
-<meta name="description" content="WeAid — India's premium home services platform. Book electricians, plumbers, cleaners & more.">
+<meta name="description" content="WeAid — India's on-demand services platform. Home, beauty, wellness & care.">
 <meta property="og:title" content="WeAid — Post a Job">
 <meta property="og:description" content="Book verified professionals for electrical, plumbing, cleaning, renovation & more across India.">
 <meta property="og:type" content="website">
@@ -146,6 +146,27 @@ textarea{resize:vertical;min-height:100px;}
             <option value="pickup">Airport Pickup/Drop</option>
             <option value="local_transport">Local Transport</option>
             <option value="packers">Packers & Movers</option>
+          </optgroup>
+          <optgroup label="Beauty & Grooming">
+            <option value="haircut">Hair Salon (at home)</option>
+            <option value="barber">Men's Haircut / Barber</option>
+            <option value="nails">Manicure & Pedicure</option>
+            <option value="makeup">Makeup Artist</option>
+            <option value="facial">Facial & Skincare</option>
+            <option value="waxing">Waxing / Hair Removal</option>
+            <option value="mehendi">Mehendi / Bridal</option>
+          </optgroup>
+          <optgroup label="Health & Wellness">
+            <option value="massage">Massage Therapy</option>
+            <option value="physio">Physiotherapy</option>
+            <option value="trainer">Personal Trainer</option>
+            <option value="yoga">Yoga Instructor</option>
+          </optgroup>
+          <optgroup label="Care Services">
+            <option value="eldercare">Elderly Care</option>
+            <option value="babysit">Babysitting</option>
+            <option value="pet_grooming">Pet Grooming</option>
+            <option value="pet_walking">Pet Walking</option>
           </optgroup>
           <optgroup label="Professional Services">
             <option value="caretaking">Caretaking</option>
@@ -307,7 +328,7 @@ function calcFixedPrice() {
   const cat = document.getElementById('jobCategory').value;
   const city = document.getElementById('jobCity').value;
   const scope = document.getElementById('jobScope').value;
-  const bases = {electrical:499,plumbing:399,cleaning:1499,ac:599,carpentry:699,renovation:5000,pickup:799,caretaking:999};
+  const bases = {electrical:499,plumbing:399,cleaning:1499,ac:599,carpentry:699,renovation:5000,pickup:799,caretaking:999,haircut:399,barber:199,nails:499,makeup:999,facial:699,waxing:499,mehendi:799,massage:999,physio:799,trainer:599,yoga:499,eldercare:899,babysit:499,pet_grooming:599,pet_walking:299};
   const areas = {mumbai:1.5,delhi:1.45,bangalore:1.4,hyderabad:1.35,chennai:1.35,pune:1.3,kochi:1.15,ahmedabad:1.15,jaipur:1.1};
   const scopes = {small:1,medium:1.6,large:2.8};
   const base = bases[cat];

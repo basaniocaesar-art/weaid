@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WeAid — India's Home Services Platform</title>
-<meta name="description" content="WeAid — India's premium home services platform. Book electricians, plumbers, cleaners & more.">
-<meta property="og:title" content="WeAid — India's Home Services Platform">
+<title>WeAid — India's On-Demand Services Platform</title>
+<meta name="description" content="WeAid — India's on-demand services platform. Book verified pros for home, beauty, wellness, care & more.">
+<meta property="og:title" content="WeAid — India's On-Demand Services Platform">
 <meta property="og:description" content="Book verified professionals for electrical, plumbing, cleaning, renovation & more across India.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://weaid.in">
@@ -351,11 +351,11 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);}
   <div class="vcredit" id="vcredit"></div>
   <div class="hbg2"></div><div class="hgrid"></div>
   <div class="hinner">
-    <div class="eyebrow">India's most trusted home services</div>
-    <h1>Your home deserves<br><em>expert care,</em><br>wherever you are.</h1>
-    <p class="hsub">From urgent repairs to full renovations — WeAid connects you with verified professionals across 50+ cities. Book in 60 seconds, pay upfront, track in real time.</p>
+    <div class="eyebrow">India's most trusted on-demand services</div>
+    <h1>Everything you need,<br><em>on your schedule.</em></h1>
+    <p class="hsub">From plumbers to personal trainers, hair stylists to elderly care — book verified professionals across 50+ cities. 60 seconds to book, real-time tracking, fair pricing.</p>
     <div class="search-wrap">
-      <input type="text" class="search-input" id="heroSearch" placeholder="What service do you need? (e.g. plumber, AC repair)" autocomplete="off">
+      <input type="text" class="search-input" id="heroSearch" placeholder="What service do you need? (e.g. nails, plumber, massage)" autocomplete="off">
       <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       <div class="search-results" id="searchResults"></div>
     </div>
@@ -403,6 +403,25 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);}
       <div class="scard fu fu2" onclick="openModal('pickup')"><div class="sico" style="background:rgba(168,85,247,0.1)">🚗</div><div class="snm">Airport Transfers</div><div class="sdsc">Reliable pickups from all major airports — any time, any city.</div><div class="sprc" id="sp-pickup">From ₹799</div><div class="sarr">→</div></div>
       <div class="scard fu fu3" onclick="openModal('carpentry')"><div class="sico" style="background:rgba(251,191,36,0.1)">🪑</div><div class="snm">Carpentry</div><div class="sdsc">Door repair, furniture assembly, wardrobes and custom woodwork.</div><div class="sprc" id="sp-carpentry">From ₹699</div><div class="sarr">→</div></div>
       <div class="scard fu fu4" onclick="openModal('caretaking')"><div class="sico" style="background:rgba(20,184,166,0.1)">🏡</div><div class="snm">Property Caretaking</div><div class="sdsc">Monthly visits, photos, bill payments — perfect for NRIs.</div><div class="sprc" id="sp-caretaking">₹999/mo</div><div class="sarr">→</div></div>
+    </div>
+
+    <!-- BEAUTY, WELLNESS & CARE -->
+    <div style="margin-top:80px;display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:24px;margin-bottom:40px">
+      <div><div class="stag fu">Beauty, Wellness & Care</div><div class="stitle fu">Services for<br><em>you personally.</em></div></div>
+    </div>
+    <div class="svc-grid">
+      <div class="scard fu" onclick="openModal('haircut')"><div class="sico" style="background:rgba(236,72,153,0.1)">💇</div><div class="snm">Hair Salon</div><div class="sdsc">At-home haircut, styling, colouring by certified stylists.</div><div class="sprc" id="sp-haircut">From ₹399</div><div class="sarr">→</div></div>
+      <div class="scard fu fu2" onclick="openModal('nails')"><div class="sico" style="background:rgba(244,114,182,0.1)">💅</div><div class="snm">Manicure & Pedicure</div><div class="sdsc">Nail art, gel polish, spa manicure — salon quality at home.</div><div class="sprc" id="sp-nails">From ₹499</div><div class="sarr">→</div></div>
+      <div class="scard fu fu3" onclick="openModal('makeup')"><div class="sico" style="background:rgba(217,70,239,0.1)">💄</div><div class="snm">Makeup Artist</div><div class="sdsc">Party, bridal, engagement & event makeup by experts.</div><div class="sprc" id="sp-makeup">From ₹999</div><div class="sarr">→</div></div>
+      <div class="scard fu fu4" onclick="openModal('facial')"><div class="sico" style="background:rgba(251,146,60,0.1)">✨</div><div class="snm">Facial & Skincare</div><div class="sdsc">Gold, fruit, bridal & anti-ageing facials with premium products.</div><div class="sprc" id="sp-facial">From ₹699</div><div class="sarr">→</div></div>
+      <div class="scard fu" onclick="openModal('massage')"><div class="sico" style="background:rgba(16,185,129,0.1)">💆</div><div class="snm">Massage Therapy</div><div class="sdsc">Swedish, deep-tissue, Ayurvedic — trained therapists at your door.</div><div class="sprc" id="sp-massage">From ₹999</div><div class="sarr">→</div></div>
+      <div class="scard fu fu2" onclick="openModal('trainer')"><div class="sico" style="background:rgba(249,115,22,0.1)">🏋️</div><div class="snm">Personal Trainer</div><div class="sdsc">Certified fitness coaches for home, park or gym sessions.</div><div class="sprc" id="sp-trainer">From ₹599</div><div class="sarr">→</div></div>
+      <div class="scard fu fu3" onclick="openModal('yoga')"><div class="sico" style="background:rgba(139,92,246,0.1)">🧘</div><div class="snm">Yoga Instructor</div><div class="sdsc">Hatha, power, prenatal yoga — private and group sessions.</div><div class="sprc" id="sp-yoga">From ₹499</div><div class="sarr">→</div></div>
+      <div class="scard fu fu4" onclick="openModal('physio')"><div class="sico" style="background:rgba(6,182,212,0.1)">🩺</div><div class="snm">Physiotherapy</div><div class="sdsc">Post-surgery, sports injury, chronic pain — licensed physios.</div><div class="sprc" id="sp-physio">From ₹799</div><div class="sarr">→</div></div>
+      <div class="scard fu" onclick="openModal('eldercare')"><div class="sico" style="background:rgba(245,158,11,0.1)">👵</div><div class="snm">Elderly Care</div><div class="sdsc">Trained caregivers for daily care, companionship & medication.</div><div class="sprc" id="sp-eldercare">From ₹899</div><div class="sarr">→</div></div>
+      <div class="scard fu fu2" onclick="openModal('babysit')"><div class="sico" style="background:rgba(251,191,36,0.1)">👶</div><div class="snm">Babysitting</div><div class="sdsc">Verified, background-checked nannies for hourly or daily care.</div><div class="sprc" id="sp-babysit">From ₹499</div><div class="sarr">→</div></div>
+      <div class="scard fu fu3" onclick="openModal('pet_grooming')"><div class="sico" style="background:rgba(168,85,247,0.1)">🐕</div><div class="snm">Pet Grooming</div><div class="sdsc">Bath, haircut, nail trim — stress-free grooming at home.</div><div class="sprc" id="sp-pet_grooming">From ₹599</div><div class="sarr">→</div></div>
+      <div class="scard fu fu4" onclick="openModal('mehendi')"><div class="sico" style="background:rgba(234,88,12,0.1)">🎨</div><div class="snm">Mehendi / Bridal</div><div class="sdsc">Bridal, Arabic, and Rajasthani mehendi by top artists.</div><div class="sprc" id="sp-mehendi">From ₹799</div><div class="sarr">→</div></div>
     </div>
   </div>
 </section>
@@ -605,7 +624,7 @@ footer{background:var(--bg2);border-top:1px solid var(--bdr);}
 <!-- FOOTER -->
 <footer>
   <div class="fm">
-    <div><div class="flgo">We<span>Aid</span></div><p class="fds">India's trusted home services platform connecting verified professionals with customers across 50+ cities.</p><div class="fsoc"><div class="fsb">𝕏</div><div class="fsb">in</div><div class="fsb">f</div><div class="fsb">▶</div></div></div>
+    <div><div class="flgo">We<span>Aid</span></div><p class="fds">India's trusted on-demand services platform connecting verified professionals with customers across 50+ cities — home, beauty, wellness & care.</p><div class="fsoc"><div class="fsb">𝕏</div><div class="fsb">in</div><div class="fsb">f</div><div class="fsb">▶</div></div></div>
     <div class="fc"><h4>Services</h4><a href="#">Electrical</a><a href="#">Plumbing</a><a href="#">Cleaning</a><a href="#">AC Service</a><a href="#">Renovation</a><a href="#">Airport Pickup</a><a href="#">Carpentry</a><a href="#">Property Care</a></div>
     <div class="fc"><h4>Company</h4><a href="#">About WeAid</a><a href="#">How it Works</a><a href="weaid-blog.html">Blog</a><a href="#">Press</a><a href="#">Careers</a></div>
     <div class="fc"><h4>Professionals</h4><a href="weaid-login.html">Join as a Pro</a><a href="#">Pro Dashboard</a><a href="#marketplace">Browse Jobs</a><a href="#">Referral Program</a></div>

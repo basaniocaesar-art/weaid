@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>WeAid — Jobs Board</title>
-<meta name="description" content="WeAid — India's premium home services platform. Book electricians, plumbers, cleaners & more.">
+<meta name="description" content="WeAid — India's on-demand services platform. Home, beauty, wellness & care.">
 <meta property="og:title" content="WeAid — Jobs Board">
 <meta property="og:description" content="Book verified professionals for electrical, plumbing, cleaning, renovation & more across India.">
 <meta property="og:type" content="website">
@@ -153,6 +153,14 @@ a{text-decoration:none;color:inherit;}
     <div class="filter-pill" onclick="filterCat('renovation',this)">Renovation</div>
     <div class="filter-pill" onclick="filterCat('pickup',this)">Transport</div>
     <div class="filter-pill" onclick="filterCat('painting',this)">Painting</div>
+    <div class="filter-pill" onclick="filterCat('haircut',this)">Hair</div>
+    <div class="filter-pill" onclick="filterCat('nails',this)">Nails</div>
+    <div class="filter-pill" onclick="filterCat('makeup',this)">Makeup</div>
+    <div class="filter-pill" onclick="filterCat('massage',this)">Massage</div>
+    <div class="filter-pill" onclick="filterCat('trainer',this)">Fitness</div>
+    <div class="filter-pill" onclick="filterCat('eldercare',this)">Elder Care</div>
+    <div class="filter-pill" onclick="filterCat('babysit',this)">Babysitting</div>
+    <div class="filter-pill" onclick="filterCat('pet_grooming',this)">Pet Care</div>
     <select class="filter-select" id="cityFilter" onchange="loadJobs()">
       <option value="">All Cities</option>
       <option value="mumbai">Mumbai</option>
@@ -177,7 +185,7 @@ a{text-decoration:none;color:inherit;}
 let currentCat = null;
 let jobs = [];
 
-const catLabels = {electrical:'Electrical',plumbing:'Plumbing',cleaning:'Deep Cleaning',ac:'AC Repair',carpentry:'Carpentry',renovation:'Renovation',painting:'Painting',pickup:'Transport',caretaking:'Caretaking',pest_control:'Pest Control',cctv:'CCTV & Security',local_transport:'Transport',packers:'Packers & Movers',photography:'Photography',it_repair:'IT Repair',tutoring:'Tutoring',event:'Event Mgmt',cooking:'Cooking',healthcare:'Healthcare',other:'Other'};
+const catLabels = {electrical:'Electrical',plumbing:'Plumbing',cleaning:'Deep Cleaning',ac:'AC Repair',carpentry:'Carpentry',renovation:'Renovation',painting:'Painting',pickup:'Transport',caretaking:'Caretaking',pest_control:'Pest Control',cctv:'CCTV & Security',local_transport:'Transport',packers:'Packers & Movers',photography:'Photography',it_repair:'IT Repair',tutoring:'Tutoring',event:'Event Mgmt',cooking:'Cooking',healthcare:'Healthcare',haircut:'Hair Salon',barber:'Barber',nails:'Manicure & Pedicure',makeup:'Makeup Artist',facial:'Facial & Skincare',waxing:'Waxing',mehendi:'Mehendi',massage:'Massage',physio:'Physiotherapy',trainer:'Personal Trainer',yoga:'Yoga',eldercare:'Elderly Care',babysit:'Babysitting',pet_grooming:'Pet Grooming',pet_walking:'Pet Walking',other:'Other'};
 
 function filterCat(cat, el) {
   currentCat = cat;
