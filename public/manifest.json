@@ -1,0 +1,50 @@
+{
+  "name": "WeAid — On-Demand Services",
+  "short_name": "WeAid",
+  "description": "India's on-demand services platform. Book verified pros for home, beauty, wellness & care.",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#07090f",
+  "theme_color": "#06b6d4",
+  "categories": ["lifestyle", "productivity", "shopping"],
+  "lang": "en-IN",
+  "dir": "ltr",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Post a Job",
+      "short_name": "Post Job",
+      "description": "Post a new job request",
+      "url": "/post-job",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "Browse Jobs",
+      "short_name": "Jobs",
+      "description": "Browse the jobs board",
+      "url": "/jobs",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    },
+    {
+      "name": "My Dashboard",
+      "short_name": "Dashboard",
+      "description": "Access your dashboard",
+      "url": "/dashboard",
+      "icons": [{ "src": "/icon-192.png", "sizes": "192x192" }]
+    }
+  ]
+}
