@@ -8,7 +8,12 @@
     { "source": "/admin", "destination": "/weaid-admin.html" },
     { "source": "/affiliate", "destination": "/weaid-affiliate.html" },
     { "source": "/post-job", "destination": "/weaid-post-job.html" },
-    { "source": "/jobs", "destination": "/weaid-jobs.html" }
+    { "source": "/jobs", "destination": "/weaid-jobs.html" },
+    { "source": "/directory", "destination": "/weaid-directory.html" },
+    { "source": "/find", "destination": "/weaid-directory.html" },
+    { "source": "/list-business", "destination": "/weaid-provider-signup.html" },
+    { "source": "/p/:slug", "destination": "/weaid-provider-profile.html" },
+    { "source": "/dashboard-pro", "destination": "/weaid-pro-dashboard.html" }
   ],
   "crons": [
     { "path": "/api/cron/tick", "schedule": "0 9 * * *" },

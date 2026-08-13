@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Provider — WeAid</title>
+<meta name="description" content="Verified local service provider on WeAid.">
+<link rel="icon" href="/icon-192.png">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#FFFFFF">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/weaid-theme.css">
+<style>
+.pheader{background:linear-gradient(135deg,var(--teal-dim),#EAF6FF);height:130px;}
+.pwrap{max-width:720px;margin:-64px auto 0;padding:0 20px 140px;}
+.pcard-main{background:#fff;border:1px solid var(--bdr);border-radius:20px;padding:22px;box-shadow:var(--shadow-md);}
+.ph-top{display:flex;gap:16px;align-items:flex-start;}
+.ph-top .avatar{width:80px;height:80px;font-size:2rem;border-radius:20px;}
+.ph-name{font-size:24px;font-weight:800;color:var(--ink);letter-spacing:-0.01em;display:flex;align-items:center;gap:8px;flex-wrap:wrap;}
+.ph-meta{font-size:15px;color:var(--t2);margin-top:4px;}
+.ph-badges{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;align-items:center;}
+.sec-block{margin-top:26px;}
+.sec-block h3{font-size:13px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--t3);margin-bottom:12px;}
+.chips-row{display:flex;flex-wrap:wrap;gap:8px;}
+.about{font-size:15px;color:var(--text);line-height:1.6;}
+.area-list{font-size:15px;color:var(--t2);}
+
+/* reviews */
+.review{padding:16px 0;border-bottom:1px solid var(--bdr);}
+.review:last-child{border-bottom:none;}
+.rv-top{display:flex;align-items:center;gap:10px;}
+.rv-av{width:36px;height:36px;border-radius:50%;background:var(--bg-soft);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;color:var(--t2);}
+.rv-name{font-weight:700;font-size:15px;color:var(--ink);}
+.rv-stars{color:var(--star);font-size:0.9rem;margin-left:auto;}
+.rv-comment{font-size:14px;color:var(--t2);margin-top:8px;line-height:1.55;}
+.rv-empty{font-size:14px;color:var(--t3);padding:8px 0;}
+.add-review{background:var(--bg-soft);border-radius:14px;padding:18px;margin-top:16px;}
+.star-pick{display:flex;gap:6px;font-size:1.8rem;color:var(--bdr2);margin:8px 0 14px;}
+.star-pick span{cursor:pointer;transition:transform .1s;}
+.star-pick span:active{transform:scale(1.2);}
+.star-pick span.on{color:var(--star);}
+
+.contact-bar{position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid var(--bdr);box-shadow:0 -4px 16px rgba(20,23,31,.06);padding:12px 16px calc(12px + env(safe-area-inset-bottom));display:grid;grid-template-columns:1fr 1fr;gap:10px;z-index:90;max-width:720px;margin:0 auto;}
+.loading-full{text-align:center;padding:80px 20px;color:var(--t2);}
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <a href="/" class="logo"><div class="lm">W</div><div class="lt">We<span>Aid</span></div></a>
+  <div class="nav-right"><a href="/directory" class="nav-link">Find a pro</a></div>
+</nav>
+
+<div class="pheader"></div>
+<div class="pwrap">
+  <div id="content"><div class="loading-full">Loading…</div></div>
+</div>
+
+<div class="contact-bar" id="contactBar" style="display:none">
+  <a class="btn btn-wa" id="waBtn" href="#">💬 WhatsApp</a>
+  <a class="btn btn-secondary" id="callBtn" href="#">📞 Call</a>
+</div>
+
+<script>
+const SVC_LABEL={electrical:"Electrical",plumbing:"Plumbing",cleaning:"Cleaning",ac:"AC & Appliance",carpentry:"Carpentry",renovation:"Renovation",pickup:"Airport Transfer",caretaking:"Caretaking",painting:"Painting",pest_control:"Pest Control",cctv:"CCTV & Security"};
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function initials(n){return (n||"?").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();}
+function stars(r){r=Math.round(r||0);return "★".repeat(r)+"☆".repeat(5-r);}
+const slug=location.pathname.split('/').filter(Boolean).pop();
+let PROVIDER=null, pickedRating=0;
+
+function logLead(ch){try{navigator.sendBeacon('/api/provider/lead',new Blob([JSON.stringify({providerId:PROVIDER.id,channel:ch,service:(PROVIDER.services||[])[0],city:PROVIDER.city})],{type:'application/json'}));}catch(e){}}
+
+function reviewHtml(rv){return `<div class="review"><div class="rv-top"><div class="rv-av">${initials(rv.customer_name)}</div><div class="rv-name">${esc(rv.customer_name)}</div><div class="rv-stars">${stars(rv.rating)}</div></div>${rv.comment?`<div class="rv-comment">${esc(rv.comment)}</div>`:''}</div>`;}
+
+async function load(){
+  try{
+    const r=await fetch('/api/providers/'+encodeURIComponent(slug));
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Not found');
+    PROVIDER=d.provider;const p=d.provider;
+    const wa=(p.whatsapp||p.phone||"").replace(/[^0-9]/g,"");
+    const tel=(p.phone||"").replace(/[^0-9+]/g,"");
+    const chips=(p.services||[]).map(s=>`<span class="chip">${esc(SVC_LABEL[s]||s)}</span>`).join("");
+    const areas=(p.areas||[]).length?`<div class="area-list">Covers: ${(p.areas||[]).map(esc).join(", ")}</div>`:'';
+    const rating=p.review_count?`<span class="rating-pill"><span class="star">★</span> ${p.rating} <span style="color:var(--t3);font-weight:600">(${p.review_count})</span></span>`:'<span class="badge badge-new">New pro</span>';
+    const badges=[p.featured?'<span class="badge badge-feat">★ Featured</span>':'',p.verified?'<span class="badge badge-verified">✓ Verified</span>':''].filter(Boolean).join('');
+    document.getElementById('content').innerHTML=`
+      <div class="pcard-main fade-up">
+        <div class="ph-top">
+          <div class="avatar">${p.photo_url?`<img src="${esc(p.photo_url)}" alt="">`:initials(p.name)}</div>
+          <div style="flex:1">
+            <div class="ph-name">${esc(p.name)} ${p.verified?'<span class="vtick" title="Verified">✓</span>':''}</div>
+            <div class="ph-meta">${p.years_experience?p.years_experience+' yrs experience · ':''}${esc(p.city||'')}</div>
+            <div class="ph-badges">${rating} ${badges}</div>
+          </div>
+        </div>
+        <div class="sec-block"><h3>Services</h3><div class="chips-row">${chips}</div></div>
+        ${p.bio?`<div class="sec-block"><h3>About</h3><div class="about">${esc(p.bio)}</div></div>`:''}
+        ${areas?`<div class="sec-block"><h3>Service area</h3>${areas}</div>`:''}
+        <div class="sec-block">
+          <h3>Reviews</h3>
+          <div id="reviews">${(d.reviews||[]).length?d.reviews.map(reviewHtml).join(''):'<div class="rv-empty">No reviews yet — be the first.</div>'}</div>
+          <div class="add-review">
+            <div style="font-weight:700;font-size:15px;color:var(--ink)">Leave a review</div>
+            <div class="star-pick" id="starPick">${[1,2,3,4,5].map(i=>`<span data-v="${i}" onclick="pickStar(${i})">★</span>`).join('')}</div>
+            <div class="field" style="margin-bottom:10px"><input id="rvName" type="text" placeholder="Your name"></div>
+            <div class="field" style="margin-bottom:12px"><textarea id="rvComment" placeholder="How was the service? (optional)"></textarea></div>
+            <button class="btn btn-primary btn-block" onclick="submitReview()">Post review</button>
+            <div id="rvMsg" style="font-size:13px;margin-top:8px"></div>
+          </div>
+        </div>
+      </div>`;
+    // contact bar
+    const bar=document.getElementById('contactBar');bar.style.display='grid';
+    const waB=document.getElementById('waBtn'),callB=document.getElementById('callBtn');
+    waB.href='https://wa.me/'+wa;waB.onclick=()=>logLead('whatsapp');
+    callB.href='tel:'+tel;callB.onclick=()=>logLead('call');
+    document.title=p.name+' — WeAid';
+  }catch(e){
+    document.getElementById('content').innerHTML=`<div class="pcard-main" style="text-align:center"><div style="font-size:2rem;margin-bottom:10px">🔍</div><div style="font-weight:700;color:var(--ink);margin-bottom:6px">Provider not found</div><div style="color:var(--t2);font-size:14px;margin-bottom:16px">This listing may have moved.</div><a href="/directory" class="btn btn-primary btn-pill">Browse the directory</a></div>`;
+  }
+}
+function pickStar(v){pickedRating=v;document.querySelectorAll('#starPick span').forEach(s=>s.classList.toggle('on',+s.dataset.v<=v));}
+async function submitReview(){
+  const msg=document.getElementById('rvMsg');
+  const name=document.getElementById('rvName').value.trim();
+  if(!pickedRating){msg.style.color='var(--error)';msg.textContent='Pick a star rating.';return;}
+  if(!name){msg.style.color='var(--error)';msg.textContent='Enter your name.';return;}
+  msg.style.color='var(--t2)';msg.textContent='Posting…';
+  try{
+    const r=await fetch('/api/provider/review',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({providerId:PROVIDER.id,customerName:name,rating:pickedRating,comment:document.getElementById('rvComment').value.trim()||null})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    msg.style.color='var(--success)';msg.textContent='Thanks! Your review is live.';
+    setTimeout(load,700);
+  }catch(e){msg.style.color='var(--error)';msg.textContent=e.message;}
+}
+addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>8));
+load();
+</script>
+</body>
+</html>

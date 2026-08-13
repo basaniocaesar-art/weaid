@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Pro Dashboard — WeAid</title>
+<link rel="icon" href="/icon-192.png">
+<meta name="theme-color" content="#0e1117">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
+<style>
+:root{--bg:#07090f;--bg2:#0e1117;--bg3:#161b27;--teal:#00c9b1;--tdim:rgba(0,201,177,0.12);--gold:#f0b429;--gdim:rgba(240,180,41,0.12);--text:#eef2ff;--t2:#8892aa;--t3:#4a5568;--w:#fff;--wa:#25d366;--bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);--font:'DM Sans',sans-serif;--err:#f87171;--ok:#34d399;}
+*{margin:0;padding:0;box-sizing:border-box;}
+body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;line-height:1.5;font-size:16px;min-height:100vh;}
+a{text-decoration:none;color:inherit;}button{font-family:inherit;cursor:pointer;border:none;}
+.nav{position:sticky;top:0;z-index:100;height:60px;padding:0 18px;display:flex;align-items:center;justify-content:space-between;background:rgba(7,9,15,0.95);backdrop-filter:blur(16px);border-bottom:1px solid var(--bdr);}
+.logo{display:flex;align-items:center;gap:8px;}
+.lm{width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,var(--teal),#0099ff);display:flex;align-items:center;justify-content:center;font-weight:800;color:var(--bg);}
+.lt{font-size:1.2rem;font-weight:800;color:var(--w);}.lt span{color:var(--teal);}
+.tag{font-size:0.72rem;font-weight:700;color:var(--teal);background:var(--tdim);padding:5px 10px;border-radius:100px;}
+.wrap{max-width:840px;margin:0 auto;padding:22px 18px 100px;}
+.hi{font-size:26px;font-weight:800;color:var(--w);letter-spacing:-0.01em;}
+.hi small{display:block;font-size:14px;font-weight:500;color:var(--t2);margin-top:4px;}
+
+.statusbar{display:flex;align-items:center;justify-content:space-between;gap:12px;background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:16px 18px;margin:18px 0;}
+.status-l{font-size:15px;font-weight:700;color:var(--w);}
+.status-l small{display:block;font-weight:500;font-size:13px;color:var(--t2);margin-top:2px;}
+.toggle{width:56px;height:32px;border-radius:100px;background:var(--bg3);position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--teal);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:26px;height:26px;border-radius:50%;background:#fff;transition:transform .2s;}
+.toggle.on::after{transform:translateX(24px);}
+
+.stats{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:18px;}
+.stat{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:16px;}
+.stat .n{font-size:28px;font-weight:800;color:var(--w);line-height:1;font-variant-numeric:tabular-nums;}
+.stat .l{font-size:12px;color:var(--t2);margin-top:6px;text-transform:uppercase;letter-spacing:0.5px;font-weight:700;}
+
+.card{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:18px;margin-bottom:16px;}
+.card h3{font-size:13px;font-weight:800;letter-spacing:0.05em;text-transform:uppercase;color:var(--t3);margin-bottom:14px;}
+.field{margin-bottom:14px;}
+.field label{display:block;font-size:13px;font-weight:700;color:var(--text);margin:0 0 6px 2px;}
+.field input,.field textarea{width:100%;padding:13px 14px;background:var(--bg3);border:1.5px solid var(--bdr);border-radius:11px;color:var(--text);font-family:inherit;font-size:16px;outline:none;}
+.field input:focus,.field textarea:focus{border-color:var(--teal);}
+.field textarea{resize:vertical;min-height:72px;}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+.svc-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px;}
+.svc{display:flex;align-items:center;gap:6px;padding:11px 8px;background:var(--bg3);border:1.5px solid transparent;border-radius:10px;font-size:13px;font-weight:600;cursor:pointer;}
+.svc.on{border-color:var(--teal);background:var(--tdim);color:var(--teal);}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-weight:700;font-size:16px;border-radius:12px;padding:14px 22px;transition:transform .1s;}
+.btn:active{transform:scale(.98);}
+.btn-primary{background:var(--teal);color:var(--bg);}
+.btn-block{width:100%;}
+.btn-gold{background:var(--gold);color:#1a1200;}
+.msg{font-size:13px;margin-top:10px;}
+
+.feat-card{background:linear-gradient(180deg,var(--gdim),var(--bg2));border:1px solid rgba(240,180,41,0.3);}
+.feat-card h3{color:var(--gold);}
+.feat-live{display:flex;align-items:center;gap:8px;color:var(--gold);font-weight:700;font-size:15px;}
+
+.lead{display:flex;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--bdr);}
+.lead:last-child{border-bottom:none;}
+.lead-ic{width:36px;height:36px;border-radius:10px;background:var(--bg3);display:flex;align-items:center;justify-content:center;font-size:1rem;}
+.lead-t{font-size:14px;font-weight:600;color:var(--text);}
+.lead-m{font-size:12px;color:var(--t2);}
+.lead-time{margin-left:auto;font-size:12px;color:var(--t3);}
+.empty{color:var(--t2);font-size:14px;padding:8px 0;}
+.gate{max-width:440px;margin:60px auto;text-align:center;padding:0 20px;}
+.gate .emo{font-size:2.6rem;margin-bottom:14px;}
+.gate h2{font-size:22px;font-weight:800;color:var(--w);margin-bottom:8px;}
+.gate p{color:var(--t2);font-size:15px;margin-bottom:20px;}
+.viewlink{font-size:13px;color:var(--teal);font-weight:700;}
+</style>
+</head>
+<body>
+<nav class="nav">
+  <a href="/" class="logo"><div class="lm">W</div><div class="lt">We<span>Aid</span></div></a>
+  <span class="tag">Pro Dashboard</span>
+</nav>
+
+<div id="app"><div class="wrap"><div class="empty" style="text-align:center;padding:60px 0">Loading…</div></div></div>
+
+<script>
+const SERVICES=[["electrical","⚡","Electrical"],["plumbing","🔧","Plumbing"],["cleaning","🧹","Cleaning"],["ac","❄️","AC"],["carpentry","🪚","Carpentry"],["renovation","🏠","Renovation"],["pickup","✈️","Airport"],["caretaking","🏡","Caretaking"],["painting","🎨","Painting"],["pest_control","🐛","Pest"],["cctv","📹","CCTV"]];
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function ago(d){const s=(Date.now()-new Date(d))/1000;if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
+const params=new URLSearchParams(location.search);
+let token=params.get('t')||localStorage.getItem('weaid_pro_token');
+let DATA=null;const sel=new Set();
+
+if(!token){renderGate();}else{localStorage.setItem('weaid_pro_token',token);load();}
+
+function renderGate(){
+  document.getElementById('app').innerHTML=`<div class="gate"><div class="emo">🔑</div><h2>Open your manage link</h2><p>Use the private "Manage your listing" link you got when you signed up. It keeps your listing secure.</p><a href="/list-business" class="btn btn-primary btn-block">List your business</a></div>`;
+}
+
+async function load(){
+  try{
+    const r=await fetch('/api/provider/manage?token='+encodeURIComponent(token));
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    DATA=d;render();
+  }catch(e){document.getElementById('app').innerHTML=`<div class="gate"><div class="emo">⚠️</div><h2>${esc(e.message)}</h2><p>This manage link may be invalid.</p><a href="/list-business" class="btn btn-primary btn-block">List your business</a></div>`;}
+}
+
+function render(){
+  const p=DATA.provider,st=DATA.stats;sel.clear();(p.services||[]).forEach(s=>sel.add(s));
+  const featBlock=p.featured
+    ? `<div class="card feat-card"><h3>Featured</h3><div class="feat-live">★ You're Featured — top of search${p.featured_until?' until '+new Date(p.featured_until).toLocaleDateString():''}</div></div>`
+    : `<div class="card feat-card"><h3>Featured placement</h3><div style="font-size:14px;color:var(--text);margin-bottom:14px">${p.boosted?'Your free new-pro boost is active. ':''}Stay at the <b>top of search</b> permanently. <b>₹499/month.</b></div><button class="btn btn-gold btn-block" onclick="upgrade()">★ Get Featured — ₹499/mo</button><div class="msg" id="featMsg"></div></div>`;
+  const leads=(DATA.leads||[]).map(l=>`<div class="lead"><div class="lead-ic">${l.channel==='call'?'📞':'💬'}</div><div><div class="lead-t">${l.channel==='call'?'Call':'WhatsApp'} enquiry${l.service?' · '+esc(l.service):''}</div><div class="lead-m">${esc(l.city||'—')}</div></div><div class="lead-time">${ago(l.created_at)}</div></div>`).join('')||'<div class="empty">No enquiries yet. Share your listing link to get more.</div>';
+
+  document.getElementById('app').innerHTML=`<div class="wrap">
+    <div class="hi">Hi ${esc(p.name)} 👋<small>${p.available?'You\'re visible to customers':'You\'re hidden from search'} · <a class="viewlink" href="/p/${esc(p.slug)}" target="_blank">View public listing ↗</a></small></div>
+
+    <div class="statusbar">
+      <div class="status-l">Available for work<small>Turn off when you're fully booked</small></div>
+      <div class="toggle ${p.available?'on':''}" id="availToggle" onclick="toggleAvail()"></div>
+    </div>
+
+    <div class="stats">
+      <div class="stat"><div class="n">${st.leads_total}</div><div class="l">Enquiries</div></div>
+      <div class="stat"><div class="n">${st.leads_7d}</div><div class="l">This week</div></div>
+      <div class="stat"><div class="n">${p.rating||0}★</div><div class="l">${p.review_count} reviews</div></div>
+    </div>
+
+    ${featBlock}
+
+    <div class="card">
+      <h3>Recent enquiries</h3>
+      ${leads}
+    </div>
+
+    <div class="card">
+      <h3>Edit listing</h3>
+      <div class="field"><label>Business / name</label><input id="e_name" value="${esc(p.name)}"></div>
+      <div class="row2">
+        <div class="field"><label>Phone</label><input id="e_phone" value="${esc(p.phone||'')}"></div>
+        <div class="field"><label>WhatsApp</label><input id="e_whatsapp" value="${esc(p.whatsapp||'')}"></div>
+      </div>
+      <div class="row2">
+        <div class="field"><label>City</label><input id="e_city" value="${esc(p.city||'')}"></div>
+        <div class="field"><label>Years exp.</label><input id="e_years" type="number" value="${p.years_experience||''}"></div>
+      </div>
+      <div class="field"><label>Areas covered (comma separated)</label><input id="e_areas" value="${esc((p.areas||[]).join(', '))}"></div>
+      <div class="field"><label>Services</label><div class="svc-grid" id="e_svc">${SERVICES.map(([id,em,l])=>`<div class="svc ${sel.has(id)?'on':''}" data-id="${id}" onclick="tsvc('${id}',this)"><span>${em}</span>${l}</div>`).join('')}</div></div>
+      <div class="field"><label>About</label><textarea id="e_bio">${esc(p.bio||'')}</textarea></div>
+      <button class="btn btn-primary btn-block" onclick="save()">Save changes</button>
+      <div class="msg" id="saveMsg"></div>
+    </div>
+  </div>`;
+}
+
+function tsvc(id,el){el.classList.toggle('on');sel.has(id)?sel.delete(id):sel.add(id);}
+async function toggleAvail(){
+  const t=document.getElementById('availToggle');const now=!t.classList.contains('on');t.classList.toggle('on',now);
+  await fetch('/api/provider/manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,available:now})});
+}
+async function save(){
+  const msg=document.getElementById('saveMsg');msg.style.color='var(--t2)';msg.textContent='Saving…';
+  const body={token,name:document.getElementById('e_name').value.trim(),phone:document.getElementById('e_phone').value.trim(),whatsapp:document.getElementById('e_whatsapp').value.trim(),city:document.getElementById('e_city').value.trim(),years_experience:document.getElementById('e_years').value?Number(document.getElementById('e_years').value):null,areas:document.getElementById('e_areas').value.split(',').map(s=>s.trim()).filter(Boolean),services:[...sel],bio:document.getElementById('e_bio').value.trim()};
+  try{const r=await fetch('/api/provider/manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);msg.style.color='var(--ok)';msg.textContent='Saved ✓';}
+  catch(e){msg.style.color='var(--err)';msg.textContent=e.message;}
+}
+async function upgrade(){
+  const msg=document.getElementById('featMsg');msg.style.color='var(--t2)';msg.textContent='Starting payment…';
+  try{
+    const r=await fetch('/api/provider/feature-order',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({providerId:DATA.provider.id})});
+    const o=await r.json();if(!r.ok)throw new Error(o.error||'Could not start payment');
+    const rzp=new Razorpay({key:o.keyId,amount:o.amount,currency:o.currency,order_id:o.orderId,name:'WeAid Featured',description:'Front-of-search placement (30 days)',theme:{color:'#f0b429'},
+      handler:async function(resp){
+        msg.textContent='Confirming…';
+        const v=await fetch('/api/provider/feature',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({providerId:DATA.provider.id,razorpayOrderId:resp.razorpay_order_id,razorpayPaymentId:resp.razorpay_payment_id,razorpaySignature:resp.razorpay_signature})});
+        const vd=await v.json();if(!v.ok){msg.style.color='var(--err)';msg.textContent=vd.error||'Verification failed';return;}
+        msg.style.color='var(--ok)';msg.textContent='You\'re Featured! ★';setTimeout(load,900);
+      }});
+    rzp.open();msg.textContent='';
+  }catch(e){msg.style.color='var(--err)';msg.textContent=e.message;}
+}
+</script>
+</body>
+</html>
