@@ -25,6 +25,7 @@ CREATE TABLE IF NOT EXISTS bookings (
   city TEXT NOT NULL,
   scope TEXT DEFAULT 'small',
   slot TEXT DEFAULT 'standard',
+  workers INTEGER NOT NULL DEFAULT 1,
   description TEXT,
   photos TEXT[] DEFAULT '{}',
   address TEXT,
@@ -70,9 +71,31 @@ CREATE INDEX IF NOT EXISTS idx_bookings_status ON bookings(status);
 CREATE INDEX IF NOT EXISTS idx_bookings_provider ON bookings(provider_id);
 CREATE INDEX IF NOT EXISTS idx_bookings_service_city ON bookings(service, city);
 
+-- 2b. QUOTE REQUESTS (big / multi-person jobs — sales agent calls to scope & quote)
+CREATE TABLE IF NOT EXISTS quote_requests (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  service TEXT,
+  city TEXT,
+  description TEXT,
+  workers INTEGER DEFAULT 3,
+  customer_name TEXT,
+  customer_phone TEXT,
+  scheduled_at TIMESTAMPTZ,
+  status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new','called','quoted','won','lost')),
+  created_at TIMESTAMPTZ NOT NULL DEFAULT now()
+);
+CREATE INDEX IF NOT EXISTS idx_quote_requests_status ON quote_requests(status);
+
 -- 3. RLS
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE bookings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE quote_requests ENABLE ROW LEVEL SECURITY;
+DO $$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_policies WHERE tablename='quote_requests' AND policyname='Service role full access on quote_requests') THEN
+    CREATE POLICY "Service role full access on quote_requests" ON quote_requests FOR ALL USING (true) WITH CHECK (true);
+  END IF;
+END $$;
 
 DO $$
 BEGIN

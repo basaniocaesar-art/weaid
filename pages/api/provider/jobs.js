@@ -33,6 +33,7 @@ function shape(b, provider, reveal) {
     status: b.status,
     created_at: b.created_at,
     distanceKm: dist,
+    workers: b.workers || 1,
     description: b.description, // what the job is — shown before accepting
   };
   if (reveal) {
@@ -55,7 +56,7 @@ export default async function handler(req, res) {
 
     if (req.method === "GET") {
       const [incoming, active] = await Promise.all([
-        getDispatchableBookings(provider.services || [], provider.city),
+        getDispatchableBookings(provider.services || [], provider.city, provider.team_size || 1),
         getProviderActiveJobs(provider.id),
       ]);
       // Nearest first for incoming — customer identity withheld until accepted

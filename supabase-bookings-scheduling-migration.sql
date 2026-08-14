@@ -27,3 +27,6 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;
 -- Number masking (call privacy) for booked jobs
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS mask_number TEXT;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS mask_session_id TEXT;
+
+-- Crew size (multi-person jobs)
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS workers INTEGER NOT NULL DEFAULT 1;

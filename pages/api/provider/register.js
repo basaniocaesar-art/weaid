@@ -47,6 +47,7 @@ export default async function handler(req, res) {
       yearsExperience,
       lat,
       lng,
+      teamSize,
       userId,
     } = req.body;
 
@@ -74,6 +75,7 @@ export default async function handler(req, res) {
       years_experience: yearsExperience != null ? Number(yearsExperience) : null,
       lat: lat != null ? Number(lat) : null,
       lng: lng != null ? Number(lng) : null,
+      team_size: Math.max(1, Number(teamSize) || 1),
       available: true,
       verified: false,
       featured: false,

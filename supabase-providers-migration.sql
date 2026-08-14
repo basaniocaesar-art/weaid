@@ -41,6 +41,8 @@ ALTER TABLE providers ADD COLUMN IF NOT EXISTS edit_token UUID DEFAULT gen_rando
 -- Approximate location for distance / "near me" ranking (area centroid, NOT exact home)
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
+-- How many workers this pro can bring (crew capacity for multi-person jobs)
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS team_size INTEGER NOT NULL DEFAULT 1;
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 -- plan_tier is limited to 'free' | 'featured' (added as a NOT VALID-safe constraint)

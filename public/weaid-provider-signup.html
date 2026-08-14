@@ -120,6 +120,15 @@
       </div>
     </div>
     <div class="field">
+      <label>Team size <span style="color:var(--t3);font-weight:500">— how many workers can you bring?</span></label>
+      <select id="teamSize">
+        <option value="1">Just me (1)</option>
+        <option value="2">2 workers</option>
+        <option value="3">3 workers</option>
+        <option value="4">4+ workers</option>
+      </select>
+    </div>
+    <div class="field">
       <label>Short description</label>
       <textarea id="bio" placeholder="What you do, what makes you reliable…" maxlength="300"></textarea>
     </div>
@@ -188,7 +197,7 @@ async function submitForm(){
   const years=document.getElementById('years').value;
   try{
     const r=await fetch('/api/provider/register',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,phone,whatsapp:document.getElementById('whatsapp').value.trim()||phone,email:document.getElementById('email').value.trim()||null,city,areas,services,bio:document.getElementById('bio').value.trim()||null,yearsExperience:years||null,lat:capturedLat,lng:capturedLng})});
+      body:JSON.stringify({name,phone,whatsapp:document.getElementById('whatsapp').value.trim()||phone,email:document.getElementById('email').value.trim()||null,city,areas,services,bio:document.getElementById('bio').value.trim()||null,yearsExperience:years||null,lat:capturedLat,lng:capturedLng,teamSize:document.getElementById('teamSize').value})});
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||'Something went wrong');
     // Build preview card

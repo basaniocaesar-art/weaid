@@ -353,6 +353,22 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
       </div>
     </div>
     <div class="fld">
+      <label>How many workers?</label>
+      <div class="chips" id="bkWorkers">
+        <div class="chip on" data-workers="1" onclick="selectWorkers(this)">1</div>
+        <div class="chip" data-workers="2" onclick="selectWorkers(this)">2</div>
+        <div class="chip" data-workers="3" onclick="selectWorkers(this)">3+</div>
+      </div>
+    </div>
+    <div class="fld" id="quoteFields" style="display:none">
+      <div style="background:var(--bg3);border:1px solid var(--teal);border-radius:12px;padding:14px;">
+        <div style="font-size:0.9rem;font-weight:700;color:var(--teal);margin-bottom:4px">Big job — let's scope it right</div>
+        <div style="font-size:0.8rem;color:var(--t2);margin-bottom:12px">Leave your number and our team calls you to understand the work and give a fair quote — no blind price.</div>
+        <input id="qName" type="text" placeholder="Your name" style="width:100%;padding:12px 14px;background:var(--bg2);border:1.5px solid var(--bdr2);border-radius:10px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;margin-bottom:8px">
+        <input id="qPhone" type="tel" placeholder="Phone number" style="width:100%;padding:12px 14px;background:var(--bg2);border:1.5px solid var(--bdr2);border-radius:10px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none">
+      </div>
+    </div>
+    <div class="fld">
       <label>When do you need it?</label>
       <div class="chips" id="bkWhen">
         <div class="chip on" data-when="asap" onclick="selectWhen(this)">⚡ Right now</div>
@@ -393,7 +409,7 @@ const SCOPES={small:1,medium:1.6,large:2.8};
 const SLOTS={standard:1,evening:1.15,weekend:1.25,emergency:1.5};
 const SVC_LABELS={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Deep Cleaning',ac:'AC Service',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport Transfer',caretaking:'Property Care',haircut:'Hair Salon',barber:'Barber',nails:'Manicure & Pedicure',makeup:'Makeup',facial:'Facial',waxing:'Waxing',mehendi:'Mehendi',massage:'Massage',physio:'Physiotherapy',trainer:'Personal Trainer',yoga:'Yoga',eldercare:'Elderly Care',babysit:'Babysitting',pet_grooming:'Pet Grooming',pet_walking:'Pet Walking'};
 
-let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null,description:'',address:''};
+let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null,description:'',address:'',workers:1,quote:false};
 
 // Derive the pricing slot from the chosen time (or urgency)
 function deriveSlot(){
@@ -410,17 +426,29 @@ function calcPrice(){
   const base=BASES[bkState.svc];
   if(!base)return{subtotal:0,total:0};
   bkState.slot=deriveSlot();
-  const sub=Math.round(base*(AREAS[bkState.city]||0.9)*(SCOPES[bkState.scope]||1)*(SLOTS[bkState.slot]||1));
+  const wm=1+(Math.max(1,Number(bkState.workers)||1)-1)*0.8;
+  const sub=Math.round(base*(AREAS[bkState.city]||0.9)*(SCOPES[bkState.scope]||1)*(SLOTS[bkState.slot]||1)*wm);
   return{subtotal:sub,total:sub+49};
+}
+
+function selectWorkers(el){
+  el.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  bkState.workers=Number(el.dataset.workers);
+  updatePrice();
 }
 
 function updatePrice(){
   bkState.urgent=document.getElementById('bkUrgent').checked;
   if(bkState.when==='scheduled')bkState.dateTime=document.getElementById('bkDateTime').value||null;
+  // 3+ worker jobs → sales callback to scope & quote (no blind price)
+  bkState.quote=Number(bkState.workers)>=3;
   const p=calcPrice();
   document.getElementById('pcSub').textContent='₹'+p.subtotal.toLocaleString('en-IN');
   document.getElementById('pcTotal').innerHTML='₹'+p.total.toLocaleString('en-IN');
-  document.getElementById('bkCta').textContent='Continue to pay ₹'+p.total.toLocaleString('en-IN');
+  document.getElementById('quoteFields').style.display=bkState.quote?'block':'none';
+  document.getElementById('priceCard').style.display=bkState.quote?'none':'block';
+  document.getElementById('bkCta').textContent=bkState.quote?'Request a callback to quote →':('Continue to pay ₹'+p.total.toLocaleString('en-IN'));
 }
 
 // ── SHEET ──
@@ -464,7 +492,23 @@ function selectWhen(el){
 document.getElementById('bkSvc').addEventListener('change',e=>{bkState.svc=e.target.value;updatePrice();});
 document.getElementById('bkCity').addEventListener('change',e=>{bkState.city=e.target.value;updatePrice();});
 
+async function requestQuote(){
+  const name=document.getElementById('qName').value.trim();
+  const phone=document.getElementById('qPhone').value.trim();
+  if(!name||phone.replace(/[^0-9]/g,'').length<10){alert('Please add your name and a valid phone number so our team can call you.');return;}
+  const cta=document.getElementById('bkCta');cta.disabled=true;cta.textContent='Requesting…';
+  try{
+    const r=await fetch('/api/booking/quote-request',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({service:bkState.svc,city:bkState.city,workers:bkState.workers,description:bkState.description||null,scheduledAt:bkState.dateTime||null,customer:{name,phone}})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    cta.textContent="✓ We'll call you shortly";
+    alert('Thanks '+name+"! Our team will call you shortly to scope the job and give you a fair quote.");
+    setTimeout(closeSheet,600);
+  }catch(e){cta.disabled=false;updatePrice();alert('Could not submit right now. Please try again.');}
+}
+
 async function goBook(){
+  if(bkState.quote){ return requestQuote(); }
   // Route to login if not authenticated, then to booking
   try{
     const cfg=await fetch('/api/config').then(r=>r.json()).catch(()=>({}));
