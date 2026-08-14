@@ -21,6 +21,7 @@ ALTER TABLE users ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFAULT now();
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 
 -- Allow service role full access
+DROP POLICY IF EXISTS "Service role full access on users" ON users;
 CREATE POLICY "Service role full access on users" ON users
   FOR ALL USING (true) WITH CHECK (true);
 
@@ -480,7 +481,9 @@ CREATE INDEX IF NOT EXISTS idx_bids_status ON job_bids(status);
 ALTER TABLE marketplace_jobs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE job_bids ENABLE ROW LEVEL SECURITY;
 
+DROP POLICY IF EXISTS "Service role full access" ON marketplace_jobs;
 CREATE POLICY "Service role full access" ON marketplace_jobs FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role full access" ON job_bids;
 CREATE POLICY "Service role full access" ON job_bids FOR ALL USING (true) WITH CHECK (true);
 
 
@@ -629,9 +632,13 @@ ALTER TABLE affiliate_payouts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE affiliate_competitions ENABLE ROW LEVEL SECURITY;
 
 -- Allow service role full access (your API uses service key)
+DROP POLICY IF EXISTS "Service role full access" ON affiliates;
 CREATE POLICY "Service role full access" ON affiliates FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role full access" ON referrals;
 CREATE POLICY "Service role full access" ON referrals FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role full access" ON affiliate_payouts;
 CREATE POLICY "Service role full access" ON affiliate_payouts FOR ALL USING (true) WITH CHECK (true);
+DROP POLICY IF EXISTS "Service role full access" ON affiliate_competitions;
 CREATE POLICY "Service role full access" ON affiliate_competitions FOR ALL USING (true) WITH CHECK (true);
 
 
