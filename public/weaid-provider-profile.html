@@ -65,7 +65,7 @@
 </div>
 
 <script>
-const SVC_LABEL={electrical:"Electrical",plumbing:"Plumbing",cleaning:"Cleaning",ac:"AC & Appliance",carpentry:"Carpentry",renovation:"Renovation",pickup:"Airport Transfer",caretaking:"Caretaking",painting:"Painting",pest_control:"Pest Control",cctv:"CCTV & Security"};
+const SVC_LABEL={electrical:"Electrical",plumbing:"Plumbing",cleaning:"Cleaning",ac:"AC & Appliance",carpentry:"Carpentry",renovation:"Renovation",pickup:"Airport Transfer",caretaking:"Caretaking",painting:"Painting",pest_control:"Pest Control",cctv:"CCTV & Security",movers:"Packers & Movers",tutor:"Home Tutors",nursing:"Nurses & Elder Care",laundry:"Laundry & Dry Clean"};
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function initials(n){return (n||"?").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();}
 function stars(r){r=Math.round(r||0);return "★".repeat(r)+"☆".repeat(5-r);}

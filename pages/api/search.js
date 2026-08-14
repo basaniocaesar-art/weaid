@@ -13,6 +13,10 @@ const SERVICE_DATA = {
   painting: { name: "Painting", keywords: ["paint", "wall", "colour", "waterproof", "exterior", "interior"], icon: "🎨" },
   pest_control: { name: "Pest Control", keywords: ["pest", "cockroach", "termite", "ant", "mosquito", "rat", "bed bug"], icon: "🐛" },
   cctv: { name: "CCTV & Security", keywords: ["cctv", "camera", "security", "surveillance", "alarm", "smart lock"], icon: "📹" },
+  movers: { name: "Packers & Movers", keywords: ["movers", "packers", "shifting", "moving", "truck", "relocation", "house shift", "transport"], icon: "🚚" },
+  tutor: { name: "Home Tutors", keywords: ["tutor", "tuition", "teacher", "classes", "coaching", "study", "maths", "science", "music"], icon: "📚" },
+  nursing: { name: "Nurses & Elder Care", keywords: ["nurse", "nursing", "elder", "care", "physio", "patient", "medical", "attendant", "home care"], icon: "🩺" },
+  laundry: { name: "Laundry & Dry Clean", keywords: ["laundry", "wash", "iron", "dry clean", "clothes", "pickup"], icon: "🧺" },
 };
 
 export default async function handler(req, res) {

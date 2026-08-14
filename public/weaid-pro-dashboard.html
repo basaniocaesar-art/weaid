@@ -80,7 +80,7 @@ a{text-decoration:none;color:inherit;}button{font-family:inherit;cursor:pointer;
 <div id="app"><div class="wrap"><div class="empty" style="text-align:center;padding:60px 0">Loading…</div></div></div>
 
 <script>
-const SERVICES=[["electrical","⚡","Electrical"],["plumbing","🔧","Plumbing"],["cleaning","🧹","Cleaning"],["ac","❄️","AC"],["carpentry","🪚","Carpentry"],["renovation","🏠","Renovation"],["pickup","✈️","Airport"],["caretaking","🏡","Caretaking"],["painting","🎨","Painting"],["pest_control","🐛","Pest"],["cctv","📹","CCTV"]];
+const SERVICES=[["electrical","⚡","Electrical"],["plumbing","🔧","Plumbing"],["cleaning","🧹","Cleaning"],["ac","❄️","AC"],["carpentry","🪚","Carpentry"],["renovation","🏠","Renovation"],["pickup","✈️","Airport"],["caretaking","🏡","Caretaking"],["painting","🎨","Painting"],["pest_control","🐛","Pest"],["cctv","📹","CCTV"],["movers","🚚","Movers"],["tutor","📚","Tutor"],["nursing","🩺","Nurse/Care"],["laundry","🧺","Laundry"]];
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function ago(d){const s=(Date.now()-new Date(d))/1000;if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
 const params=new URLSearchParams(location.search);
@@ -170,7 +170,7 @@ function jobRow(j,kind){
     <div style="display:flex;gap:8px;flex-shrink:0">${btn}</div>
   </div>`;
 }
-function SVC_LABEL(s){const m={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Cleaning',ac:'AC / Appliance',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport',caretaking:'Caretaking',painting:'Painting',pest_control:'Pest Control',cctv:'CCTV'};return m[s]||s;}
+function SVC_LABEL(s){const m={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Cleaning',ac:'AC / Appliance',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport',caretaking:'Caretaking',painting:'Painting',pest_control:'Pest Control',cctv:'CCTV',movers:'Packers & Movers',tutor:'Home Tutor',nursing:'Nurse / Care',laundry:'Laundry'};return m[s]||s;}
 
 async function loadJobs(){
   const el=document.getElementById('jobsSection');if(!el)return;
