@@ -17,6 +17,7 @@
   ],
   "crons": [
     { "path": "/api/cron/tick", "schedule": "0 9 * * *" },
+    { "path": "/api/cron/booking-reminders", "schedule": "*/30 * * * *" },
     { "path": "/api/cron/weekly-payout", "schedule": "0 6 * * 1" },
     { "path": "/api/cron/affiliate-month-end", "schedule": "0 8 1 * *" }
   ]

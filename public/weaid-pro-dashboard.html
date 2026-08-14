@@ -159,12 +159,14 @@ function jobRow(j,kind){
   const btn=kind==='incoming'
     ? `<button class="btn btn-primary" style="padding:10px 16px" onclick="acceptJob('${j.id}',this)">Accept</button>`
     : `<a class="btn" style="background:var(--bg3);color:var(--text);padding:10px 14px" href="tel:${(j.customer_phone||'').replace(/[^0-9+]/g,'')}">Call</a><button class="btn btn-primary" style="padding:10px 16px" onclick="completeJob('${j.id}',this)">Mark done</button>`;
-  return `<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--bdr)">
+  return `<div style="display:flex;align-items:flex-start;gap:12px;padding:14px 0;border-bottom:1px solid var(--bdr)">
     <div style="flex:1;min-width:0">
       <div style="font-weight:700;color:var(--w);font-size:15px">${SVC_LABEL(j.service)} · ₹${(j.provider_earnings||j.total||0).toLocaleString('en-IN')} <span style="color:var(--t2);font-weight:500;font-size:12px">you earn</span></div>
-      <div style="font-size:13px;color:var(--t2);margin-top:2px">${esc(j.city||'')}${dist} · ${when}${kind==='active'?' · '+esc(j.customer_name||''):''}</div>
+      <div style="font-size:13px;color:var(--t2);margin-top:2px">${esc(j.city||'')}${dist} · ${when}${kind==='active'&&j.customer_name?' · '+esc(j.customer_name):''}</div>
+      ${j.description?`<div style="font-size:13px;color:var(--text);margin-top:5px;background:var(--bg3);padding:8px 10px;border-radius:8px">🛠 ${esc(j.description)}</div>`:''}
+      ${kind==='active'&&j.address?`<div style="font-size:12px;color:var(--t2);margin-top:4px">📍 ${esc(j.address)}</div>`:''}
     </div>
-    <div style="display:flex;gap:8px">${btn}</div>
+    <div style="display:flex;gap:8px;flex-shrink:0">${btn}</div>
   </div>`;
 }
 function SVC_LABEL(s){const m={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Cleaning',ac:'AC / Appliance',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport',caretaking:'Caretaking',painting:'Painting',pest_control:'Pest Control',cctv:'CCTV'};return m[s]||s;}

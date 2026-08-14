@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { service, city, scope, slot, customer, gateway = "stripe", refCode, scheduledAt, timingMode, lat, lng } = req.body;
+    const { service, city, scope, slot, customer, gateway = "stripe", refCode, scheduledAt, timingMode, lat, lng, description, address } = req.body;
 
     if (!service || !city || !scope || !customer) {
       return res.status(400).json({ error: "Missing required fields: service, city, scope, customer" });
@@ -48,6 +48,8 @@ export default async function handler(req, res) {
       scheduled_at: timingMode === "scheduled" && scheduledAt ? scheduledAt : null,
       customer_lat: lat != null ? Number(lat) : null,
       customer_lng: lng != null ? Number(lng) : null,
+      description: description || null,
+      address: address || null,
       status: "pending_payment",
     });
 

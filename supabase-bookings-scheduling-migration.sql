@@ -15,3 +15,11 @@ ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_lng DOUBLE PRECISION;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS provider_name TEXT;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS provider_phone TEXT;
 ALTER TABLE bookings ADD COLUMN IF NOT EXISTS accepted_at TIMESTAMPTZ;
+
+-- What the job actually is (so the pro knows what to do) + confirmation/reminders
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS description TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS photos TEXT[] DEFAULT '{}';
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS address TEXT;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS customer_confirmed BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS provider_confirmed BOOLEAN NOT NULL DEFAULT false;
+ALTER TABLE bookings ADD COLUMN IF NOT EXISTS reminded_at TIMESTAMPTZ;

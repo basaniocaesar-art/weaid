@@ -33,10 +33,12 @@ function shape(b, provider, reveal) {
     status: b.status,
     created_at: b.created_at,
     distanceKm: dist,
+    description: b.description, // what the job is — shown before accepting
   };
   if (reveal) {
     base.customer_name = b.customer_name;
     base.customer_phone = b.customer_phone;
+    base.address = b.address; // exact address only after accepting
   }
   return base;
 }

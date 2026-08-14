@@ -10,6 +10,8 @@
 <meta name="theme-color" content="#FFFFFF">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="/weaid-theme.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <style>
 .head{padding:34px 20px 6px;max-width:760px;margin:0 auto;text-align:center;}
 .head .eyebrow{margin-bottom:14px;}
@@ -48,6 +50,11 @@
 .empty .emo{font-size:2.6rem;margin-bottom:14px;}
 .empty a{color:var(--teal-text);font-weight:700;}
 
+.avail{max-width:var(--maxw);margin:16px auto 0;padding:0 20px;}
+.avail-count{display:flex;align-items:center;gap:8px;font-size:15px;font-weight:700;color:var(--ink);margin-bottom:10px;}
+.avail-dot{width:9px;height:9px;border-radius:50%;background:var(--success);box-shadow:0 0 0 0 rgba(23,138,69,0.5);animation:pulse 2s infinite;}
+@keyframes pulse{0%{box-shadow:0 0 0 0 rgba(23,138,69,0.45)}70%{box-shadow:0 0 0 8px rgba(23,138,69,0)}100%{box-shadow:0 0 0 0 rgba(23,138,69,0)}}
+#availMap{height:220px;border-radius:16px;border:1px solid var(--bdr);z-index:0;}
 .loc-field{position:relative;}
 .loc-field input{padding-left:38px!important;padding-right:38px!important;}
 .loc-pin{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;z-index:1;}
@@ -111,6 +118,11 @@
     <span class="t">Are you a service provider?</span>
     <a href="/list-business" class="btn btn-primary btn-pill btn-sm">List free →</a>
   </div>
+</div>
+
+<div class="avail" id="availWrap" style="display:none">
+  <div class="avail-count" id="availCount"></div>
+  <div id="availMap"></div>
 </div>
 
 <div class="results">
@@ -217,6 +229,33 @@ function card(p){
 
 function skeletons(n){let h='';for(let i=0;i<n;i++)h+=`<div class="card"><div style="display:flex;gap:12px;align-items:center"><div class="skel" style="width:56px;height:56px;border-radius:14px"></div><div style="flex:1"><div class="skel" style="height:16px;width:60%;margin-bottom:8px"></div><div class="skel" style="height:12px;width:40%"></div></div></div><div class="skel" style="height:12px;margin-top:14px"></div><div class="skel" style="height:38px;margin-top:14px;border-radius:11px"></div></div>`;return h;}
 
+// Live availability map: shows how many pros are on right now near the customer.
+// Pins are placed at each pro's real distance but a pseudo-random bearing, so the
+// count + spread are believable without exposing anyone's exact address.
+let availMap=null;
+function renderAvail(list){
+  const wrap=document.getElementById('availWrap');
+  if(!(locPicked&&userLat!=null&&userLng!=null&&window.L)){wrap.style.display='none';return;}
+  wrap.style.display='block';
+  document.getElementById('availCount').innerHTML=`<span class="avail-dot"></span> ${list.length} pro${list.length!==1?'s':''} available near you now`;
+  const withDist=list.filter(p=>p.distanceKm!=null);
+  setTimeout(()=>{
+    if(availMap){availMap.remove();availMap=null;}
+    availMap=L.map('availMap',{zoomControl:false,scrollWheelZoom:false,attributionControl:false}).setView([userLat,userLng],13);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(availMap);
+    L.circleMarker([userLat,userLng],{radius:8,color:'#14171F',weight:3,fillColor:'#fff',fillOpacity:1}).addTo(availMap).bindTooltip('You',{permanent:false});
+    let maxD=1;
+    withDist.forEach((p,i)=>{
+      const br=(i*2.399963); // golden-angle spread, deterministic
+      const d=p.distanceKm||0.5; maxD=Math.max(maxD,d);
+      const lat=userLat+(d/111)*Math.cos(br);
+      const lng=userLng+(d/(111*Math.cos(userLat*Math.PI/180)))*Math.sin(br);
+      L.circleMarker([lat,lng],{radius:6,color:'#0E9488',weight:2,fillColor:'#0E9488',fillOpacity:.85}).addTo(availMap).bindTooltip(p.featured?'★ '+esc(p.name):esc(p.name));
+    });
+    try{availMap.fitBounds(L.latLngBounds([[userLat,userLng]].concat(withDist.map((p,i)=>{const br=i*2.399963,d=p.distanceKm||0.5;return [userLat+(d/111)*Math.cos(br),userLng+(d/(111*Math.cos(userLat*Math.PI/180)))*Math.sin(br)];}))).pad(0.3));}catch(e){}
+  },60);
+}
+
 async function runSearch(){
   const service=document.getElementById('fService').value;
   const city=document.getElementById('fCity').value.trim();
@@ -237,11 +276,13 @@ async function runSearch(){
     const list=d.providers||[];
     if(!list.length){
       meta.textContent='';
+      document.getElementById('availWrap').style.display='none';
       grid.innerHTML=`<div class="empty"><div class="emo">🔍</div><div style="font-size:17px;color:var(--ink);font-weight:600;margin-bottom:6px">No pros here yet</div>Be the first to list in ${city?esc(city):'your area'}.<br><br><a href="/list-business" class="btn btn-primary btn-pill">List your business free →</a></div>`;
       return;
     }
     meta.innerHTML=`${d.count} pro${d.count>1?'s':''} <span>${city?'in '+esc(city):'available'}</span>`;
     grid.innerHTML=list.map(card).join("");
+    renderAvail(list);
   }catch(e){
     meta.textContent='';
     grid.innerHTML=`<div class="empty"><div class="emo">⚠️</div>${esc(e.message)}</div>`;

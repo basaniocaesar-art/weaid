@@ -331,7 +331,7 @@ function showScreen(name,navEl){
 const BASES={electrical:499,plumbing:399,cleaning:1499,ac:599,carpentry:699,pickup:799,haircut:399,nails:499,makeup:999,facial:699,massage:999,physio:799,trainer:599,yoga:499,eldercare:899,babysit:499,pet_grooming:599};
 const AREAS={mumbai:1.5,delhi:1.45,bangalore:1.4,hyderabad:1.35,chennai:1.35,pune:1.3};
 const SCOPES={small:1,medium:1.6,large:2.8};
-let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null};
+let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null,description:'',address:''};
 // Restore the booking (incl. schedule + location) chosen on the home page
 (function(){try{const q=new URLSearchParams(location.search).get('book');const st=q?JSON.parse(decodeURIComponent(q)):JSON.parse(sessionStorage.getItem('weaid_booking')||'null');if(st){bkState=Object.assign(bkState,st);sessionStorage.removeItem('weaid_booking');}}catch(e){}})();
 
@@ -354,6 +354,7 @@ async function confirmBook(){
       method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({service:bkState.svc,city:bkState.city,scope:bkState.scope,slot:bkState.slot||'standard',
         timingMode:bkState.when||'asap',scheduledAt:bkState.dateTime||null,lat:bkState.lat??null,lng:bkState.lng??null,
+        description:bkState.description||null,address:bkState.address||null,
         gateway:'stripe',refCode:refCode||undefined,
         customer:{id:weaidUser.id,name:weaidUser.name,phone:weaidUser.phone,email:weaidUser.email||'user@weaid.in'}}),
     });

@@ -337,6 +337,14 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
       </select>
     </div>
     <div class="fld">
+      <label>What's the problem? <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--t3)">— tell the pro what to expect</span></label>
+      <textarea id="bkDesc" rows="2" placeholder="e.g. Ceiling fan not working — needs repair or replacement" style="width:100%;padding:12px 14px;background:var(--bg3);border:1.5px solid var(--bdr2);border-radius:10px;color:var(--text);font-family:inherit;font-size:0.9rem;outline:none;resize:vertical" oninput="bkState.description=this.value"></textarea>
+    </div>
+    <div class="fld">
+      <label>Address <span style="text-transform:none;letter-spacing:0;font-weight:500;color:var(--t3)">— shared only after a pro accepts</span></label>
+      <input id="bkAddr" type="text" placeholder="Flat / house, street, landmark" oninput="bkState.address=this.value">
+    </div>
+    <div class="fld">
       <label>Job size</label>
       <div class="chips" id="bkScope">
         <div class="chip on" data-scope="small" onclick="selectChip(this,'scope')">Small</div>
@@ -385,7 +393,7 @@ const SCOPES={small:1,medium:1.6,large:2.8};
 const SLOTS={standard:1,evening:1.15,weekend:1.25,emergency:1.5};
 const SVC_LABELS={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Deep Cleaning',ac:'AC Service',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport Transfer',caretaking:'Property Care',haircut:'Hair Salon',barber:'Barber',nails:'Manicure & Pedicure',makeup:'Makeup',facial:'Facial',waxing:'Waxing',mehendi:'Mehendi',massage:'Massage',physio:'Physiotherapy',trainer:'Personal Trainer',yoga:'Yoga',eldercare:'Elderly Care',babysit:'Babysitting',pet_grooming:'Pet Grooming',pet_walking:'Pet Walking'};
 
-let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null};
+let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null,description:'',address:''};
 
 // Derive the pricing slot from the chosen time (or urgency)
 function deriveSlot(){
