@@ -81,6 +81,7 @@
       <span class="status-badge" id="tStatus">Finding a driver…</span>
       <div id="tDriver"></div>
       <div id="tTokens"></div>
+      <div id="tActions" style="margin-top:12px"></div>
     </div>
     <div id="map"></div>
     <a class="btn btn-secondary btn-block" href="/ride">Book another</a>
@@ -172,8 +173,24 @@ async function poll(id){
       if(!driverMarker){driverMarker=L.marker(ll).addTo(map).bindTooltip('Your driver',{permanent:false});}
       else driverMarker.setLatLng(ll);
     }
-    if(t.status==='completed'){clearInterval(pollTimer);document.getElementById('tStatus').style.background='var(--success-dim)';document.getElementById('tStatus').style.color='var(--success)';}
+    const act=document.getElementById('tActions');
+    if(['searching','accepted','arrived'].includes(t.status)){
+      act.innerHTML=`<button class="btn btn-secondary btn-block" onclick="cancelTrip('${id}')" style="color:var(--error);border-color:var(--error)">Cancel ${TYPE==='courier'?'courier':'ride'}</button>`;
+    }else if(t.status==='cancelled'){
+      clearInterval(pollTimer);document.getElementById('tStatus').textContent='Cancelled';act.innerHTML='';
+    }else if(t.status==='completed'){
+      clearInterval(pollTimer);document.getElementById('tStatus').style.background='var(--success-dim)';document.getElementById('tStatus').style.color='var(--success)';
+      if(!act.dataset.rated)act.innerHTML=`<div style="font-weight:700;margin-bottom:8px">Rate your ${TYPE==='courier'?'courier':'driver'}</div><div id="stars" style="font-size:2rem;color:var(--bdr2);cursor:pointer">${[1,2,3,4,5].map(i=>`<span data-v="${i}" onclick="rateTrip('${id}',${i})">★</span>`).join('')}</div>`;
+    }else{act.innerHTML='';}
   }catch(e){}
+}
+async function cancelTrip(id){
+  if(!confirm('Cancel this '+(TYPE==='courier'?'courier':'ride')+'?'))return;
+  try{const r=await fetch('/api/trip/cancel',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tripId:id})});const d=await r.json();if(!r.ok)throw new Error(d.error);poll(id);}catch(e){alert(e.message);}
+}
+async function rateTrip(id,stars){
+  document.querySelectorAll('#stars span').forEach(s=>s.style.color=+s.dataset.v<=stars?'var(--star)':'var(--bdr2)');
+  try{const r=await fetch('/api/trip/rate',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({tripId:id,rating:stars})});if(r.ok){const a=document.getElementById('tActions');a.dataset.rated='1';setTimeout(()=>{a.innerHTML='<div style="color:var(--success);font-weight:700">Thanks for rating! ✓</div>';},400);}}catch(e){}
 }
 addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>8));
 </script>
