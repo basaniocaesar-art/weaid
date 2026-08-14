@@ -37,8 +37,11 @@ function shape(b, provider, reveal) {
   };
   if (reveal) {
     base.customer_name = b.customer_name;
-    base.customer_phone = b.customer_phone;
     base.address = b.address; // exact address only after accepting
+    // Privacy: expose the masked line if we have one; only fall back to the
+    // real number when masking isn't configured.
+    if (b.mask_number) base.mask_number = b.mask_number;
+    else base.customer_phone = b.customer_phone;
   }
   return base;
 }

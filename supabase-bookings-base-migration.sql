@@ -31,6 +31,8 @@ CREATE TABLE IF NOT EXISTS bookings (
   customer_confirmed BOOLEAN NOT NULL DEFAULT false,
   provider_confirmed BOOLEAN NOT NULL DEFAULT false,
   reminded_at TIMESTAMPTZ,
+  mask_number TEXT,
+  mask_session_id TEXT,
   customer_id UUID,
   customer_name TEXT,
   customer_phone TEXT,
