@@ -12,12 +12,15 @@ function distanceKm(lat1, lng1, lat2, lng2) {
   return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
 }
 
-function shape(b, provider) {
+// reveal=false for INCOMING (not yet accepted): show only the job, never the
+// customer's identity/contact — protects privacy and prevents off-platform poaching.
+// reveal=true once the provider owns the job (accepted): they need to reach the customer.
+function shape(b, provider, reveal) {
   const dist =
     b.customer_lat != null && b.customer_lng != null && provider.lat != null && provider.lng != null
       ? distanceKm(provider.lat, provider.lng, b.customer_lat, b.customer_lng)
       : null;
-  return {
+  const base = {
     id: b.id,
     service: b.service,
     city: b.city,
@@ -27,12 +30,15 @@ function shape(b, provider) {
     provider_earnings: b.provider_earnings,
     timing_mode: b.timing_mode,
     scheduled_at: b.scheduled_at,
-    customer_name: b.customer_name,
-    customer_phone: b.customer_phone,
     status: b.status,
     created_at: b.created_at,
     distanceKm: dist,
   };
+  if (reveal) {
+    base.customer_name = b.customer_name;
+    base.customer_phone = b.customer_phone;
+  }
+  return base;
 }
 
 export default async function handler(req, res) {
@@ -47,11 +53,11 @@ export default async function handler(req, res) {
         getDispatchableBookings(provider.services || [], provider.city),
         getProviderActiveJobs(provider.id),
       ]);
-      // Nearest first for incoming
+      // Nearest first for incoming — customer identity withheld until accepted
       const inc = incoming
-        .map((b) => shape(b, provider))
+        .map((b) => shape(b, provider, false))
         .sort((a, z) => (a.distanceKm ?? 1e9) - (z.distanceKm ?? 1e9));
-      return res.status(200).json({ incoming: inc, active: active.map((b) => shape(b, provider)) });
+      return res.status(200).json({ incoming: inc, active: active.map((b) => shape(b, provider, true)) });
     }
 
     if (req.method === "POST") {
