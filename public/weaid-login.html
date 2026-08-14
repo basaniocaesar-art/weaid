@@ -29,10 +29,20 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 .login-wrap { position:relative; z-index:10; width:100%; max-width:460px; padding:24px; }
 
 .logo-center { text-align:center; margin-bottom:36px; }
-.logo-mark-lg { width:52px; height:52px; background:linear-gradient(135deg,var(--teal),var(--indigo)); border-radius:14px; display:inline-flex; align-items:center; justify-content:center; font-size:1.2rem; font-weight:700; color:white; margin-bottom:14px; }
-.logo-name { font-family:'Playfair Display',serif; font-size:1.8rem; font-weight:700; color:var(--white); }
-.logo-name span { color:var(--teal); }
-.logo-tag { font-size:0.82rem; color:var(--muted); margin-top:6px; }
+.logo-mark-lg { width:140px; height:82px; background:url("/weaid-mark.png") center/contain no-repeat; margin:0 auto 16px; transform-origin:center 70%; animation:handshake 1.25s cubic-bezier(.2,.8,.2,1) both; }
+.logo-name { font-family:'Sora',sans-serif; font-size:2.1rem; font-weight:800; letter-spacing:-0.03em; color:#0F5044; }
+.logo-name span { color:#F5851F; }
+.logo-tag { font-size:0.72rem; font-weight:700; letter-spacing:0.14em; text-transform:uppercase; color:#0F5044; margin-top:9px; display:flex; align-items:center; justify-content:center; gap:11px; }
+.logo-tag::before, .logo-tag::after { content:""; width:22px; height:2px; background:#0F5044; opacity:.45; border-radius:2px; }
+@keyframes handshake {
+  0%   { opacity:0; transform:scale(.55) translateY(8px); }
+  45%  { opacity:1; transform:scale(1.07); }
+  60%  { transform:scale(1) rotate(-6deg); }
+  73%  { transform:rotate(4.5deg); }
+  85%  { transform:rotate(-2.5deg); }
+  100% { transform:rotate(0) scale(1); }
+}
+@media (prefers-reduced-motion:reduce){ .logo-mark-lg{ animation:none; } }
 
 .login-card { background:var(--bg2); border:1px solid var(--border); border-radius:20px; padding:36px; }
 .card-title { font-family:'Playfair Display',serif; font-size:1.4rem; font-weight:700; margin-bottom:6px; }
@@ -54,7 +64,7 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 .otp-digit:focus { border-color:var(--teal); }
 
 /* Buttons */
-.login-btn { width:100%; padding:14px; border:none; border-radius:12px; font-family:'Sora',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; background:linear-gradient(135deg,var(--teal),#0099ff); color:var(--bg); }
+.login-btn { width:100%; padding:14px; border:none; border-radius:12px; font-family:'Sora',sans-serif; font-size:0.95rem; font-weight:700; cursor:pointer; transition:all 0.2s; background:var(--teal); color:#fff; }
 .login-btn:hover { transform:translateY(-1px); box-shadow:0 8px 24px rgba(0,201,177,0.3); }
 .login-btn:disabled { opacity:0.5; cursor:not-allowed; transform:none; box-shadow:none; }
 
@@ -111,9 +121,9 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 
 <div class="login-wrap">
   <div class="logo-center">
-    <div class="logo-mark-lg">W</div>
+    <div class="logo-mark-lg"></div>
     <div class="logo-name">weaid<span>.in</span></div>
-    <div class="logo-tag">India's Home Services Platform</div>
+    <div class="logo-tag">Any Service, Anytime</div>
   </div>
 
   <div class="login-card">
