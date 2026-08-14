@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Ride — WeAid</title>
+<link rel="icon" href="/icon-192.png">
+<meta name="theme-color" content="#FFFFFF">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/weaid-theme.css">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<style>
+.wrap{max-width:560px;margin:0 auto;padding:24px 20px 60px}
+.h1{font-size:30px;margin-bottom:4px}
+.sub{color:var(--t2);font-size:15px;margin-bottom:20px}
+.pt{position:relative;margin-bottom:12px}
+.pt .ic{position:absolute;left:14px;top:50%;transform:translateY(-50%);font-size:15px}
+.pt input{width:100%;padding:15px 14px 15px 40px;background:var(--bg-soft);border:1.5px solid transparent;border-radius:12px;font-family:inherit;font-size:16px;color:var(--text);outline:none}
+.pt input:focus{background:#fff;border-color:var(--ink)}
+.sug{position:absolute;top:calc(100% + 4px);left:0;right:0;background:#fff;border:1px solid var(--bdr2);border-radius:12px;box-shadow:var(--shadow-md);z-index:60;display:none;overflow:hidden}
+.sug.on{display:block}
+.sug .o{padding:11px 14px;font-size:14px;cursor:pointer;border-bottom:1px solid var(--bdr)}
+.sug .o:hover{background:var(--bg-soft)}
+.veh{display:flex;gap:8px;margin:6px 0 14px}
+.veh .v{flex:1;text-align:center;padding:12px 6px;border:1.5px solid var(--bdr);border-radius:12px;cursor:pointer;font-weight:600;font-size:13px}
+.veh .v.on{border-color:var(--ink);background:var(--bg-soft)}
+.veh .v .em{font-size:1.4rem;display:block;margin-bottom:3px}
+.fare{background:var(--bg-soft);border-radius:14px;padding:16px;margin:14px 0;display:flex;justify-content:space-between;align-items:center}
+.fare .l{font-size:14px;color:var(--t2)}
+.fare .n{font-size:24px;font-weight:800;color:var(--ink)}
+#map{height:280px;border-radius:16px;border:1px solid var(--bdr);margin:14px 0;z-index:0}
+.status-card{background:var(--surface);border:1px solid var(--bdr);border-radius:16px;padding:18px;box-shadow:var(--shadow-sm);margin-bottom:14px}
+.status-badge{display:inline-block;font-size:12px;font-weight:800;text-transform:uppercase;letter-spacing:.05em;color:var(--teal-text);background:var(--teal-dim);padding:5px 11px;border-radius:100px;margin-bottom:10px}
+.driver-row{display:flex;align-items:center;gap:12px;margin-top:6px}
+.driver-row .av{width:48px;height:48px;border-radius:50%;background:var(--teal);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:800}
+.tok{display:flex;gap:10px;margin-top:12px}
+.tok .t{flex:1;background:var(--gold-dim);border-radius:12px;padding:12px;text-align:center}
+.tok .t .lab{font-size:11px;font-weight:700;text-transform:uppercase;color:var(--gold);letter-spacing:.05em}
+.tok .t .code{font-size:26px;font-weight:800;color:var(--ink);letter-spacing:.1em;font-variant-numeric:tabular-nums}
+.err{background:var(--error-dim);color:var(--error);padding:12px;border-radius:10px;font-size:14px;margin-bottom:12px;display:none}
+.err.on{display:block}
+</style>
+</head>
+<body>
+<nav class="nav" id="nav">
+  <a href="/" class="logo"><div class="lm">W</div><div class="lt">We<span>Aid</span></div></a>
+  <div class="nav-right"><a href="/carpool" class="nav-link">Carpool</a></div>
+</nav>
+
+<div class="wrap">
+  <div id="form">
+    <h1 class="h1" id="title">Book a ride</h1>
+    <p class="sub" id="subtitle">Set pickup & drop — the nearest driver picks you up.</p>
+    <div class="err" id="err"></div>
+
+    <div class="pt"><span class="ic">🟢</span><input id="pickup" placeholder="Pickup location" autocomplete="off"><div class="sug" id="pickupSug"></div></div>
+    <div class="pt"><span class="ic">🔴</span><input id="drop" placeholder="Drop location" autocomplete="off"><div class="sug" id="dropSug"></div></div>
+
+    <div class="veh" id="vehRow">
+      <div class="v on" data-v="bike"><span class="em">🏍️</span>Bike</div>
+      <div class="v" data-v="auto"><span class="em">🛺</span>Auto</div>
+      <div class="v" data-v="car"><span class="em">🚗</span>Car</div>
+    </div>
+
+    <div class="pt" id="itemRow" style="display:none"><span class="ic">📦</span><input id="item" placeholder="What are you sending? (e.g. documents)"></div>
+
+    <div class="pt"><span class="ic">👤</span><input id="cName" placeholder="Your name"></div>
+    <div class="pt"><span class="ic">📱</span><input id="cPhone" type="tel" placeholder="Phone number"></div>
+
+    <div class="fare" id="fareBox" style="display:none">
+      <div><div class="l" id="fareDist"></div></div>
+      <div class="n" id="fareAmt">—</div>
+    </div>
+
+    <button class="btn btn-primary btn-block" id="cta" onclick="request()">Enter pickup & drop</button>
+  </div>
+
+  <div id="tracking" style="display:none">
+    <div class="status-card">
+      <span class="status-badge" id="tStatus">Finding a driver…</span>
+      <div id="tDriver"></div>
+      <div id="tTokens"></div>
+    </div>
+    <div id="map"></div>
+    <a class="btn btn-secondary btn-block" href="/ride">Book another</a>
+  </div>
+</div>
+
+<script>
+const RATES={bike:{base:25,perKm:8,min:35},auto:{base:35,perKm:12,min:45},car:{base:60,perKm:16,min:80},courier:{base:40,perKm:12,min:50}};
+const q=new URLSearchParams(location.search);
+const TYPE=q.get('type')==='courier'?'courier':'ride';
+let vehicle=TYPE==='courier'?'courier':'bike';
+let pick=null, dropL=null, map=null, driverMarker=null, pollTimer=null;
+function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
+function haversine(a,b,c,d){const R=6371,dLat=(c-a)*Math.PI/180,dLng=(d-b)*Math.PI/180;const x=Math.sin(dLat/2)**2+Math.cos(a*Math.PI/180)*Math.cos(c*Math.PI/180)*Math.sin(dLng/2)**2;return R*2*Math.atan2(Math.sqrt(x),Math.sqrt(1-x));}
+
+if(TYPE==='courier'){document.getElementById('title').textContent='Send a courier';document.getElementById('subtitle').textContent='Pickup & drop — a rider collects and delivers it.';document.getElementById('vehRow').style.display='none';document.getElementById('itemRow').style.display='block';}
+
+// place autocomplete (OpenStreetMap Nominatim)
+function wireField(inputId,sugId,setter){
+  const inp=document.getElementById(inputId),box=document.getElementById(sugId);let tmr=null;
+  inp.addEventListener('input',()=>{setter(null);clearTimeout(tmr);const v=inp.value.trim();if(v.length<3){box.classList.remove('on');return;}tmr=setTimeout(async()=>{
+    try{const r=await fetch('https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=in&limit=5&q='+encodeURIComponent(v));const list=await r.json();if(!list.length){box.classList.remove('on');return;}
+      box.innerHTML=list.map(o=>`<div class="o" data-lat="${o.lat}" data-lng="${o.lon}" data-name="${esc(o.display_name.split(',').slice(0,2).join(','))}">📍 ${esc(o.display_name)}</div>`).join('');
+      box.querySelectorAll('.o').forEach(el=>el.onclick=()=>{inp.value=el.dataset.name;setter({lat:+el.dataset.lat,lng:+el.dataset.lng,address:el.dataset.name});box.classList.remove('on');updateFare();});
+      box.classList.add('on');
+    }catch(e){box.classList.remove('on');}
+  },350);});
+}
+wireField('pickup','pickupSug',v=>pick=v);
+wireField('drop','dropSug',v=>dropL=v);
+// auto-detect pickup
+if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${p.coords.latitude}&lon=${p.coords.longitude}`);const d=await r.json();pick={lat:p.coords.latitude,lng:p.coords.longitude,address:(d.display_name||'Current location').split(',').slice(0,2).join(',')};document.getElementById('pickup').value=pick.address;updateFare();}catch(e){}},()=>{},{timeout:7000});
+
+document.getElementById('vehRow').addEventListener('click',e=>{const v=e.target.closest('.v');if(!v)return;document.querySelectorAll('.veh .v').forEach(x=>x.classList.remove('on'));v.classList.add('on');vehicle=v.dataset.v;updateFare();});
+
+function updateFare(){
+  const cta=document.getElementById('cta'),box=document.getElementById('fareBox');
+  if(pick&&dropL){
+    const dist=haversine(pick.lat,pick.lng,dropL.lat,dropL.lng);
+    const r=RATES[vehicle]||RATES.car;const fare=Math.max(r.min,Math.round(r.base+r.perKm*dist));
+    document.getElementById('fareDist').textContent=(Math.round(dist*10)/10)+' km · est. fare';
+    document.getElementById('fareAmt').textContent='₹'+fare;
+    box.style.display='flex';cta.textContent=(TYPE==='courier'?'Request courier · ₹':'Request ride · ₹')+fare;
+  }else{box.style.display='none';cta.textContent='Enter pickup & drop';}
+}
+
+function showErr(m){const e=document.getElementById('err');e.textContent=m;e.classList.add('on');window.scrollTo({top:0,behavior:'smooth'});}
+
+async function request(){
+  document.getElementById('err').classList.remove('on');
+  const name=document.getElementById('cName').value.trim(),phone=document.getElementById('cPhone').value.trim();
+  if(!pick||!dropL)return showErr('Please choose a pickup and drop location.');
+  if(!name||phone.replace(/[^0-9]/g,'').length<10)return showErr('Please add your name and a valid phone number.');
+  const cta=document.getElementById('cta');cta.disabled=true;cta.textContent='Requesting…';
+  try{
+    const r=await fetch('/api/trip/create',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({type:TYPE,vehicle,pickup:pick,drop:dropL,itemDescription:document.getElementById('item')?.value||null,customer:{name,phone}})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    startTracking(d.tripId);
+  }catch(e){cta.disabled=false;updateFare();showErr(e.message);}
+}
+
+function startTracking(id){
+  document.getElementById('form').style.display='none';
+  document.getElementById('tracking').style.display='block';
+  map=L.map('map',{zoomControl:false,attributionControl:false}).setView([pick.lat,pick.lng],13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+  L.circleMarker([pick.lat,pick.lng],{radius:8,color:'#178A45',fillColor:'#178A45',fillOpacity:1}).addTo(map).bindTooltip('Pickup');
+  L.circleMarker([dropL.lat,dropL.lng],{radius:8,color:'#D92D20',fillColor:'#D92D20',fillOpacity:1}).addTo(map).bindTooltip('Drop');
+  L.polyline([[pick.lat,pick.lng],[dropL.lat,dropL.lng]],{color:'#0E9488',weight:3,opacity:.5,dashArray:'6'}).addTo(map);
+  map.fitBounds(L.latLngBounds([[pick.lat,pick.lng],[dropL.lat,dropL.lng]]).pad(0.3));
+  poll(id);pollTimer=setInterval(()=>poll(id),5000);
+}
+
+const LABEL={searching:'Finding a driver…',accepted:'Driver on the way',arrived:'Driver has arrived',picked_up:'On the way',in_transit:'On the way',completed:'Completed'};
+async function poll(id){
+  try{
+    const r=await fetch('/api/trip/'+id);const d=await r.json();if(!r.ok)return;const t=d.trip;
+    document.getElementById('tStatus').textContent=LABEL[t.status]||t.status;
+    if(t.driver_name){
+      const tel=(t.driver_contact||'').replace(/[^0-9+]/g,'');
+      document.getElementById('tDriver').innerHTML=`<div class="driver-row"><div class="av">${esc(t.driver_name[0]||'D')}</div><div style="flex:1"><div style="font-weight:700">${esc(t.driver_name)}</div><div style="font-size:13px;color:var(--t2)">${esc(t.vehicle)} · ${t.distance_km} km · ₹${t.fare}</div></div><a class="btn btn-wa btn-sm" href="tel:${tel}">Call</a></div>`;
+    }
+    if(t.type==='courier'&&(t.pickup_token||t.delivery_token)){
+      document.getElementById('tTokens').innerHTML=`<div class="tok">${t.pickup_token?`<div class="t"><div class="lab">Pickup code</div><div class="code">${t.pickup_token}</div></div>`:''}${t.delivery_token?`<div class="t"><div class="lab">Delivery code</div><div class="code">${t.delivery_token}</div></div>`:''}</div><div style="font-size:12px;color:var(--t2);margin-top:8px">Give the pickup code to the rider when they collect, and share the delivery code with the receiver.</div>`;
+    }
+    if(d.driverLocation){
+      const ll=[d.driverLocation.lat,d.driverLocation.lng];
+      if(!driverMarker){driverMarker=L.marker(ll).addTo(map).bindTooltip('Your driver',{permanent:false});}
+      else driverMarker.setLatLng(ll);
+    }
+    if(t.status==='completed'){clearInterval(pollTimer);document.getElementById('tStatus').style.background='var(--success-dim)';document.getElementById('tStatus').style.color='var(--success)';}
+  }catch(e){}
+}
+addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>8));
+</script>
+</body>
+</html>

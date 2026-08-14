@@ -225,6 +225,14 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
     <div class="h-eyebrow">India's on-demand services</div>
     <h1 class="h-title">What do you need,<br><em>right now?</em></h1>
 
+    <div style="display:flex;gap:8px;overflow-x:auto;justify-content:center;flex-wrap:wrap;margin:0 0 20px;-webkit-overflow-scrolling:touch">
+      <a href="#" onclick="document.querySelector('.tiles').scrollIntoView({behavior:'smooth'});return false;" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--teal);color:var(--bg);font-weight:700;font-size:0.88rem">🛠️ Services</a>
+      <a href="/ride" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🚕 Ride</a>
+      <a href="/courier" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">📦 Courier</a>
+      <a href="/carpool" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🧑‍🤝‍🧑 Carpool</a>
+      <a href="/directory" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🔎 Find a Pro</a>
+    </div>
+
     <div class="search">
       <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
       <input type="text" class="search-input" id="heroSearch" placeholder="Search — nails, plumber, massage..." autocomplete="off">

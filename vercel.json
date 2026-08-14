@@ -13,7 +13,10 @@
     { "source": "/find", "destination": "/weaid-directory.html" },
     { "source": "/list-business", "destination": "/weaid-provider-signup.html" },
     { "source": "/p/:slug", "destination": "/weaid-provider-profile.html" },
-    { "source": "/dashboard-pro", "destination": "/weaid-pro-dashboard.html" }
+    { "source": "/dashboard-pro", "destination": "/weaid-pro-dashboard.html" },
+    { "source": "/ride", "destination": "/weaid-ride.html" },
+    { "source": "/courier", "destination": "/weaid-ride.html?type=courier" },
+    { "source": "/carpool", "destination": "/weaid-carpool.html" }
   ],
   "crons": [
     { "path": "/api/cron/tick", "schedule": "0 9 * * *" },

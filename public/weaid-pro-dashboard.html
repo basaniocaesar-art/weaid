@@ -80,7 +80,7 @@ a{text-decoration:none;color:inherit;}button{font-family:inherit;cursor:pointer;
 <div id="app"><div class="wrap"><div class="empty" style="text-align:center;padding:60px 0">Loading…</div></div></div>
 
 <script>
-const SERVICES=[["electrical","⚡","Electrical"],["plumbing","🔧","Plumbing"],["cleaning","🧹","Cleaning"],["ac","❄️","AC"],["carpentry","🪚","Carpentry"],["renovation","🏠","Renovation"],["pickup","✈️","Airport"],["caretaking","🏡","Caretaking"],["painting","🎨","Painting"],["pest_control","🐛","Pest"],["cctv","📹","CCTV"],["movers","🚚","Movers"],["tutor","📚","Tutor"],["nursing","🩺","Nurse/Care"],["laundry","🧺","Laundry"]];
+const SERVICES=[["electrical","⚡","Electrical"],["plumbing","🔧","Plumbing"],["cleaning","🧹","Cleaning"],["ac","❄️","AC"],["carpentry","🪚","Carpentry"],["renovation","🏠","Renovation"],["pickup","✈️","Airport"],["caretaking","🏡","Caretaking"],["painting","🎨","Painting"],["pest_control","🐛","Pest"],["cctv","📹","CCTV"],["movers","🚚","Movers"],["tutor","📚","Tutor"],["nursing","🩺","Nurse/Care"],["laundry","🧺","Laundry"],["ride","🚕","Driver"],["courier","📦","Courier"]];
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function ago(d){const s=(Date.now()-new Date(d))/1000;if(s<3600)return Math.floor(s/60)+'m ago';if(s<86400)return Math.floor(s/3600)+'h ago';return Math.floor(s/86400)+'d ago';}
 const params=new URLSearchParams(location.search);
@@ -123,6 +123,7 @@ function render(){
     </div>
 
     <div id="jobsSection"></div>
+    <div id="tripsSection"></div>
 
     ${featBlock}
 
@@ -152,6 +153,53 @@ function render(){
     </div>
   </div>`;
   loadJobs();
+  loadTrips();
+}
+
+let tripWatch=null;
+async function loadTrips(){
+  const el=document.getElementById('tripsSection');if(!el)return;
+  try{
+    const r=await fetch('/api/provider/trips?token='+encodeURIComponent(token));
+    const d=await r.json();if(!r.ok||!d.driving){el.innerHTML='';return;}
+    let html='';
+    (d.active||[]).forEach(t=>{
+      const acts=tripActions(t);
+      html+=`<div style="padding:14px 0;border-bottom:1px solid var(--bdr)">
+        <div style="font-weight:700;color:var(--w);font-size:15px">${t.type==='courier'?'📦 Courier':'🚕 Ride'} · ₹${t.provider_earnings||t.fare} <span style="color:var(--t2);font-weight:500;font-size:12px">you earn</span></div>
+        <div style="font-size:13px;color:var(--t2);margin-top:3px">🟢 ${esc(t.pickup_address||'')}</div>
+        <div style="font-size:13px;color:var(--t2)">🔴 ${esc(t.drop_address||'')} · ${t.distance_km} km</div>
+        ${t.customer_name?`<div style="font-size:13px;color:var(--text);margin-top:4px">${esc(t.customer_name)} · <a style="color:var(--teal)" href="tel:${(t.customer_contact||'').replace(/[^0-9+]/g,'')}">Call</a></div>`:''}
+        <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:10px">${acts}</div>
+      </div>`;
+    });
+    const inc=(d.incoming||[]).map(t=>`<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--bdr)">
+      <div style="flex:1"><div style="font-weight:700;color:var(--w);font-size:15px">${t.type==='courier'?'📦 Courier':'🚕 Ride'} · ₹${t.provider_earnings||t.fare} <span style="color:var(--t2);font-weight:500;font-size:12px">you earn</span></div>
+      <div style="font-size:13px;color:var(--t2);margin-top:2px">🟢 ${esc((t.pickup_address||'').slice(0,32))} → 🔴 ${esc((t.drop_address||'').slice(0,32))} · ${t.distance_km} km</div></div>
+      <button class="btn btn-primary" style="padding:10px 16px" onclick="acceptTrip('${t.id}',this)">Accept</button></div>`).join('');
+    html=`<div class="card"><h3>Active trip</h3>${(d.active||[]).length?html:'<div class="empty">No active trip.</div>'}</div>
+      <div class="card" style="border-color:${(d.incoming||[]).length?'var(--teal)':'var(--bdr)'}"><h3>Incoming trips ${(d.incoming||[]).length?'<span style="color:var(--teal)">('+d.incoming.length+')</span>':''}</h3>${(d.incoming||[]).length?inc:'<div class="empty">No ride/courier requests right now.</div>'}</div>`;
+    el.innerHTML=html;
+    if((d.active||[]).length)startTripLocation((d.active[0]).id);
+  }catch(e){el.innerHTML='';}
+}
+function tripActions(t){
+  const b=(label,st)=>`<button class="btn btn-primary" style="padding:9px 14px" onclick="tripStatus('${t.id}','${st}',this)">${label}</button>`;
+  const v=(label,stage)=>`<button class="btn" style="background:var(--gold);color:#1a1200;padding:9px 14px" onclick="verifyTrip('${t.id}','${stage}')">${label}</button>`;
+  if(t.status==='accepted')return b('Arrived','arrived');
+  if(t.status==='arrived')return t.type==='courier'?v('Enter pickup code','pickup'):b('Start trip','in_transit');
+  if(t.status==='picked_up')return t.type==='courier'?v('Enter delivery code','delivery'):b('Complete','completed');
+  if(t.status==='in_transit')return t.type==='courier'?v('Enter delivery code','delivery'):b('Complete','completed');
+  return '';
+}
+async function acceptTrip(id,btn){btn.disabled=true;btn.textContent='…';try{const r=await fetch('/api/provider/trips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,tripId:id,action:'accept'})});const d=await r.json();if(r.status===409){btn.textContent='Taken';setTimeout(loadTrips,800);return;}if(!r.ok)throw new Error(d.error);loadTrips();}catch(e){btn.disabled=false;btn.textContent='Accept';alert(e.message);}}
+async function tripStatus(id,st,btn){btn.disabled=true;try{const r=await fetch('/api/provider/trips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,tripId:id,action:'status',status:st})});const d=await r.json();if(!r.ok)throw new Error(d.error);loadTrips();}catch(e){btn.disabled=false;alert(e.message);}}
+async function verifyTrip(id,stage){const code=prompt('Enter the '+stage+' code from the '+(stage==='pickup'?'sender':'receiver')+':');if(!code)return;try{const r=await fetch('/api/provider/trips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,tripId:id,action:'verify',stage,code})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Wrong code');loadTrips();}catch(e){alert(e.message);}}
+function startTripLocation(tripId){
+  if(tripWatch!=null||!navigator.geolocation)return;
+  tripWatch=navigator.geolocation.watchPosition(p=>{
+    fetch('/api/provider/trips',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,action:'location',lat:p.coords.latitude,lng:p.coords.longitude,tripId})}).catch(()=>{});
+  },()=>{},{enableHighAccuracy:true,maximumAge:5000,timeout:10000});
 }
 
 function jobRow(j,kind){
