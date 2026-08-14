@@ -122,6 +122,8 @@ function render(){
       <div class="stat"><div class="n">${p.rating||0}★</div><div class="l">${p.review_count} reviews</div></div>
     </div>
 
+    <div id="jobsSection"></div>
+
     ${featBlock}
 
     <div class="card">
@@ -148,6 +150,55 @@ function render(){
       <div class="msg" id="saveMsg"></div>
     </div>
   </div>`;
+  loadJobs();
+}
+
+function jobRow(j,kind){
+  const when=j.timing_mode==='scheduled'&&j.scheduled_at?new Date(j.scheduled_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'ASAP';
+  const dist=j.distanceKm!=null?` · ${j.distanceKm} km`:'';
+  const btn=kind==='incoming'
+    ? `<button class="btn btn-primary" style="padding:10px 16px" onclick="acceptJob('${j.id}',this)">Accept</button>`
+    : `<a class="btn" style="background:var(--bg3);color:var(--text);padding:10px 14px" href="tel:${(j.customer_phone||'').replace(/[^0-9+]/g,'')}">Call</a><button class="btn btn-primary" style="padding:10px 16px" onclick="completeJob('${j.id}',this)">Mark done</button>`;
+  return `<div style="display:flex;align-items:center;gap:12px;padding:14px 0;border-bottom:1px solid var(--bdr)">
+    <div style="flex:1;min-width:0">
+      <div style="font-weight:700;color:var(--w);font-size:15px">${SVC_LABEL(j.service)} · ₹${(j.provider_earnings||j.total||0).toLocaleString('en-IN')} <span style="color:var(--t2);font-weight:500;font-size:12px">you earn</span></div>
+      <div style="font-size:13px;color:var(--t2);margin-top:2px">${esc(j.city||'')}${dist} · ${when}${kind==='active'?' · '+esc(j.customer_name||''):''}</div>
+    </div>
+    <div style="display:flex;gap:8px">${btn}</div>
+  </div>`;
+}
+function SVC_LABEL(s){const m={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Cleaning',ac:'AC / Appliance',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport',caretaking:'Caretaking',painting:'Painting',pest_control:'Pest Control',cctv:'CCTV'};return m[s]||s;}
+
+async function loadJobs(){
+  const el=document.getElementById('jobsSection');if(!el)return;
+  try{
+    const r=await fetch('/api/provider/jobs?token='+encodeURIComponent(token));
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    let html='';
+    if((d.active||[]).length){
+      html+=`<div class="card"><h3>Your active jobs</h3>${d.active.map(j=>jobRow(j,'active')).join('')}</div>`;
+    }
+    html+=`<div class="card" style="border-color:${(d.incoming||[]).length?'var(--teal)':'var(--bdr)'}"><h3>Incoming jobs ${(d.incoming||[]).length?'<span style="color:var(--teal)">('+d.incoming.length+' waiting)</span>':''}</h3>${(d.incoming||[]).length?d.incoming.map(j=>jobRow(j,'incoming')).join(''):'<div class="empty">No new job requests right now. Stay available to get pinged.</div>'}</div>`;
+    el.innerHTML=html;
+  }catch(e){el.innerHTML=`<div class="card"><div class="empty">Couldn’t load jobs: ${esc(e.message)}</div></div>`;}
+}
+async function acceptJob(id,btn){
+  btn.disabled=true;btn.textContent='Accepting…';
+  try{
+    const r=await fetch('/api/provider/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,bookingId:id,action:'accept'})});
+    const d=await r.json();
+    if(r.status===409){btn.textContent='Taken';btn.style.opacity=.6;setTimeout(loadJobs,900);return;}
+    if(!r.ok)throw new Error(d.error||'Failed');
+    loadJobs();load();
+  }catch(e){btn.disabled=false;btn.textContent='Accept';alert(e.message);}
+}
+async function completeJob(id,btn){
+  btn.disabled=true;btn.textContent='…';
+  try{
+    const r=await fetch('/api/provider/jobs',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,bookingId:id,action:'complete'})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    loadJobs();
+  }catch(e){btn.disabled=false;btn.textContent='Mark done';alert(e.message);}
 }
 
 function tsvc(id,el){el.classList.toggle('on');sel.has(id)?sel.delete(id):sel.add(id);}

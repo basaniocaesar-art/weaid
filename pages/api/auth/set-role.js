@@ -23,8 +23,10 @@ export default async function handler(req, res) {
 
     const { role, name } = req.body;
 
-    if (!role || !["customer", "provider", "admin"].includes(role)) {
-      return res.status(400).json({ error: "Invalid role. Must be customer, provider, or admin" });
+    // Self-serve roles only. "admin" is NEVER settable via this endpoint —
+    // it must be granted directly in the database. Prevents privilege escalation.
+    if (!role || !["customer", "provider"].includes(role)) {
+      return res.status(400).json({ error: "Invalid role. Must be customer or provider" });
     }
 
     // Upsert user profile

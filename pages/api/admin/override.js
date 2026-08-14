@@ -6,6 +6,12 @@ export default async function handler(req, res) {
   }
 
   try {
+    // Require the admin secret — this endpoint can rewrite booking money.
+    const adminSecret = req.headers["x-admin-secret"];
+    if (!process.env.ADMIN_SECRET || adminSecret !== process.env.ADMIN_SECRET) {
+      return res.status(403).json({ error: "Forbidden" });
+    }
+
     const { bookingId, overrideTotal, overrideCommission, adminNote } = req.body;
 
     if (!bookingId) {

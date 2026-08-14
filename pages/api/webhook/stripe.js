@@ -1,8 +1,5 @@
 import { constructWebhookEvent } from "../../../lib/stripe.js";
-import { updateBooking } from "../../../lib/supabase.js";
-import { notifyCustomerBookingConfirmed, notifyProviderNewJob } from "../../../lib/whatsapp.js";
-import { sendBookingConfirmation } from "../../../lib/email.js";
-import { getProvidersByService } from "../../../lib/supabase.js";
+import { fulfillPaidBooking } from "../../../lib/orchestrator.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -31,22 +28,11 @@ export default async function handler(req, res) {
       const bookingId = session.metadata?.booking_id;
 
       if (bookingId && session.payment_status === "paid") {
-        const booking = await updateBooking(bookingId, {
-          status: "pending",
+        // Shared fulfillment: customer notice + NEAREST-FIRST provider dispatch
+        await fulfillPaidBooking(bookingId, {
           stripe_session_id: session.id,
           stripe_payment_intent: session.payment_intent,
-          paid_at: new Date().toISOString(),
         });
-
-        // Notify customer
-        await notifyCustomerBookingConfirmed(booking.customer_phone, booking);
-        await sendBookingConfirmation(booking.customer_email, booking);
-
-        // Notify providers
-        const providers = await getProvidersByService(booking.service, booking.city);
-        for (const p of providers) {
-          await notifyProviderNewJob(p.phone, booking);
-        }
       }
     }
 

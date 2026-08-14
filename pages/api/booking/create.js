@@ -62,7 +62,7 @@ export default async function handler(req, res) {
       });
       payment = { gateway: "stripe", sessionId: session.id, url: session.url };
     } else {
-      const order = await createOrder(price.total, `booking_${booking.id}`);
+      const order = await createOrder(price.total, `booking_${booking.id}`, { booking_id: booking.id });
       payment = { gateway: "razorpay", orderId: order.id };
     }
 
