@@ -77,6 +77,22 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .trust strong{color:var(--gold);font-weight:700;}
 .trust .dot{color:var(--t3);}
 
+/* MOVING TRUST BADGES */
+.tmarquee{margin-top:28px;padding:16px 0;background:var(--tdim);overflow:hidden;position:relative;}
+.tmarquee::before,.tmarquee::after{content:'';position:absolute;top:0;bottom:0;width:60px;z-index:2;pointer-events:none;}
+.tmarquee::before{left:0;background:linear-gradient(90deg,var(--tdim),transparent);}
+.tmarquee::after{right:0;background:linear-gradient(270deg,var(--tdim),transparent);}
+.tm-row{display:flex;gap:12px;width:max-content;padding:5px 0;}
+.tm-row.a{animation:tmscroll 38s linear infinite;}
+.tm-row.b{animation:tmscroll 44s linear infinite reverse;margin-top:12px;}
+.tmarquee:hover .tm-row{animation-play-state:paused;}
+.tbadge{display:inline-flex;align-items:center;gap:8px;padding:10px 16px;background:#fff;border:1px solid var(--bdr);border-radius:100px;font-weight:700;font-size:0.85rem;white-space:nowrap;color:var(--w);box-shadow:0 1px 3px rgba(20,23,31,0.05);}
+.tbadge .ti{font-size:1.05rem;line-height:1;}
+.tbadge .tc{display:inline-flex;width:20px;height:20px;border-radius:50%;background:var(--teal);color:#fff;align-items:center;justify-content:center;font-size:0.7rem;font-weight:900;}
+.tbadge .to{color:var(--orange);}
+@keyframes tmscroll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+@media (prefers-reduced-motion:reduce){.tm-row{animation:none !important;flex-wrap:wrap;justify-content:center;}}
+
 /* SECONDARY SECTIONS — 1 viewport each, collapsed feel */
 .sec{padding:48px 20px;max-width:720px;margin:0 auto;}
 .sec-head{text-align:center;margin-bottom:28px;}
@@ -264,6 +280,21 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
     </div>
   </div>
 </section>
+
+<!-- MOVING TRUST BADGES -->
+<div class="tmarquee" aria-label="Why customers trust weaid.in">
+  <div class="tm-row a" id="tmA"></div>
+  <div class="tm-row b" id="tmB"></div>
+</div>
+<script>
+(function(){
+  const A=[['✓','Verified Pros'],['⭐','4.9 Star Rating'],['🔒','Secure Payments'],['🛡️','Background Checked'],['🔄','Free Re-do Guarantee'],['📍','Live GPS Tracking'],['👥','12,000+ Customers'],['⚡','On-Demand, Anytime']];
+  const B=[['💬','WhatsApp Updates'],['📞','Confirmation Calls'],['💰','Fair, Upfront Pricing'],['✅','No Hidden Charges'],['🧾','Insured Jobs'],['📶','Private Masked Calls'],['🤝','Kerala-Local Pros'],['🏙️','50+ Areas Covered']];
+  function fill(el,arr){const one=arr.map(function(b){var ic=b[0]==='✓'?'<span class="tc">✓</span>':'<span class="ti">'+b[0]+'</span>';return '<span class="tbadge">'+ic+' '+b[1]+'</span>';}).join('');el.innerHTML=one+one;}
+  fill(document.getElementById('tmA'),A);
+  fill(document.getElementById('tmB'),B);
+})();
+</script>
 
 <!-- HOW -->
 <section class="sec">
