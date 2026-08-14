@@ -32,7 +32,9 @@
 .res-meta span{color:var(--t2);font-weight:500;}
 .grid{display:grid;grid-template-columns:1fr;gap:14px;}
 @media(min-width:640px){.grid{grid-template-columns:1fr 1fr;}}
-@media(min-width:980px){.grid{grid-template-columns:1fr 1fr 1fr;}}
+@media(min-width:980px){.grid{grid-template-columns:1fr 1fr 1fr;gap:18px;}}
+@media(min-width:1360px){.grid{grid-template-columns:repeat(4,1fr);gap:20px;}}
+@media(min-width:900px){.pcard{padding:24px;}.c-top .avatar{width:64px;height:64px;font-size:1.6rem;}.c-name{font-size:19px;}#availMap{height:280px;}}
 
 .pcard{position:relative;display:flex;flex-direction:column;gap:12px;}
 .pcard.feat{border-color:#F0C24B;box-shadow:0 -3px 0 var(--gold) inset,var(--shadow-sm);}
