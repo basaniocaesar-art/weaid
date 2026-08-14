@@ -92,6 +92,34 @@ button{font-family:inherit;cursor:pointer;border:none;}
 
 .toast{position:fixed;bottom:84px;left:50%;transform:translateX(-50%);background:var(--green);color:white;padding:10px 18px;border-radius:100px;font-size:0.85rem;font-weight:600;opacity:0;transition:opacity 0.3s;pointer-events:none;z-index:1100;}
 .toast.on{opacity:1;}
+
+/* MODAL / SHEET */
+.mdbg{position:fixed;inset:0;background:rgba(0,0,0,0.6);backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity 0.25s;z-index:1200;}
+.mdbg.on{opacity:1;pointer-events:auto;}
+.md{position:fixed;left:0;right:0;bottom:0;max-width:560px;margin:0 auto;background:var(--bg2);border:1px solid var(--bdr2);border-radius:22px 22px 0 0;padding:22px 18px calc(22px + env(safe-area-inset-bottom,0px));transform:translateY(100%);transition:transform 0.28s cubic-bezier(.32,.72,0,1);z-index:1300;max-height:90vh;overflow-y:auto;}
+.md.on{transform:translateY(0);}
+.md-h{font-family:var(--serif);font-size:1.25rem;font-weight:700;margin-bottom:4px;}
+.md-sub{font-size:0.82rem;color:var(--t2);margin-bottom:16px;}
+.fld{margin-bottom:13px;}
+.fld label{display:block;font-size:0.75rem;font-weight:600;color:var(--t2);margin-bottom:6px;}
+.fld input,.fld select,.fld textarea{width:100%;padding:12px 14px;background:var(--bg3);border:1px solid var(--bdr);border-radius:11px;color:var(--text);font-family:inherit;font-size:0.9rem;}
+.fld textarea{min-height:70px;resize:vertical;}
+.fld-row{display:flex;gap:10px;}
+.fld-row .fld{flex:1;}
+.md-err{color:var(--red);font-size:0.82rem;margin:4px 0 10px;display:none;}
+.md-err.on{display:block;}
+.md-acts{display:flex;gap:10px;margin-top:8px;}
+.md-btn{flex:1;padding:14px;border-radius:12px;font-weight:700;font-size:0.92rem;}
+.md-btn.ghost{background:var(--bg3);color:var(--text);border:1px solid var(--bdr2);}
+.md-btn.prim{background:var(--teal);color:var(--bg);}
+.md-btn:disabled{opacity:0.55;}
+.badge-v{display:inline-flex;align-items:center;gap:4px;font-size:0.7rem;font-weight:700;color:var(--green);background:var(--green-dim);padding:3px 9px;border-radius:100px;}
+.payrow{display:flex;justify-content:space-between;align-items:center;padding:12px 14px;background:var(--bg2);border:1px solid var(--bdr);border-radius:11px;margin-bottom:8px;font-size:0.82rem;}
+.pay-st{font-size:0.68rem;font-weight:700;text-transform:uppercase;padding:3px 8px;border-radius:100px;}
+.pay-st.requested{color:var(--gold);background:var(--gdim);}
+.pay-st.paid{color:var(--green);background:var(--green-dim);}
+.pay-st.processing{color:var(--teal);background:var(--tdim);}
+.pay-st.rejected{color:var(--red);background:var(--red-dim);}
 </style>
 </head>
 <body>
@@ -128,19 +156,20 @@ button{font-family:inherit;cursor:pointer;border:none;}
 <!-- EARNINGS -->
 <div class="screen" id="sc-earnings">
   <div class="stat-grid">
-    <div class="stat-box"><div class="stat-label">This month</div><div class="stat-val">₹0</div></div>
-    <div class="stat-box"><div class="stat-label">Total lifetime</div><div class="stat-val gold">₹0</div></div>
-    <div class="stat-box"><div class="stat-label">Jobs done</div><div class="stat-val">0</div></div>
-    <div class="stat-box"><div class="stat-label">Rating</div><div class="stat-val">—</div></div>
+    <div class="stat-box"><div class="stat-label">This month</div><div class="stat-val" id="eMonth">₹0</div></div>
+    <div class="stat-box"><div class="stat-label">Total lifetime</div><div class="stat-val gold" id="eLifetime">₹0</div></div>
+    <div class="stat-box"><div class="stat-label">Jobs done</div><div class="stat-val" id="eJobs">0</div></div>
+    <div class="stat-box"><div class="stat-label">Rating</div><div class="stat-val" id="eRating">—</div></div>
   </div>
   <div class="card">
     <div class="card-row">
       <div class="card-ico">💰</div>
-      <div class="card-body"><div class="card-t">Pending payout</div><div class="card-s">Next payout: Monday</div></div>
-      <strong style="color:var(--gold);">₹0</strong>
+      <div class="card-body"><div class="card-t">Pending payout</div><div class="card-s">Paid to you after each completed job</div></div>
+      <strong style="color:var(--gold);" id="ePending">₹0</strong>
     </div>
   </div>
-  <button class="prim-cta" onclick="alert('Withdraw coming soon')">Withdraw earnings</button>
+  <button class="prim-cta" id="withdrawBtn" onclick="openWithdraw()">Withdraw earnings</button>
+  <div id="payoutList" style="margin-top:14px;"></div>
 </div>
 
 <!-- PROFILE -->
@@ -154,17 +183,17 @@ button{font-family:inherit;cursor:pointer;border:none;}
       </div>
     </div>
   </div>
-  <div class="card" onclick="alert('Edit profile coming soon')" style="cursor:pointer;">
+  <div class="card" onclick="openEditProfile()" style="cursor:pointer;">
     <div class="card-row">
       <div class="card-ico">📝</div>
       <div class="card-body"><div class="card-t">Edit profile</div><div class="card-s">Services, experience, skills</div></div>
       <div class="card-arrow">›</div>
     </div>
   </div>
-  <div class="card" onclick="alert('KYC coming soon')" style="cursor:pointer;">
+  <div class="card" onclick="openKyc()" style="cursor:pointer;">
     <div class="card-row">
       <div class="card-ico">🪪</div>
-      <div class="card-body"><div class="card-t">Verify identity</div><div class="card-s">Upload ID for verification badge</div></div>
+      <div class="card-body"><div class="card-t">Verify identity</div><div class="card-s" id="kycStatusLine">Upload ID for verification badge</div></div>
       <div class="card-arrow">›</div>
     </div>
   </div>
@@ -204,6 +233,67 @@ button{font-family:inherit;cursor:pointer;border:none;}
   </button>
 </nav>
 
+<!-- MODALS -->
+<div class="mdbg" id="mdbg" onclick="closeModals()"></div>
+
+<div class="md" id="mdWithdraw">
+  <div class="md-h">Withdraw earnings</div>
+  <div class="md-sub">Balance available: <strong id="wdBalance" style="color:var(--gold);">₹0</strong></div>
+  <div class="fld">
+    <label>Send to</label>
+    <select id="wdMethod"><option value="upi">UPI ID</option><option value="bank">Bank account</option></select>
+  </div>
+  <div class="fld">
+    <label id="wdDestLabel">Your UPI ID</label>
+    <input id="wdDest" placeholder="name@upi" autocomplete="off">
+  </div>
+  <div class="md-err" id="wdErr"></div>
+  <div class="md-acts">
+    <button class="md-btn ghost" onclick="closeModals()">Cancel</button>
+    <button class="md-btn prim" id="wdSubmit" onclick="submitWithdraw()">Request payout</button>
+  </div>
+</div>
+
+<div class="md" id="mdProfile">
+  <div class="md-h">Edit profile</div>
+  <div class="md-sub">This is what customers see on your listing.</div>
+  <div class="fld"><label>Name</label><input id="pfName"></div>
+  <div class="fld-row">
+    <div class="fld"><label>Phone</label><input id="pfPhone" inputmode="tel"></div>
+    <div class="fld"><label>WhatsApp</label><input id="pfWhatsapp" inputmode="tel"></div>
+  </div>
+  <div class="fld-row">
+    <div class="fld"><label>City</label><input id="pfCity"></div>
+    <div class="fld"><label>Years experience</label><input id="pfYears" inputmode="numeric"></div>
+  </div>
+  <div class="fld"><label>Services (comma separated)</label><input id="pfServices" placeholder="electrical, ac, plumbing"></div>
+  <div class="fld"><label>About you</label><textarea id="pfBio" placeholder="Tell customers about your work…"></textarea></div>
+  <div class="md-err" id="pfErr"></div>
+  <div class="md-acts">
+    <button class="md-btn ghost" onclick="closeModals()">Cancel</button>
+    <button class="md-btn prim" id="pfSubmit" onclick="submitProfile()">Save changes</button>
+  </div>
+</div>
+
+<div class="md" id="mdKyc">
+  <div class="md-h">Verify your identity</div>
+  <div class="md-sub">Get a verified badge — customers trust verified pros more. Reviewed within 1–2 days.</div>
+  <div class="fld">
+    <label>ID type</label>
+    <select id="kyType">
+      <option value="aadhaar">Aadhaar</option><option value="pan">PAN card</option>
+      <option value="driving_license">Driving licence</option><option value="voter_id">Voter ID</option><option value="passport">Passport</option>
+    </select>
+  </div>
+  <div class="fld"><label>ID number</label><input id="kyNumber" autocomplete="off"></div>
+  <div class="fld"><label>Photo/scan link (optional)</label><input id="kyDoc" placeholder="Google Drive / photo URL"></div>
+  <div class="md-err" id="kyErr"></div>
+  <div class="md-acts">
+    <button class="md-btn ghost" onclick="closeModals()">Cancel</button>
+    <button class="md-btn prim" id="kySubmit" onclick="submitKyc()">Submit for review</button>
+  </div>
+</div>
+
 <div class="toast" id="toast"></div>
 
 <script>
@@ -226,10 +316,103 @@ let weaidSb=null, weaidUser=null, weaidSession=null;
     document.getElementById('profName').textContent=name;
     document.getElementById('profPhone').textContent=user.phone||'';
     loadJobs();
+    loadEarnings();
   }catch(e){console.warn('Auth failed:',e);loadJobs();}
 })();
 
 async function weaidLogout(){try{if(weaidSb)await weaidSb.auth.signOut();}catch(e){}window.location.href='/login';}
+
+// ── Earnings, payouts, profile & KYC ──
+function authHeaders(extra){return Object.assign({'Authorization':'Bearer '+(weaidSession?weaidSession.access_token:'')},extra||{});}
+const rup=n=>'₹'+(Number(n)||0).toLocaleString('en-IN');
+let _pending=0, _hasListing=false;
+
+async function loadEarnings(){
+  if(!weaidSession)return;
+  try{
+    const r=await fetch('/api/provider/earnings',{headers:authHeaders()});
+    if(!r.ok)return;
+    const d=await r.json();
+    _hasListing=d.hasListing;
+    const e=d.earnings||{};
+    _pending=e.pending||0;
+    document.getElementById('eMonth').textContent=rup(e.thisMonth);
+    document.getElementById('eLifetime').textContent=rup(e.lifetime);
+    document.getElementById('eJobs').textContent=e.jobsDone||0;
+    document.getElementById('eRating').textContent=d.rating?Number(d.rating).toFixed(1)+'★':'—';
+    document.getElementById('ePending').textContent=rup(e.pending);
+    // KYC status line + verified badge
+    const kl=document.getElementById('kycStatusLine');
+    const ks=d.kycStatus||'none';
+    kl.textContent=ks==='verified'?'✓ Verified':ks==='submitted'?'Under review — 1–2 days':ks==='rejected'?'Rejected — tap to resubmit':'Upload ID for verification badge';
+    if(ks==='verified'&&!document.getElementById('vBadge')){const nm=document.getElementById('profName');nm.insertAdjacentHTML('afterend','<span id="vBadge" class="badge-v">✓ Verified</span>');}
+    // Payout history
+    const pl=document.getElementById('payoutList');
+    pl.innerHTML=(d.payouts||[]).map(p=>`<div class="payrow"><div><div style="font-weight:600;">${rup(p.amount)}</div><div style="color:var(--t2);font-size:0.72rem;">${new Date(p.created_at).toLocaleDateString('en-IN',{day:'numeric',month:'short'})} · ${p.jobs_count} job(s)</div></div><span class="pay-st ${p.status}">${p.status}</span></div>`).join('');
+  }catch(e){console.warn('earnings load failed',e);}
+}
+
+function closeModals(){document.getElementById('mdbg').classList.remove('on');document.querySelectorAll('.md').forEach(m=>m.classList.remove('on'));document.body.style.overflow='';}
+function openModal(id){document.getElementById('mdbg').classList.add('on');document.getElementById(id).classList.add('on');document.body.style.overflow='hidden';}
+function mErr(id,msg){const e=document.getElementById(id);if(!msg){e.classList.remove('on');return;}e.textContent=msg;e.classList.add('on');}
+
+// Withdraw
+document.getElementById('wdMethod').addEventListener('change',e=>{const upi=e.target.value==='upi';document.getElementById('wdDestLabel').textContent=upi?'Your UPI ID':'Account no. / IFSC';document.getElementById('wdDest').placeholder=upi?'name@upi':'000123456789 / HDFC0000123';});
+function openWithdraw(){
+  if(!_hasListing){toast('List your services first');showScreen('profile');return;}
+  if(_pending<200){toast('Minimum payout is ₹200');return;}
+  mErr('wdErr','');document.getElementById('wdBalance').textContent=rup(_pending);document.getElementById('wdDest').value='';openModal('mdWithdraw');
+}
+async function submitWithdraw(){
+  const dest=document.getElementById('wdDest').value.trim();
+  if(!dest){mErr('wdErr','Add where to send the money.');return;}
+  const btn=document.getElementById('wdSubmit');btn.disabled=true;btn.textContent='Requesting…';
+  try{
+    const r=await fetch('/api/provider/withdraw',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({method:document.getElementById('wdMethod').value,destination:dest})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    closeModals();toast('Payout requested ✓');loadEarnings();
+  }catch(e){mErr('wdErr',e.message);}finally{btn.disabled=false;btn.textContent='Request payout';}
+}
+
+// Edit profile
+async function openEditProfile(){
+  mErr('pfErr','');openModal('mdProfile');
+  try{
+    const r=await fetch('/api/provider/self',{headers:authHeaders()});const d=await r.json();
+    if(!d.hasListing){mErr('pfErr','No listing yet — creating one when you save.');}
+    const p=d.provider||{};
+    document.getElementById('pfName').value=p.name||weaidUser?.name||'';
+    document.getElementById('pfPhone').value=p.phone||weaidUser?.phone||'';
+    document.getElementById('pfWhatsapp').value=p.whatsapp||'';
+    document.getElementById('pfCity').value=p.city||'';
+    document.getElementById('pfYears').value=p.years_experience||'';
+    document.getElementById('pfServices').value=(p.services||[]).join(', ');
+    document.getElementById('pfBio').value=p.bio||'';
+  }catch(e){}
+}
+async function submitProfile(){
+  const body={name:document.getElementById('pfName').value.trim(),phone:document.getElementById('pfPhone').value.trim(),whatsapp:document.getElementById('pfWhatsapp').value.trim(),city:document.getElementById('pfCity').value.trim(),years_experience:Number(document.getElementById('pfYears').value)||0,services:document.getElementById('pfServices').value.split(',').map(s=>s.trim()).filter(Boolean),bio:document.getElementById('pfBio').value.trim()};
+  if(!body.name){mErr('pfErr','Name is required.');return;}
+  const btn=document.getElementById('pfSubmit');btn.disabled=true;btn.textContent='Saving…';
+  try{
+    const r=await fetch('/api/provider/self',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify(body)});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    closeModals();toast('Profile updated ✓');document.getElementById('profName').textContent=body.name;
+  }catch(e){mErr('pfErr',e.message);}finally{btn.disabled=false;btn.textContent='Save changes';}
+}
+
+// KYC
+function openKyc(){mErr('kyErr','');document.getElementById('kyNumber').value='';document.getElementById('kyDoc').value='';openModal('mdKyc');}
+async function submitKyc(){
+  const idNumber=document.getElementById('kyNumber').value.trim();
+  if(idNumber.replace(/\s/g,'').length<6){mErr('kyErr','Enter a valid ID number.');return;}
+  const btn=document.getElementById('kySubmit');btn.disabled=true;btn.textContent='Submitting…';
+  try{
+    const r=await fetch('/api/provider/kyc',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({idType:document.getElementById('kyType').value,idNumber,docUrl:document.getElementById('kyDoc').value.trim()||null})});
+    const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');
+    closeModals();toast('Submitted for review ✓');loadEarnings();
+  }catch(e){mErr('kyErr',e.message);}finally{btn.disabled=false;btn.textContent='Submit for review';}
+}
 
 const TITLES={jobs:'Available Jobs',schedule:'My Schedule',earnings:'Earnings',profile:'Profile'};
 function showScreen(name,navEl){

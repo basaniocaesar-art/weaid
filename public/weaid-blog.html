@@ -3,29 +3,129 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>WeAid Blog — Home Services Tips & Updates</title>
-<meta name="description" content="WeAid — India's on-demand services platform. Home, beauty, wellness & care.">
-<meta property="og:title" content="WeAid Blog — Home Services Tips & Updates">
+<title>WeAid Blog — Home Services Tips, Pricing & Safety</title>
+<meta name="description" content="Guides on home service pricing in India, hiring verified pros safely, and getting more customers as a service professional — from WeAid.">
+<meta property="og:title" content="WeAid Blog — Home Services Tips, Pricing & Safety">
 <meta property="og:description" content="Book verified professionals for electrical, plumbing, cleaning, renovation & more across India.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://weaid.in">
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'><rect width='32' height='32' rx='8' fill='%2306b6d4'/><text x='16' y='23' text-anchor='middle' fill='white' font-family='sans-serif' font-weight='bold' font-size='18'>W</text></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  body { font-family: 'DM Sans', sans-serif; background: #fdf6ec; color: #1a1a1a; text-align: center; padding: 80px 20px; }
-  h1 { font-size: 2rem; margin-bottom: 12px; }
-  p { color: #5a5a5a; }
+  :root{--teal:#1A6E5E;--orange:#E8823A;--ink:#14171f;--muted:#5a6472;--bg:#fdfaf4;--card:#fff;--bdr:#ece4d6;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:'DM Sans',sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;-webkit-font-smoothing:antialiased;}
+  a{color:var(--teal);text-decoration:none;}
+  .wrap{max-width:720px;margin:0 auto;padding:0 20px;}
+  header{border-bottom:1px solid var(--bdr);background:rgba(253,250,244,0.9);backdrop-filter:blur(10px);position:sticky;top:0;z-index:20;}
+  .hrow{display:flex;align-items:center;justify-content:space-between;height:60px;}
+  .logo{font-family:'Sora',sans-serif;font-weight:800;font-size:1.15rem;color:var(--teal);}
+  .logo b{color:var(--orange);}
+  .back{font-size:0.85rem;font-weight:600;}
+  .hero{text-align:center;padding:48px 0 24px;}
+  .hero .tag{display:inline-block;font-size:0.72rem;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--teal);background:#e4f1ee;padding:6px 14px;border-radius:100px;}
+  .hero h1{font-family:'Sora',sans-serif;font-size:2.1rem;font-weight:800;margin:16px 0 8px;line-height:1.15;}
+  .hero p{color:var(--muted);max-width:520px;margin:0 auto;}
+  article{background:var(--card);border:1px solid var(--bdr);border-radius:18px;padding:28px 26px;margin:20px 0;box-shadow:0 2px 10px rgba(20,23,31,0.03);}
+  article .meta{font-size:0.75rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--orange);}
+  article h2{font-family:'Sora',sans-serif;font-size:1.4rem;font-weight:700;margin:8px 0 12px;line-height:1.25;}
+  article p{margin:12px 0;color:#333;}
+  article h3{font-family:'Sora',sans-serif;font-size:1.05rem;margin:20px 0 6px;}
+  article ul{margin:12px 0 12px 20px;}
+  article li{margin:6px 0;}
+  .price-table{width:100%;border-collapse:collapse;margin:16px 0;font-size:0.9rem;}
+  .price-table th,.price-table td{text-align:left;padding:9px 12px;border-bottom:1px solid var(--bdr);}
+  .price-table th{background:#e4f1ee;color:var(--teal);font-weight:700;}
+  .cta{display:block;text-align:center;background:var(--teal);color:#fff;font-weight:700;padding:14px;border-radius:12px;margin:24px 0 8px;}
+  footer{text-align:center;color:var(--muted);font-size:0.82rem;padding:40px 20px;}
 </style>
 <link rel="manifest" href="/manifest.json">
 <meta name="theme-color" content="#1A6E5E">
-<meta name="apple-mobile-web-app-capable" content="yes">
-<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="WeAid">
 <link rel="apple-touch-icon" href="/icon-180.png">
 <script>if('serviceWorker' in navigator){window.addEventListener('load',()=>navigator.serviceWorker.register('/sw.js').catch(()=>{}))}</script>
 </head>
 <body>
-  <h1>WeAid Blog</h1>
-  <p>Coming soon — tips, guides, and updates from WeAid.</p>
+<header>
+  <div class="wrap hrow">
+    <a href="/" class="logo">weaid<b>.in</b></a>
+    <a href="/" class="back">← Back to WeAid</a>
+  </div>
+</header>
+
+<div class="wrap">
+  <div class="hero">
+    <span class="tag">The WeAid Blog</span>
+    <h1>Honest guides for hiring — and working — smarter</h1>
+    <p>Real pricing, safety tips, and advice for customers and service pros across India.</p>
+  </div>
+
+  <article>
+    <div class="meta">Pricing Guide</div>
+    <h2>What should home services actually cost in India in 2026?</h2>
+    <p>The biggest worry before booking any pro is simple: <em>am I being overcharged?</em> Here are fair, typical starting ranges for common jobs. Actual prices vary by city, scope, and urgency — a small fix costs far less than a full-day job.</p>
+    <table class="price-table">
+      <tr><th>Service</th><th>Typical starting price</th></tr>
+      <tr><td>Electrician (small fix)</td><td>₹300 – ₹600</td></tr>
+      <tr><td>Plumber (small fix)</td><td>₹300 – ₹500</td></tr>
+      <tr><td>Deep home cleaning</td><td>₹1,500 – ₹4,000</td></tr>
+      <tr><td>AC service / repair</td><td>₹500 – ₹1,200</td></tr>
+      <tr><td>Salon at home (haircut)</td><td>₹300 – ₹600</td></tr>
+      <tr><td>Massage / wellness</td><td>₹900 – ₹1,800</td></tr>
+    </table>
+    <p>On WeAid you see an upfront estimate <strong>before</strong> you book, and the price you're quoted is the price you pay — no surprise charges at the door.</p>
+    <a class="cta" href="/">See a price for your job →</a>
+  </article>
+
+  <article>
+    <div class="meta">Hiring Smart</div>
+    <h2>6 questions to ask before hiring an electrician or plumber</h2>
+    <p>A five-minute conversation saves you from a bad job. Before work starts, ask:</p>
+    <ul>
+      <li><strong>What's included in the price?</strong> Parts, labour, or both?</li>
+      <li><strong>Is there a call-out or inspection fee?</strong> Get it clear upfront.</li>
+      <li><strong>How long have you done this work?</strong> Experience shows in the finish.</li>
+      <li><strong>Do you guarantee the work?</strong> Good pros stand behind their fixes.</li>
+      <li><strong>Will you show the old/replaced parts?</strong> Keeps everyone honest.</li>
+      <li><strong>Can I pay after I'm satisfied?</strong> WeAid holds payment until the job's done.</li>
+    </ul>
+    <p>Every pro on WeAid has ratings and reviews from real customers, so you can check their track record before they arrive.</p>
+  </article>
+
+  <article>
+    <div class="meta">Trust &amp; Safety</div>
+    <h2>How WeAid keeps you safe</h2>
+    <p>Inviting someone into your home should feel safe. Here's how we protect you:</p>
+    <h3>Verified professionals</h3>
+    <p>Pros can submit ID for a verified badge, so you know who you're dealing with.</p>
+    <h3>Private, masked calls</h3>
+    <p>On booked jobs, you and the pro connect through a proxy number — neither side sees the other's real phone number.</p>
+    <h3>Fair, upfront pricing</h3>
+    <p>You see the estimate before booking. No hidden charges, no haggling at the door.</p>
+    <h3>Ratings you can trust</h3>
+    <p>Every job can be rated, so good work rises to the top and the community stays honest.</p>
+    <a class="cta" href="/">Browse verified pros near you →</a>
+  </article>
+
+  <article>
+    <div class="meta">For Service Pros</div>
+    <h2>How to get more customers on WeAid</h2>
+    <p>WeAid is free to join and built to send you real, nearby jobs. To win more work:</p>
+    <ul>
+      <li><strong>Complete your profile.</strong> Add your services, experience, and a clear photo — listings with photos get more clicks.</li>
+      <li><strong>Get verified.</strong> The verified badge builds instant trust with new customers.</li>
+      <li><strong>Reply fast.</strong> The first pro to respond usually wins the job.</li>
+      <li><strong>Collect reviews.</strong> Ask happy customers to rate you — your rating is your reputation.</li>
+      <li><strong>Stay available.</strong> Toggle online when you can take work so you show up in more searches.</li>
+    </ul>
+    <p>You keep the bulk of every job — WeAid takes a small commission only when you actually get paid, and payouts land in your account after each completed job.</p>
+    <a class="cta" href="/provider-signup">List your services free →</a>
+  </article>
+</div>
+
+<footer>
+  © WeAid · <a href="/">weaid.in</a> — Any service, anytime.
+</footer>
+
 <!-- WhatsApp Chat Button -->
 <a href="https://wa.me/919876543210?text=Hi%20WeAid%2C%20I%20need%20help%20with%20a%20service" target="_blank" rel="noopener" style="position:fixed;bottom:24px;right:24px;width:56px;height:56px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:9999;transition:transform 0.2s;" onmouseover="this.style.transform='scale(1.1)'" onmouseout="this.style.transform='scale(1)'">
   <svg width="28" height="28" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>

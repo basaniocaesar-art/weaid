@@ -579,7 +579,7 @@ async function goBook(){
   try{
     const cfg=await fetch('/api/config').then(r=>r.json()).catch(()=>({}));
     if(!cfg.supabaseAnonKey){
-      alert('Booking coming soon. Connect Supabase Auth to enable.');
+      alert("We're just finishing setup — booking opens shortly. Meanwhile, browse and contact a pro directly from the directory.");
       return;
     }
     const sb=window.supabase?.createClient(cfg.supabaseUrl,cfg.supabaseAnonKey);
