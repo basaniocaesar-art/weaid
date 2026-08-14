@@ -48,6 +48,18 @@
 .empty .emo{font-size:2.6rem;margin-bottom:14px;}
 .empty a{color:var(--teal-text);font-weight:700;}
 
+.loc-field{position:relative;}
+.loc-field input{padding-left:38px!important;padding-right:38px!important;}
+.loc-pin{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-size:15px;pointer-events:none;z-index:1;}
+.loc-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);width:26px;height:26px;border-radius:8px;background:var(--teal-dim);color:var(--teal-text);font-size:15px;display:flex;align-items:center;justify-content:center;line-height:1;}
+.loc-btn:hover{background:var(--teal);color:#fff;}
+.loc-suggest{position:absolute;top:calc(100% + 6px);left:0;right:0;background:#fff;border:1px solid var(--bdr2);border-radius:12px;box-shadow:var(--shadow-md);z-index:60;overflow:hidden;display:none;}
+.loc-suggest.on{display:block;}
+.loc-suggest .opt{padding:11px 14px;font-size:14px;color:var(--text);cursor:pointer;display:flex;gap:8px;align-items:center;border-bottom:1px solid var(--bdr);}
+.loc-suggest .opt:last-child{border-bottom:none;}
+.loc-suggest .opt:hover{background:var(--bg-soft);}
+.loc-suggest .opt .ic{color:var(--teal-text);flex-shrink:0;}
+.loc-suggest .opt .tx{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
 .cta-strip{max-width:820px;margin:16px auto 0;padding:0 20px;}
 .cta-box{background:var(--teal-dim);border-radius:14px;padding:16px 18px;display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;}
 .cta-box .t{font-size:15px;font-weight:600;color:var(--ink);}
@@ -83,14 +95,15 @@
         <option value="cctv">📹 CCTV & Security</option>
       </select>
     </div>
-    <div class="sb-field">
-      <input id="fCity" type="text" placeholder="Your city or area" autocomplete="off">
+    <div class="sb-field loc-field">
+      <span class="loc-pin" id="locPin">📍</span>
+      <input id="fCity" type="text" placeholder="Detecting your location…" autocomplete="off">
+      <button class="loc-btn" id="locBtn" onclick="autoDetect(true)" title="Use my current location" aria-label="Use my current location">⌖</button>
+      <div class="loc-suggest" id="locSuggest"></div>
     </div>
     <button class="btn btn-primary" onclick="runSearch()">Search</button>
   </div>
-  <div style="max-width:820px;margin:8px auto 0;text-align:center">
-    <button class="btn btn-secondary btn-pill btn-sm" id="nearBtn" onclick="nearMe()">📍 Near me</button>
-  </div>
+  <div id="locStatus" style="max-width:820px;margin:8px auto 0;text-align:center;font-size:13px;color:var(--t3);"></div>
 </div>
 
 <div class="cta-strip">
@@ -112,16 +125,66 @@ function stars(r){r=Math.round(r||0);return "★".repeat(r)+"☆".repeat(5-r);}
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 
 function logLead(id,ch){navigator.sendBeacon?navigator.sendBeacon('/api/provider/lead',new Blob([JSON.stringify({providerId:id,channel:ch,service:document.getElementById('fService').value,city:document.getElementById('fCity').value})],{type:'application/json'})):fetch('/api/provider/lead',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({providerId:id,channel:ch})});}
-let userLat=null,userLng=null;
-function nearMe(){
-  const btn=document.getElementById('nearBtn');
-  if(!navigator.geolocation){btn.textContent='Location not supported';return;}
-  btn.textContent='📍 Locating…';btn.disabled=true;
-  navigator.geolocation.getCurrentPosition(
-    p=>{userLat=p.coords.latitude;userLng=p.coords.longitude;btn.textContent='✓ Sorted by nearest';btn.disabled=false;runSearch();},
-    e=>{btn.textContent='📍 Near me';btn.disabled=false;alert(e.code===1?'Location permission denied. Enable it to sort by nearest.':'Could not get your location. Try again.');},
-    {enableHighAccuracy:false,timeout:8000,maximumAge:300000}
-  );
+let userLat=null,userLng=null,locPicked=false;
+const cityInput=()=>document.getElementById('fCity');
+const sugBox=()=>document.getElementById('locSuggest');
+const statusEl=()=>document.getElementById('locStatus');
+function hideSug(){const b=sugBox();if(b){b.classList.remove('on');b.innerHTML='';}}
+function shortName(dn){return String(dn).split(',').slice(0,2).join(',').trim();}
+
+// Reverse-geocode lat/lng → readable area name (free OpenStreetMap Nominatim)
+async function reverseGeocode(lat,lng){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=14&addressdetails=1&lat=${lat}&lon=${lng}`,{headers:{'Accept':'application/json'}});
+    const d=await r.json();const a=d.address||{};
+    const parts=[a.suburb||a.neighbourhood||a.village||a.town||a.city_district,a.city||a.town||a.county].filter(Boolean);
+    return parts.length?[...new Set(parts)].slice(0,2).join(', '):shortName(d.display_name||'');
+  }catch(e){return '';}
+}
+
+// Auto-detect the customer's location (Uber-style) and sort by nearest
+function autoDetect(userInitiated){
+  const st=statusEl();
+  if(!navigator.geolocation){cityInput().placeholder='Your city or area';runSearch();return;}
+  cityInput().placeholder='Detecting your location…';
+  if(userInitiated)st.textContent='Locating…';
+  navigator.geolocation.getCurrentPosition(async p=>{
+    userLat=p.coords.latitude;userLng=p.coords.longitude;locPicked=true;
+    const name=await reverseGeocode(userLat,userLng);
+    cityInput().value=name||'Current location';
+    st.textContent='📍 Showing pros nearest to you';
+    runSearch();
+  },e=>{
+    cityInput().placeholder='Your city or area';
+    st.textContent=userInitiated?(e.code===1?'Location blocked — type your area instead.':'Couldn’t detect location — type your area.'):'';
+    runSearch();
+  },{enableHighAccuracy:false,timeout:8000,maximumAge:300000});
+}
+
+// Type-to-search places, debounced (Nominatim autocomplete)
+let sugTimer=null;
+function onCityInput(){
+  userLat=null;userLng=null;locPicked=false; // typing = manual until they pick a suggestion
+  const q=cityInput().value.trim();
+  clearTimeout(sugTimer);
+  if(q.length<3){hideSug();return;}
+  sugTimer=setTimeout(()=>placeSearch(q),350);
+}
+async function placeSearch(q){
+  try{
+    const r=await fetch(`https://nominatim.openstreetmap.org/search?format=jsonv2&countrycodes=in&limit=5&q=${encodeURIComponent(q)}`,{headers:{'Accept':'application/json'}});
+    const list=await r.json();
+    if(!Array.isArray(list)||!list.length){hideSug();return;}
+    const box=sugBox();
+    box.innerHTML=list.map(o=>`<div class="opt" data-lat="${o.lat}" data-lng="${o.lon}" data-name="${esc(shortName(o.display_name))}"><span class="ic">📍</span><span class="tx">${esc(o.display_name)}</span></div>`).join('');
+    box.querySelectorAll('.opt').forEach(el=>el.onclick=()=>{
+      userLat=+el.dataset.lat;userLng=+el.dataset.lng;locPicked=true;
+      cityInput().value=el.dataset.name;hideSug();
+      statusEl().textContent='📍 Showing pros nearest to '+el.dataset.name;
+      runSearch();
+    });
+    box.classList.add('on');
+  }catch(e){hideSug();}
 }
 
 function card(p){
@@ -163,8 +226,10 @@ async function runSearch(){
   grid.innerHTML=skeletons(6);
   const params=new URLSearchParams();
   if(service)params.set('service',service);
-  if(city)params.set('city',city);
-  if(userLat!=null&&userLng!=null){params.set('lat',userLat);params.set('lng',userLng);}
+  // Precise location (detected or picked) → sort by nearest across all pros.
+  // Otherwise treat the box as a plain city/area text filter.
+  if(locPicked&&userLat!=null&&userLng!=null){params.set('lat',userLat);params.set('lng',userLng);}
+  else if(city)params.set('city',city);
   try{
     const r=await fetch('/api/providers/search?'+params.toString());
     const d=await r.json();
@@ -186,10 +251,13 @@ async function runSearch(){
 (function(){
   const q=new URLSearchParams(location.search);
   if(q.get('service'))document.getElementById('fService').value=q.get('service');
-  if(q.get('city'))document.getElementById('fCity').value=q.get('city');
-  document.getElementById('fCity').addEventListener('keydown',e=>{if(e.key==='Enter')runSearch();});
+  const inp=document.getElementById('fCity');
+  inp.addEventListener('input',onCityInput);
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){hideSug();runSearch();}});
+  document.addEventListener('click',e=>{if(!e.target.closest('.loc-field'))hideSug();});
   addEventListener('scroll',()=>document.getElementById('nav').classList.toggle('scrolled',scrollY>8));
-  runSearch();
+  if(q.get('city')){inp.value=q.get('city');runSearch();}      // came from a city link
+  else autoDetect(false);                                       // Uber-style: auto-detect on arrival
 })();
 </script>
 </body>
