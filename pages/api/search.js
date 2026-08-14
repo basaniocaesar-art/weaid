@@ -17,6 +17,8 @@ const SERVICE_DATA = {
   tutor: { name: "Home Tutors", keywords: ["tutor", "tuition", "teacher", "classes", "coaching", "study", "maths", "science", "music"], icon: "📚" },
   nursing: { name: "Nurses & Elder Care", keywords: ["nurse", "nursing", "elder", "care", "physio", "patient", "medical", "attendant", "home care"], icon: "🩺" },
   laundry: { name: "Laundry & Dry Clean", keywords: ["laundry", "wash", "iron", "dry clean", "clothes", "pickup"], icon: "🧺" },
+  food: { name: "Food Delivery", keywords: ["food", "restaurant", "meal", "delivery", "biryani", "lunch", "dinner"], icon: "🍔" },
+  homefood: { name: "Home Food", keywords: ["home food", "tiffin", "home chef", "homemade", "meals", "cook", "kerala meals"], icon: "🍱" },
 };
 
 export default async function handler(req, res) {
