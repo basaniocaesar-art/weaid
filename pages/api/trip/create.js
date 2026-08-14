@@ -1,14 +1,8 @@
 import { calculateFare } from "../../../lib/pricing.js";
 import { insertTrip, getAvailableDriversByType } from "../../../lib/supabase.js";
 import { notifyDriverNewTrip } from "../../../lib/whatsapp.js";
+import { roadDistanceKm, haversineKm } from "../../../lib/geo.js";
 
-function distanceKm(lat1, lng1, lat2, lng2) {
-  const R = 6371;
-  const dLat = ((lat2 - lat1) * Math.PI) / 180;
-  const dLng = ((lng2 - lng1) * Math.PI) / 180;
-  const a = Math.sin(dLat / 2) ** 2 + Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
-  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 const otp = () => String(Math.floor(1000 + Math.random() * 9000));
 
 export default async function handler(req, res) {
@@ -19,7 +13,7 @@ export default async function handler(req, res) {
       return res.status(400).json({ error: "Missing pickup, drop, or customer details" });
     }
 
-    const dist = distanceKm(pickup.lat, pickup.lng, drop.lat, drop.lng);
+    const dist = await roadDistanceKm(pickup.lat, pickup.lng, drop.lat, drop.lng);
     const v = type === "courier" ? "courier" : vehicle;
     const fare = calculateFare({ vehicle: v, distanceKm: dist });
 
@@ -47,7 +41,7 @@ export default async function handler(req, res) {
     // Dispatch: notify available drivers offering this trip type, nearest first.
     const drivers = await getAvailableDriversByType(type).catch(() => []);
     drivers
-      .map((d) => ({ d, dist: d.lat != null && d.lng != null ? distanceKm(pickup.lat, pickup.lng, d.lat, d.lng) : Infinity }))
+      .map((d) => ({ d, dist: d.lat != null && d.lng != null ? haversineKm(pickup.lat, pickup.lng, d.lat, d.lng) : Infinity }))
       .sort((a, b) => a.dist - b.dist)
       .slice(0, 15)
       .forEach(({ d }) => notifyDriverNewTrip(d.phone, trip).catch(() => {}));

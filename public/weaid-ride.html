@@ -117,10 +117,30 @@ if(navigator.geolocation)navigator.geolocation.getCurrentPosition(async p=>{try{
 
 document.getElementById('vehRow').addEventListener('click',e=>{const v=e.target.closest('.v');if(!v)return;document.querySelectorAll('.veh .v').forEach(x=>x.classList.remove('on'));v.classList.add('on');vehicle=v.dataset.v;updateFare();});
 
-function updateFare(){
+// Real driving distance via OSRM (the routing sibling of our Nominatim geocoder,
+// no API key). Falls back to straight-line × road factor if the router is down.
+async function roadDist(a,b,c,d){
+  try{const ctrl=new AbortController();const t=setTimeout(()=>ctrl.abort(),4000);
+    const r=await fetch(`https://router.project-osrm.org/route/v1/driving/${b},${a};${d},${c}?overview=false`,{signal:ctrl.signal});
+    clearTimeout(t);
+    if(r.ok){const j=await r.json();const m=j&&j.routes&&j.routes[0]&&j.routes[0].distance;if(typeof m==='number'&&m>0)return m/1000;}
+  }catch(e){}
+  return haversine(a,b,c,d)*1.4;
+}
+let _distKey=null,_distVal=null;
+async function updateFare(){
   const cta=document.getElementById('cta'),box=document.getElementById('fareBox');
   if(pick&&dropL){
-    const dist=haversine(pick.lat,pick.lng,dropL.lat,dropL.lng);
+    const key=pick.lat+','+pick.lng+'>'+dropL.lat+','+dropL.lng;
+    if(key!==_distKey){
+      _distKey=key;
+      document.getElementById('fareDist').textContent='Calculating route…';
+      box.style.display='flex';
+      _distVal=await roadDist(pick.lat,pick.lng,dropL.lat,dropL.lng);
+      // a newer pickup/drop was chosen while we awaited — let that call win
+      if((pick.lat+','+pick.lng+'>'+dropL.lat+','+dropL.lng)!==key)return;
+    }
+    const dist=_distVal;
     const r=RATES[vehicle]||RATES.car;const fare=Math.max(r.min,Math.round(r.base+r.perKm*dist));
     document.getElementById('fareDist').textContent=(Math.round(dist*10)/10)+' km · est. fare';
     document.getElementById('fareAmt').textContent='₹'+fare;
