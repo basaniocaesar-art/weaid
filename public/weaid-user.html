@@ -16,6 +16,7 @@
 <link rel="apple-touch-icon" href="/icon-180.png">
 <link href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,600;9..40,700;9..40,800&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <style>
 :root{--bg:#07090f;--bg2:#0e1117;--bg3:#161b27;--teal:#00c9b1;--teal2:#00a896;--tdim:rgba(0,201,177,0.1);--gold:#f0b429;--gdim:rgba(240,180,41,0.12);--green:#22c55e;--green-dim:rgba(34,197,94,0.12);--text:#eef2ff;--t2:#8892aa;--t3:#4a5568;--w:#fff;--bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);--red:#ef4444;--font:'DM Sans',sans-serif;--serif:'Fraunces',serif;}
 *{margin:0;padding:0;box-sizing:border-box;}
@@ -355,13 +356,39 @@ async function confirmBook(){
       body:JSON.stringify({service:bkState.svc,city:bkState.city,scope:bkState.scope,slot:bkState.slot||'standard',
         timingMode:bkState.when||'asap',scheduledAt:bkState.dateTime||null,lat:bkState.lat??null,lng:bkState.lng??null,
         description:bkState.description||null,address:bkState.address||null,
-        gateway:'stripe',refCode:refCode||undefined,
+        gateway:'razorpay',refCode:refCode||undefined,
         customer:{id:weaidUser.id,name:weaidUser.name,phone:weaidUser.phone,email:weaidUser.email||'user@weaid.in'}}),
     });
     const data=await res.json();
-    if(data.payment?.url){window.location.href=data.payment.url;return;}
+    if(!res.ok)throw new Error(data.error||'Failed');
+    const p=data.payment||{};
+    // Legacy Stripe path (if ever re-enabled)
+    if(p.url){window.location.href=p.url;return;}
+    // Razorpay checkout (UPI / cards / netbanking)
+    if(p.gateway==='razorpay'&&p.orderId){
+      if(!window.Razorpay){alert('Payment could not load. Please check your connection and try again.');cta.disabled=false;updatePrice();return;}
+      const rzp=new window.Razorpay({
+        key:p.key,amount:p.amount,currency:p.currency||'INR',order_id:p.orderId,
+        name:'WeAid',description:'Service booking',theme:{color:'#1A6E5E'},
+        prefill:{name:weaidUser.name||'',email:weaidUser.email||'',contact:weaidUser.phone||''},
+        handler:async(resp)=>{
+          cta.textContent='Confirming…';
+          try{
+            const v=await fetch('/api/booking/verify-razorpay',{method:'POST',headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({bookingId:data.bookingId,razorpay_order_id:resp.razorpay_order_id,razorpay_payment_id:resp.razorpay_payment_id,razorpay_signature:resp.razorpay_signature})});
+            const vd=await v.json();
+            if(!v.ok)throw new Error(vd.error||'Verification failed');
+            closeSheet();alert('Payment received! We’re finding a pro for you now.');showScreen('bookings');
+          }catch(e){alert('Payment succeeded but confirmation failed — our team will sort it. '+e.message);}
+        },
+        modal:{ondismiss:()=>{cta.disabled=false;updatePrice();}},
+      });
+      rzp.on('payment.failed',()=>{cta.disabled=false;updatePrice();});
+      rzp.open();
+      return;
+    }
     alert('Booking created!');closeSheet();
-  }catch(e){alert('Booking failed. Please try again.');}
+  }catch(e){alert('Booking failed. '+(e.message||'Please try again.'));}
   cta.disabled=false;updatePrice();
 }
 

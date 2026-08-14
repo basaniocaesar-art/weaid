@@ -1,6 +1,6 @@
 import { calculatePrice } from "../../../lib/pricing.js";
 import { insertBooking } from "../../../lib/supabase.js";
-import { createOrder } from "../../../lib/razorpay.js";
+import { createOrder, razorpayKeyId } from "../../../lib/razorpay.js";
 import { createCheckoutSession } from "../../../lib/stripe.js";
 import { lookupAffiliateByRefCode } from "../../../lib/affiliate.js";
 
@@ -10,7 +10,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { service, city, scope, slot, customer, gateway = "stripe", refCode, scheduledAt, timingMode, lat, lng, description, address, workers } = req.body;
+    const { service, city, scope, slot, customer, gateway = "razorpay", refCode, scheduledAt, timingMode, lat, lng, description, address, workers } = req.body;
 
     if (!service || !city || !scope || !customer) {
       return res.status(400).json({ error: "Missing required fields: service, city, scope, customer" });
@@ -68,7 +68,7 @@ export default async function handler(req, res) {
       payment = { gateway: "stripe", sessionId: session.id, url: session.url };
     } else {
       const order = await createOrder(price.total, `booking_${booking.id}`, { booking_id: booking.id });
-      payment = { gateway: "razorpay", orderId: order.id };
+      payment = { gateway: "razorpay", orderId: order.id, key: razorpayKeyId, amount: order.amount, currency: order.currency };
     }
 
     return res.status(201).json({
