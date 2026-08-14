@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
     return res.status(200).json({
       id: user.id,
-      phone: user.phone,
+      phone: profile?.phone || user.phone || null,
       email: user.email,
       role: profile?.role || null,
       name: profile?.name || null,

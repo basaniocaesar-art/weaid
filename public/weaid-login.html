@@ -55,8 +55,9 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 .form-field input::placeholder { color:var(--muted); }
 
 .phone-row { display:flex; gap:8px; }
-.country-code { width:80px; padding:13px 12px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Sora',sans-serif; font-size:0.88rem; text-align:center; outline:none; }
-.phone-input { flex:1; }
+.country-code { flex:0 0 72px; width:72px; padding:13px 12px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'Sora',sans-serif; font-size:0.88rem; text-align:center; outline:none; }
+.phone-input { flex:1; min-width:0; padding:14px 16px; background:var(--bg3); border:1.5px solid var(--border); border-radius:10px; color:var(--text); font-family:'DM Sans',sans-serif; font-size:1rem; outline:none; transition:border-color 0.2s; }
+.phone-input:focus { border-color:var(--teal); }
 
 /* OTP Input */
 .otp-row { display:flex; gap:8px; justify-content:center; margin:20px 0; }
@@ -139,7 +140,7 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
     <!-- STEP 1: Email -->
     <div class="step active" id="step1">
       <div class="card-title">Sign in</div>
-      <div class="card-sub">We'll email you a 6-digit code</div>
+      <div class="card-sub">We'll email you a login code</div>
       <div id="msg1" class="msg"></div>
       <div class="form-field">
         <label>Email</label>
@@ -178,6 +179,13 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
       <div class="form-field">
         <label>Your Name</label>
         <input type="text" id="nameInput" placeholder="Enter your full name">
+      </div>
+      <div class="form-field">
+        <label>Phone Number</label>
+        <div class="phone-row">
+          <input type="text" class="country-code" value="+91" readonly>
+          <input type="tel" class="phone-input" id="phoneInput" placeholder="9876543210" maxlength="10">
+        </div>
       </div>
       <div class="role-cards">
         <div class="role-card selected" onclick="selectRole('customer',this)">
@@ -346,8 +354,13 @@ function selectRole(role, el) {
 
 async function setRole() {
   const name = document.getElementById('nameInput').value.trim();
+  const phone = document.getElementById('phoneInput').value.replace(/\D/g, '');
   if (!name) {
     showMsg(3, 'Please enter your name', 'error');
+    return;
+  }
+  if (phone.length !== 10) {
+    showMsg(3, 'Please enter a valid 10-digit phone number', 'error');
     return;
   }
 
@@ -365,7 +378,7 @@ async function setRole() {
         'Content-Type': 'application/json',
         'Authorization': 'Bearer ' + session.access_token,
       },
-      body: JSON.stringify({ role: selectedRole, name }),
+      body: JSON.stringify({ role: selectedRole, name, phone: '+91' + phone }),
     });
 
     const data = await res.json();
