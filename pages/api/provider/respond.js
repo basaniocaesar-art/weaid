@@ -23,6 +23,9 @@ export default async function handler(req, res) {
 
     return res.status(200).json({ bookingId: booking.id, status: booking.status });
   } catch (err) {
+    if (err.code === "ALREADY_TAKEN") {
+      return res.status(409).json({ error: err.message, alreadyTaken: true });
+    }
     console.error("[provider/respond]", err);
     return res.status(500).json({ error: err.message });
   }

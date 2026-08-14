@@ -345,13 +345,15 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
       </div>
     </div>
     <div class="fld">
-      <label>When</label>
-      <div class="chips" id="bkSlot">
-        <div class="chip on" data-slot="standard" onclick="selectChip(this,'slot')">Standard</div>
-        <div class="chip" data-slot="evening" onclick="selectChip(this,'slot')">Evening</div>
-        <div class="chip" data-slot="weekend" onclick="selectChip(this,'slot')">Weekend</div>
-        <div class="chip" data-slot="emergency" onclick="selectChip(this,'slot')">Emergency</div>
+      <label>When do you need it?</label>
+      <div class="chips" id="bkWhen">
+        <div class="chip on" data-when="asap" onclick="selectWhen(this)">⚡ Right now</div>
+        <div class="chip" data-when="scheduled" onclick="selectWhen(this)">📅 Pick a time</div>
       </div>
+      <input type="datetime-local" id="bkDateTime" style="display:none;margin-top:10px" onchange="updatePrice()">
+      <label style="display:flex;align-items:center;gap:8px;margin-top:12px;text-transform:none;letter-spacing:0;font-weight:600;font-size:0.82rem;color:var(--text);cursor:pointer">
+        <input type="checkbox" id="bkUrgent" onchange="updatePrice()" style="width:auto;accent-color:var(--teal)"> Urgent — get someone within the hour <span style="color:var(--teal)">(+50%)</span>
+      </label>
     </div>
 
     <div class="price-card" id="priceCard">
@@ -383,16 +385,30 @@ const SCOPES={small:1,medium:1.6,large:2.8};
 const SLOTS={standard:1,evening:1.15,weekend:1.25,emergency:1.5};
 const SVC_LABELS={electrical:'Electrical',plumbing:'Plumbing',cleaning:'Deep Cleaning',ac:'AC Service',carpentry:'Carpentry',renovation:'Renovation',pickup:'Airport Transfer',caretaking:'Property Care',haircut:'Hair Salon',barber:'Barber',nails:'Manicure & Pedicure',makeup:'Makeup',facial:'Facial',waxing:'Waxing',mehendi:'Mehendi',massage:'Massage',physio:'Physiotherapy',trainer:'Personal Trainer',yoga:'Yoga',eldercare:'Elderly Care',babysit:'Babysitting',pet_grooming:'Pet Grooming',pet_walking:'Pet Walking'};
 
-let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard'};
+let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null};
+
+// Derive the pricing slot from the chosen time (or urgency)
+function deriveSlot(){
+  if(bkState.urgent)return 'emergency';
+  let d=new Date();
+  if(bkState.when==='scheduled'&&bkState.dateTime)d=new Date(bkState.dateTime);
+  const day=d.getDay(),hr=d.getHours();
+  if(day===0||day===6)return 'weekend';
+  if(hr>=18&&hr<23)return 'evening';
+  return 'standard';
+}
 
 function calcPrice(){
   const base=BASES[bkState.svc];
   if(!base)return{subtotal:0,total:0};
+  bkState.slot=deriveSlot();
   const sub=Math.round(base*(AREAS[bkState.city]||0.9)*(SCOPES[bkState.scope]||1)*(SLOTS[bkState.slot]||1));
   return{subtotal:sub,total:sub+49};
 }
 
 function updatePrice(){
+  bkState.urgent=document.getElementById('bkUrgent').checked;
+  if(bkState.when==='scheduled')bkState.dateTime=document.getElementById('bkDateTime').value||null;
   const p=calcPrice();
   document.getElementById('pcSub').textContent='₹'+p.subtotal.toLocaleString('en-IN');
   document.getElementById('pcTotal').innerHTML='₹'+p.total.toLocaleString('en-IN');
@@ -405,6 +421,10 @@ function openSheet(svc){
   document.getElementById('sheet').classList.add('on');
   document.getElementById('sheetBg').classList.add('on');
   document.body.style.overflow='hidden';
+  // Best-effort location so we can dispatch the nearest pros (silent, non-blocking)
+  if(navigator.geolocation&&bkState.lat==null){
+    navigator.geolocation.getCurrentPosition(p=>{bkState.lat=p.coords.latitude;bkState.lng=p.coords.longitude;},()=>{},{timeout:6000,maximumAge:600000});
+  }
   updatePrice();
 }
 function closeSheet(){
@@ -417,6 +437,19 @@ function selectChip(el,type){
   el.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
   el.classList.add('on');
   bkState[type]=el.dataset[type];
+  updatePrice();
+}
+
+function selectWhen(el){
+  el.parentNode.querySelectorAll('.chip').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on');
+  bkState.when=el.dataset.when;
+  const dt=document.getElementById('bkDateTime');
+  if(bkState.when==='scheduled'){
+    if(!dt.value){const t=new Date(Date.now()+2*3600*1000);t.setMinutes(0,0,0);t.setMinutes(t.getMinutes()-t.getTimezoneOffset());dt.value=t.toISOString().slice(0,16);}
+    dt.min=new Date(Date.now()-new Date().getTimezoneOffset()*60000).toISOString().slice(0,16);
+    dt.style.display='block';bkState.dateTime=dt.value;
+  }else{dt.style.display='none';bkState.dateTime=null;}
   updatePrice();
 }
 

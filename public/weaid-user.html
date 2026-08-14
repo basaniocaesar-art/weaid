@@ -331,7 +331,9 @@ function showScreen(name,navEl){
 const BASES={electrical:499,plumbing:399,cleaning:1499,ac:599,carpentry:699,pickup:799,haircut:399,nails:499,makeup:999,facial:699,massage:999,physio:799,trainer:599,yoga:499,eldercare:899,babysit:499,pet_grooming:599};
 const AREAS={mumbai:1.5,delhi:1.45,bangalore:1.4,hyderabad:1.35,chennai:1.35,pune:1.3};
 const SCOPES={small:1,medium:1.6,large:2.8};
-let bkState={svc:'electrical',city:'mumbai',scope:'small'};
+let bkState={svc:'electrical',city:'mumbai',scope:'small',slot:'standard',when:'asap',dateTime:null,urgent:false,lat:null,lng:null};
+// Restore the booking (incl. schedule + location) chosen on the home page
+(function(){try{const q=new URLSearchParams(location.search).get('book');const st=q?JSON.parse(decodeURIComponent(q)):JSON.parse(sessionStorage.getItem('weaid_booking')||'null');if(st){bkState=Object.assign(bkState,st);sessionStorage.removeItem('weaid_booking');}}catch(e){}})();
 
 function calcPrice(){const b=BASES[bkState.svc]||500;const s=Math.round(b*(AREAS[bkState.city]||0.9)*(SCOPES[bkState.scope]||1));return{subtotal:s,total:s+49};}
 function updatePrice(){const p=calcPrice();document.getElementById('pcSub').textContent='₹'+p.subtotal.toLocaleString('en-IN');document.getElementById('pcTotal').innerHTML='₹'+p.total.toLocaleString('en-IN');document.getElementById('bkCta').textContent='Confirm ₹'+p.total.toLocaleString('en-IN');}
@@ -350,7 +352,9 @@ async function confirmBook(){
     const refCode=localStorage.getItem('weaid_ref');
     const res=await fetch('/api/booking/create',{
       method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({service:bkState.svc,city:bkState.city,scope:bkState.scope,slot:'standard',gateway:'stripe',refCode:refCode||undefined,
+      body:JSON.stringify({service:bkState.svc,city:bkState.city,scope:bkState.scope,slot:bkState.slot||'standard',
+        timingMode:bkState.when||'asap',scheduledAt:bkState.dateTime||null,lat:bkState.lat??null,lng:bkState.lng??null,
+        gateway:'stripe',refCode:refCode||undefined,
         customer:{id:weaidUser.id,name:weaidUser.name,phone:weaidUser.phone,email:weaidUser.email||'user@weaid.in'}}),
     });
     const data=await res.json();
