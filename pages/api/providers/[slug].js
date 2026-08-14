@@ -30,6 +30,8 @@ export default async function handler(req, res) {
         review_count: p.review_count,
         phone: p.phone,
         whatsapp: p.whatsapp || p.phone,
+        lat: p.lat,
+        lng: p.lng,
         featured: p.featured && (!p.featured_until || new Date(p.featured_until) > new Date()),
       },
       reviews,

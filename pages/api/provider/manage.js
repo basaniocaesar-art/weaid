@@ -1,7 +1,7 @@
 import { getProviderByEditToken, updateProvider, getLeadsByProvider } from "../../../lib/supabase.js";
 
 // Token-gated: the provider's private manage link carries their edit_token.
-const EDITABLE = ["name", "phone", "whatsapp", "email", "city", "areas", "services", "bio", "photo_url", "years_experience", "available"];
+const EDITABLE = ["name", "phone", "whatsapp", "email", "city", "areas", "services", "bio", "photo_url", "years_experience", "available", "lat", "lng"];
 
 export default async function handler(req, res) {
   try {

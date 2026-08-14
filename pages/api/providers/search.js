@@ -14,27 +14,53 @@ function rankTier(p, now) {
   return 1;
 }
 
+// Haversine distance in km between two lat/lng points.
+function distanceKm(lat1, lng1, lat2, lng2) {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) * Math.sin(dLng / 2) ** 2;
+  return Math.round(R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a)) * 10) / 10;
+}
+
 export default async function handler(req, res) {
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
   try {
-    const { q, service, city } = req.query;
+    const { q, service, city, lat, lng } = req.query;
+    const uLat = lat != null && lat !== "" ? Number(lat) : null;
+    const uLng = lng != null && lng !== "" ? Number(lng) : null;
+    const hasLoc = uLat != null && uLng != null && !Number.isNaN(uLat) && !Number.isNaN(uLng);
 
     const providers = await searchProviders({ service, city, q });
     const now = Date.now();
 
     const ranked = providers
-      .map((p) => ({ p, tier: rankTier(p, now) }))
+      .map((p) => {
+        const dist =
+          hasLoc && p.lat != null && p.lng != null ? distanceKm(uLat, uLng, p.lat, p.lng) : null;
+        return { p, tier: rankTier(p, now), dist };
+      })
       .sort((a, b) => {
         if (b.tier !== a.tier) return b.tier - a.tier;
+        // With a customer location, sort each tier by nearest first
+        // (pros with a known location rank ahead of those without).
+        if (hasLoc) {
+          const ad = a.dist == null ? Infinity : a.dist;
+          const bd = b.dist == null ? Infinity : b.dist;
+          if (ad !== bd) return ad - bd;
+        }
         const at = new Date(a.p.created_at).getTime();
         const bt = new Date(b.p.created_at).getTime();
         if (bt !== at) return bt - at; // newest first
         return (b.p.rating || 0) - (a.p.rating || 0);
       })
-      .map(({ p, tier }) => ({
+      .map(({ p, tier, dist }) => ({
+        distanceKm: dist,
         id: p.id,
         slug: p.slug,
         name: p.name,

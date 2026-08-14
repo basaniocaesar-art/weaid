@@ -45,6 +45,8 @@ export default async function handler(req, res) {
       bio,
       photoUrl,
       yearsExperience,
+      lat,
+      lng,
       userId,
     } = req.body;
 
@@ -70,6 +72,8 @@ export default async function handler(req, res) {
       bio: bio || null,
       photo_url: photoUrl || null,
       years_experience: yearsExperience != null ? Number(yearsExperience) : null,
+      lat: lat != null ? Number(lat) : null,
+      lng: lng != null ? Number(lng) : null,
       available: true,
       verified: false,
       featured: false,

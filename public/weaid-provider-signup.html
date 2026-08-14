@@ -95,6 +95,11 @@
         <input id="areas" type="text" placeholder="Kakkanad, Edappally…">
       </div>
     </div>
+    <div class="field">
+      <label>Location <span style="color:var(--t3);font-weight:500">(so nearby customers find you first)</span></label>
+      <button type="button" class="btn btn-secondary btn-block" id="locBtn" onclick="grabLocation()">📍 Use my current location</button>
+      <div class="hint" id="locHint">Optional — your area is shown, never your exact address.</div>
+    </div>
 
     <div class="step"><span class="n">2</span> Services</div>
     <div class="field">
@@ -153,6 +158,17 @@ SERVICES.forEach(([id,em,label])=>{
 });
 function esc(s){return String(s||"").replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));}
 function initials(n){return (n||"?").split(" ").map(w=>w[0]).slice(0,2).join("").toUpperCase();}
+let capturedLat=null,capturedLng=null;
+function grabLocation(){
+  const btn=document.getElementById('locBtn'),hint=document.getElementById('locHint');
+  if(!navigator.geolocation){hint.textContent='Location not supported on this device.';return;}
+  btn.textContent='📍 Getting location…';btn.disabled=true;
+  navigator.geolocation.getCurrentPosition(
+    p=>{capturedLat=p.coords.latitude;capturedLng=p.coords.longitude;btn.textContent='✓ Location set';btn.style.borderColor='var(--teal)';btn.style.color='var(--teal-text)';btn.disabled=false;hint.textContent='Great — nearby customers will now see you first.';},
+    e=>{btn.textContent='📍 Use my current location';btn.disabled=false;hint.textContent='Couldn’t get location ('+(e.code===1?'permission denied':'try again')+'). You can skip this.';},
+    {enableHighAccuracy:false,timeout:8000,maximumAge:600000}
+  );
+}
 function showErr(m){const e=document.getElementById('err');e.textContent=m;e.classList.add('on');window.scrollTo({top:0,behavior:'smooth'});}
 
 async function submitForm(){
@@ -172,7 +188,7 @@ async function submitForm(){
   const years=document.getElementById('years').value;
   try{
     const r=await fetch('/api/provider/register',{method:'POST',headers:{'Content-Type':'application/json'},
-      body:JSON.stringify({name,phone,whatsapp:document.getElementById('whatsapp').value.trim()||phone,email:document.getElementById('email').value.trim()||null,city,areas,services,bio:document.getElementById('bio').value.trim()||null,yearsExperience:years||null})});
+      body:JSON.stringify({name,phone,whatsapp:document.getElementById('whatsapp').value.trim()||phone,email:document.getElementById('email').value.trim()||null,city,areas,services,bio:document.getElementById('bio').value.trim()||null,yearsExperience:years||null,lat:capturedLat,lng:capturedLng})});
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||'Something went wrong');
     // Build preview card

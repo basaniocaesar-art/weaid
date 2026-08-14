@@ -141,6 +141,7 @@ function render(){
         <div class="field"><label>Years exp.</label><input id="e_years" type="number" value="${p.years_experience||''}"></div>
       </div>
       <div class="field"><label>Areas covered (comma separated)</label><input id="e_areas" value="${esc((p.areas||[]).join(', '))}"></div>
+      <div class="field"><label>Location ${p.lat!=null?'<span style="color:var(--ok)">✓ set</span>':'<span style="color:var(--t3)">— helps nearby customers find you</span>'}</label><button type="button" class="btn" style="background:var(--bg3);color:var(--text);width:100%" onclick="grabLoc(this)">📍 ${p.lat!=null?'Update':'Set'} my location</button></div>
       <div class="field"><label>Services</label><div class="svc-grid" id="e_svc">${SERVICES.map(([id,em,l])=>`<div class="svc ${sel.has(id)?'on':''}" data-id="${id}" onclick="tsvc('${id}',this)"><span>${em}</span>${l}</div>`).join('')}</div></div>
       <div class="field"><label>About</label><textarea id="e_bio">${esc(p.bio||'')}</textarea></div>
       <button class="btn btn-primary btn-block" onclick="save()">Save changes</button>
@@ -150,6 +151,16 @@ function render(){
 }
 
 function tsvc(id,el){el.classList.toggle('on');sel.has(id)?sel.delete(id):sel.add(id);}
+let editLat=null,editLng=null;
+function grabLoc(btn){
+  if(!navigator.geolocation){btn.textContent='Not supported';return;}
+  btn.textContent='📍 Getting location…';
+  navigator.geolocation.getCurrentPosition(
+    p=>{editLat=p.coords.latitude;editLng=p.coords.longitude;btn.textContent='✓ Location captured — Save to apply';btn.style.color='var(--ok)';},
+    e=>{btn.textContent='📍 Set my location';alert(e.code===1?'Permission denied.':'Could not get location.');},
+    {enableHighAccuracy:false,timeout:8000,maximumAge:300000}
+  );
+}
 async function toggleAvail(){
   const t=document.getElementById('availToggle');const now=!t.classList.contains('on');t.classList.toggle('on',now);
   await fetch('/api/provider/manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token,available:now})});
@@ -157,6 +168,7 @@ async function toggleAvail(){
 async function save(){
   const msg=document.getElementById('saveMsg');msg.style.color='var(--t2)';msg.textContent='Saving…';
   const body={token,name:document.getElementById('e_name').value.trim(),phone:document.getElementById('e_phone').value.trim(),whatsapp:document.getElementById('e_whatsapp').value.trim(),city:document.getElementById('e_city').value.trim(),years_experience:document.getElementById('e_years').value?Number(document.getElementById('e_years').value):null,areas:document.getElementById('e_areas').value.split(',').map(s=>s.trim()).filter(Boolean),services:[...sel],bio:document.getElementById('e_bio').value.trim()};
+  if(editLat!=null&&editLng!=null){body.lat=editLat;body.lng=editLng;}
   try{const r=await fetch('/api/provider/manage',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});const d=await r.json();if(!r.ok)throw new Error(d.error);msg.style.color='var(--ok)';msg.textContent='Saved ✓';}
   catch(e){msg.style.color='var(--err)';msg.textContent=e.message;}
 }

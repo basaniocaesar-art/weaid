@@ -38,6 +38,9 @@ ALTER TABLE providers ADD COLUMN IF NOT EXISTS source TEXT NOT NULL DEFAULT 'sig
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS claimed BOOLEAN NOT NULL DEFAULT true;
 -- Capability token for the provider's private "manage your listing" link
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS edit_token UUID DEFAULT gen_random_uuid();
+-- Approximate location for distance / "near me" ranking (area centroid, NOT exact home)
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS lat DOUBLE PRECISION;
+ALTER TABLE providers ADD COLUMN IF NOT EXISTS lng DOUBLE PRECISION;
 ALTER TABLE providers ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT now();
 
 -- plan_tier is limited to 'free' | 'featured' (added as a NOT VALID-safe constraint)
