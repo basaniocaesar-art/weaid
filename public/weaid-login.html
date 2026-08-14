@@ -116,6 +116,9 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
 :root{--bg:#FFFFFF;--bg2:#FFFFFF;--bg3:#F1F3F6;--border:#E7E9EF;--teal:#1A6E5E;--gold:#B7791F;--text:#14171F;--muted:#565D6D;--white:#14171F;}
 .email-input{width:100%;padding:14px 16px;background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:'DM Sans',sans-serif;font-size:1rem;outline:none;transition:border-color 0.2s;}
 .email-input:focus{border-color:var(--teal);}
+.code-input{width:100%;padding:16px;margin:20px 0;background:var(--bg3);border:1.5px solid var(--border);border-radius:12px;color:var(--text);font-family:'Sora',sans-serif;font-size:1.6rem;font-weight:700;text-align:center;letter-spacing:8px;outline:none;transition:border-color 0.2s;}
+.code-input:focus{border-color:var(--teal);}
+.code-input::placeholder{letter-spacing:normal;font-size:1rem;font-weight:400;color:var(--muted);}
 .or-divider{display:flex;align-items:center;gap:12px;margin:16px 0;color:var(--muted);font-size:0.8rem;}
 .or-divider::before,.or-divider::after{content:'';flex:1;height:1px;background:var(--border);}
 .google-btn{display:flex;align-items:center;justify-content:center;gap:10px;background:#fff !important;color:#14171F !important;border:1.5px solid var(--border);}
@@ -155,14 +158,8 @@ body { font-family:'Sora',sans-serif; background:var(--bg); color:var(--text); m
       <div class="card-title">Enter code</div>
       <div class="card-sub">Sent to <strong id="otpPhoneDisplay">your email</strong></div>
       <div id="msg2" class="msg"></div>
-      <div class="otp-row">
-        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="0">
-        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="1">
-        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="2">
-        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="3">
-        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="4">
-        <input type="text" class="otp-digit" maxlength="1" inputmode="numeric" data-idx="5">
-      </div>
+      <input type="text" class="code-input" id="otpInput" inputmode="numeric" autocomplete="one-time-code" maxlength="10" placeholder="Enter the code">
+
       <button class="login-btn" id="verifyBtn" onclick="verifyOTP()">Verify & Sign In →</button>
       <div class="timer-row" id="timerRow">
         Resend OTP in <span id="countdown">30</span>s
@@ -283,7 +280,7 @@ async function sendOTP() {
     document.getElementById('otpPhoneDisplay').textContent = currentEmail;
     goStep(2);
     startCountdown();
-    document.querySelector('.otp-digit[data-idx="0"]').focus();
+    const inp=document.getElementById('otpInput');inp.value='';inp.focus();
   } catch (e) {
     showMsg(1, 'Connection error. Please try again.', 'error');
   }
@@ -294,10 +291,9 @@ async function sendOTP() {
 
 // STEP 2: Verify OTP
 async function verifyOTP() {
-  const digits = document.querySelectorAll('.otp-digit');
-  const token = Array.from(digits).map(d => d.value).join('');
-  if (token.length !== 6) {
-    showMsg(2, 'Please enter the complete 6-digit code', 'error');
+  const token = (document.getElementById('otpInput').value || '').replace(/\D/g, '');
+  if (token.length < 4) {
+    showMsg(2, 'Please enter the code from your email', 'error');
     return;
   }
 
@@ -390,21 +386,9 @@ function redirectToDashboard(role) {
   else window.location.href = '/dashboard';
 }
 
-// OTP input auto-focus
-document.querySelectorAll('.otp-digit').forEach((input, idx, all) => {
-  input.addEventListener('input', function() {
-    if (this.value && idx < 5) all[idx + 1].focus();
-  });
-  input.addEventListener('keydown', function(e) {
-    if (e.key === 'Backspace' && !this.value && idx > 0) all[idx - 1].focus();
-  });
-  // Allow paste of full OTP
-  input.addEventListener('paste', function(e) {
-    e.preventDefault();
-    const paste = (e.clipboardData || window.clipboardData).getData('text').replace(/\D/g, '').slice(0, 6);
-    paste.split('').forEach((ch, i) => { if (all[i]) all[i].value = ch; });
-    if (paste.length === 6) verifyOTP();
-  });
+// Code input: Enter to submit
+document.getElementById('otpInput').addEventListener('keydown', function(e) {
+  if (e.key === 'Enter') verifyOTP();
 });
 
 // Enter key on email input
