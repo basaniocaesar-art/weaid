@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>WeAid — AI Voice Outreach</title>
+<meta name="robots" content="noindex">
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@600;700;800&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{--bg:#07090f;--bg2:#0e1117;--bg3:#161b27;--teal:#00c9b1;--orange:#E8823A;--gold:#f0b429;--green:#22c55e;--red:#ef4444;--text:#eef2ff;--t2:#8892aa;--bdr:rgba(255,255,255,0.09);--font:'DM Sans',sans-serif;--serif:'Sora',sans-serif;}
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:var(--font);background:var(--bg);color:var(--text);-webkit-font-smoothing:antialiased;min-height:100vh;padding:24px 16px 60px;}
+  .wrap{max-width:640px;margin:0 auto;}
+  h1{font-family:var(--serif);font-size:1.5rem;font-weight:800;}
+  h1 b{color:var(--orange);}
+  .sub{color:var(--t2);font-size:0.9rem;margin:6px 0 22px;}
+  .card{background:var(--bg2);border:1px solid var(--bdr);border-radius:16px;padding:20px;margin-bottom:16px;}
+  label{display:block;font-size:0.78rem;font-weight:700;color:var(--t2);text-transform:uppercase;letter-spacing:0.5px;margin-bottom:8px;}
+  textarea,input,select{width:100%;padding:13px 14px;background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;color:var(--text);font-family:inherit;font-size:0.95rem;outline:none;}
+  textarea{min-height:150px;resize:vertical;font-family:ui-monospace,monospace;font-size:0.9rem;line-height:1.6;}
+  textarea:focus,input:focus,select:focus{border-color:var(--teal);}
+  .row{display:flex;gap:12px;}.row>div{flex:1;}
+  .fld{margin-bottom:16px;}
+  .count{font-size:0.8rem;color:var(--teal);font-weight:600;margin-top:6px;}
+  .btn{width:100%;padding:15px;border:none;border-radius:12px;background:var(--teal);color:var(--bg);font-family:var(--serif);font-weight:700;font-size:1rem;cursor:pointer;}
+  .btn:disabled{opacity:0.5;}
+  .note{font-size:0.8rem;color:var(--t2);line-height:1.55;background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px 14px;margin-top:14px;}
+  .note b{color:var(--gold);}
+  .res{margin-top:16px;display:none;}
+  .res.on{display:block;}
+  .summary{display:flex;gap:10px;margin-bottom:12px;}
+  .stat{flex:1;background:var(--bg3);border:1px solid var(--bdr);border-radius:10px;padding:12px;text-align:center;}
+  .stat .n{font-family:var(--serif);font-size:1.5rem;font-weight:800;}
+  .stat .l{font-size:0.72rem;color:var(--t2);text-transform:uppercase;}
+  .rowitem{display:flex;justify-content:space-between;align-items:center;padding:9px 12px;border-bottom:1px solid var(--bdr);font-size:0.85rem;}
+  .ok{color:var(--green);font-weight:700;}.fail{color:var(--red);font-weight:700;}
+  .err{color:var(--red);font-size:0.85rem;margin-top:10px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>📞 AI Voice Outreach — <b>Maya</b></h1>
+  <div class="sub">Call a list of service providers and invite them to list free on WeAid.</div>
+
+  <div class="card">
+    <div class="fld">
+      <label>Phone numbers (one per line)</label>
+      <textarea id="numbers" placeholder="9876543210&#10;+91 98765 12345&#10;9123456789" oninput="countNums()"></textarea>
+      <div class="count" id="count">0 valid numbers</div>
+    </div>
+    <div class="row">
+      <div class="fld">
+        <label>Language</label>
+        <select id="language">
+          <option value="auto">Auto (Malayalam / English)</option>
+          <option value="ml">Malayalam</option>
+          <option value="en">English</option>
+        </select>
+      </div>
+      <div class="fld">
+        <label>Admin key</label>
+        <input id="secret" type="password" placeholder="ADMIN_SECRET" autocomplete="off">
+      </div>
+    </div>
+    <button class="btn" id="go" onclick="startCalling()">Start calling →</button>
+    <div class="err" id="err"></div>
+    <div class="note">
+      <b>Use responsibly:</b> call businesses that would genuinely want customers. Maya identifies
+      herself as an automated assistant and ends politely if someone isn't interested. Don't call
+      numbers on India's DND registry, and honour anyone who asks not to be called again.
+    </div>
+  </div>
+
+  <div class="res" id="res">
+    <div class="summary">
+      <div class="stat"><div class="n" id="sReq">0</div><div class="l">Requested</div></div>
+      <div class="stat"><div class="n ok" id="sStarted">0</div><div class="l">Calling</div></div>
+      <div class="stat"><div class="n fail" id="sFailed">0</div><div class="l">Failed</div></div>
+    </div>
+    <div class="card" id="resList" style="padding:6px 8px;"></div>
+  </div>
+</div>
+
+<script>
+function parseNums(){
+  return document.getElementById('numbers').value.split(/[\n,]/)
+    .map(s=>s.trim()).filter(Boolean)
+    .filter(s=>s.replace(/\D/g,'').length>=10);
+}
+function countNums(){
+  const n=parseNums().length;
+  document.getElementById('count').textContent=n+' valid number'+(n===1?'':'s');
+}
+async function startCalling(){
+  const err=document.getElementById('err');err.textContent='';
+  const numbers=parseNums();
+  const secret=document.getElementById('secret').value.trim();
+  if(!numbers.length){err.textContent='Add at least one valid phone number.';return;}
+  if(!secret){err.textContent='Enter your admin key.';return;}
+  const btn=document.getElementById('go');btn.disabled=true;btn.textContent='Calling '+numbers.length+'…';
+  try{
+    const r=await fetch('/api/outreach/call',{method:'POST',
+      headers:{'Content-Type':'application/json','x-admin-secret':secret},
+      body:JSON.stringify({numbers,language:document.getElementById('language').value})});
+    const d=await r.json();
+    if(!r.ok)throw new Error(d.error||'Failed');
+    document.getElementById('sReq').textContent=d.requested;
+    document.getElementById('sStarted').textContent=d.started;
+    document.getElementById('sFailed').textContent=d.failed;
+    document.getElementById('resList').innerHTML=(d.results||[]).map(x=>
+      `<div class="rowitem"><span>${x.to}</span><span class="${x.ok?'ok':'fail'}">${x.ok?'✓ calling':'✗ '+(x.error||'failed')}</span></div>`).join('');
+    document.getElementById('res').classList.add('on');
+  }catch(e){err.textContent=e.message;}
+  btn.disabled=false;btn.textContent='Start calling →';
+}
+</script>
+</body>
+</html>

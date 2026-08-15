@@ -12,6 +12,8 @@
     { "source": "/directory", "destination": "/weaid-directory.html" },
     { "source": "/find", "destination": "/weaid-directory.html" },
     { "source": "/list-business", "destination": "/weaid-provider-signup.html" },
+    { "source": "/provider-signup", "destination": "/weaid-provider-signup.html" },
+    { "source": "/voice-outreach", "destination": "/weaid-voice-outreach.html" },
     { "source": "/p/:slug", "destination": "/weaid-provider-profile.html" },
     { "source": "/dashboard-pro", "destination": "/weaid-pro-dashboard.html" },
     { "source": "/ride", "destination": "/weaid-ride.html" },
