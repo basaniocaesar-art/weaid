@@ -1,7 +1,8 @@
 import {
-  getProviderByEditToken, getDispatchableTrips, getDriverActiveTrips,
+  getDispatchableTrips, getDriverActiveTrips,
   acceptTripIfOpen, getTrip, updateTrip, upsertDriverLocation,
 } from "../../../lib/supabase.js";
+import { resolveProvider } from "../../../lib/auth.js";
 import { createMaskedCall } from "../../../lib/masking.js";
 import { notifyCustomerProviderAssigned } from "../../../lib/whatsapp.js";
 
@@ -26,10 +27,8 @@ function shape(t, reveal) {
 
 export default async function handler(req, res) {
   try {
-    const token = req.query.token || req.body?.token;
-    if (!token) return res.status(401).json({ error: "Missing token" });
-    const provider = await getProviderByEditToken(token);
-    if (!provider) return res.status(404).json({ error: "Not found" });
+    const provider = await resolveProvider(req);
+    if (!provider) return res.status(401).json({ error: "Sign in to view rides" });
     const types = (provider.services || []).filter((s) => DRIVE_TYPES.includes(s));
 
     if (req.method === "GET") {

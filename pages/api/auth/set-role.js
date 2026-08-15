@@ -1,9 +1,15 @@
 import { createClient } from "@supabase/supabase-js";
+import { getProviderByUserId, insertProvider, updateProvider } from "../../../lib/supabase.js";
 
 const supabase = createClient(
   process.env.SUPABASE_URL,
   process.env.SUPABASE_SERVICE_KEY
 );
+
+function makeSlug(name) {
+  const base = (name || "pro").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 40) || "pro";
+  return base + "-" + Math.random().toString(36).slice(2, 6);
+}
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -51,6 +57,27 @@ export default async function handler(req, res) {
       .single();
 
     if (upsertErr) throw upsertErr;
+
+    // Providers get a directory/listing row linked to their login, so ONE login
+    // powers everything (bookings, rides, food, earnings). They flesh out
+    // services/city later via "Edit profile".
+    if (role === "provider") {
+      const existing = await getProviderByUserId(user.id).catch(() => null);
+      if (!existing) {
+        await insertProvider({
+          user_id: user.id,
+          name: name || null,
+          phone: cleanPhone || user.phone || null,
+          slug: makeSlug(name),
+          services: [],
+          available: true,
+          source: "app",
+          claimed: true,
+        }).catch((e) => console.error("[set-role] provider row create:", e.message));
+      } else if (cleanPhone && !existing.phone) {
+        await updateProvider(existing.id, { phone: cleanPhone }).catch(() => {});
+      }
+    }
 
     return res.status(200).json({ role: profile.role, name: profile.name });
   } catch (err) {

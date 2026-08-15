@@ -1,7 +1,8 @@
-import { getProviderByEditToken, getDispatchableBookings, getProviderActiveJobs, getBooking } from "../../../lib/supabase.js";
+import { getDispatchableBookings, getProviderActiveJobs, getBooking } from "../../../lib/supabase.js";
 import { providerAcceptJob, completeJob } from "../../../lib/orchestrator.js";
+import { resolveProvider } from "../../../lib/auth.js";
 
-// Token-gated: uses the provider's private edit_token (from their manage link).
+// Provider resolved from login session OR private edit_token.
 function distanceKm(lat1, lng1, lat2, lng2) {
   const R = 6371;
   const dLat = ((lat2 - lat1) * Math.PI) / 180;
@@ -49,10 +50,8 @@ function shape(b, provider, reveal) {
 
 export default async function handler(req, res) {
   try {
-    const token = req.query.token || req.body?.token;
-    if (!token) return res.status(401).json({ error: "Missing token" });
-    const provider = await getProviderByEditToken(token);
-    if (!provider) return res.status(404).json({ error: "Listing not found" });
+    const provider = await resolveProvider(req);
+    if (!provider) return res.status(401).json({ error: "Sign in to view your jobs" });
 
     if (req.method === "GET") {
       const [incoming, active] = await Promise.all([

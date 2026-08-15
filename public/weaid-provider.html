@@ -120,6 +120,28 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .pay-st.paid{color:var(--green);background:var(--green-dim);}
 .pay-st.processing{color:var(--teal);background:var(--tdim);}
 .pay-st.rejected{color:var(--red);background:var(--red-dim);}
+
+/* REQUESTS (bookings + rides + food) */
+.req-warn{background:var(--gdim);border:1px solid var(--bdr);color:var(--gold);border-radius:12px;padding:12px 14px;font-size:0.82rem;margin-bottom:14px;}
+.req-sec-t{font-family:var(--serif);font-size:0.82rem;font-weight:700;text-transform:uppercase;letter-spacing:0.6px;color:var(--t2);margin:18px 0 10px;display:flex;align-items:center;gap:8px;}
+.req-sec-t .c{background:var(--bg3);color:var(--teal);border-radius:100px;padding:1px 8px;font-size:0.72rem;}
+.req-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:14px;padding:16px;margin-bottom:10px;}
+.req-top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px;margin-bottom:8px;}
+.req-title{font-family:var(--serif);font-size:1.02rem;font-weight:700;}
+.req-earn{color:var(--gold);font-weight:700;font-size:1.02rem;white-space:nowrap;}
+.req-meta{font-size:0.8rem;color:var(--t2);line-height:1.6;}
+.req-meta b{color:var(--text);font-weight:600;}
+.req-tag{display:inline-block;font-size:0.66rem;font-weight:700;text-transform:uppercase;letter-spacing:0.4px;padding:2px 8px;border-radius:100px;background:var(--tdim);color:var(--teal);margin-bottom:8px;}
+.req-tag.ride{background:rgba(0,153,255,0.12);color:#4aa3ff;}
+.req-tag.food{background:var(--gdim);color:var(--gold);}
+.req-acts{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap;}
+.req-btn{flex:1;min-width:100px;padding:11px;border-radius:10px;font-weight:700;font-size:0.85rem;border:none;cursor:pointer;}
+.req-btn.accept{background:var(--teal);color:var(--bg);}
+.req-btn.done{background:var(--green);color:#04240f;}
+.req-btn.ghost{background:var(--bg3);color:var(--text);border:1px solid var(--bdr2);}
+.req-btn:disabled{opacity:0.5;}
+.req-contact{display:flex;gap:8px;margin-top:10px;}
+.req-contact a{flex:1;text-align:center;padding:10px;border-radius:10px;background:var(--bg3);border:1px solid var(--bdr);font-weight:700;font-size:0.82rem;color:var(--text);}
 </style>
 </head>
 <body>
@@ -142,14 +164,18 @@ button{font-family:inherit;cursor:pointer;border:none;}
   <div class="stack-ctn" id="stackCtn"><div class="stack-empty"><div class="empty-ico">⏳</div><div class="empty-t">Loading jobs...</div></div></div>
 </div>
 
-<!-- SCHEDULE -->
-<div class="screen" id="sc-schedule">
-  <div id="schedList">
-    <div class="stack-empty">
-      <div class="empty-ico">📅</div>
-      <div class="empty-t">No scheduled jobs</div>
-      <div class="empty-s">Accepted jobs appear here</div>
-    </div>
+<!-- REQUESTS: service bookings + rides/courier + food, all in one login -->
+<div class="screen" id="sc-requests">
+  <div id="reqListingWarn" class="req-warn" style="display:none;">
+    ⚠️ Add your services in <b>Profile → Edit profile</b> so matching jobs reach you.
+  </div>
+  <div id="reqBookings"></div>
+  <div id="reqRides"></div>
+  <div id="reqFood"></div>
+  <div id="reqEmpty" class="stack-empty" style="display:none;">
+    <div class="empty-ico">📭</div>
+    <div class="empty-t">No requests right now</div>
+    <div class="empty-s">New bookings, rides & orders appear here</div>
   </div>
 </div>
 
@@ -219,9 +245,9 @@ button{font-family:inherit;cursor:pointer;border:none;}
     <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 7H4a2 2 0 00-2 2v10a2 2 0 002 2h16a2 2 0 002-2V9a2 2 0 00-2-2z"/><path d="M16 21V5a2 2 0 00-2-2h-4a2 2 0 00-2 2v16"/></svg>
     Jobs
   </button>
-  <button class="bnav-item" data-screen="schedule" onclick="showScreen('schedule',this)">
-    <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="18" rx="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/></svg>
-    Schedule
+  <button class="bnav-item" data-screen="requests" onclick="showScreen('requests',this)">
+    <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 12h-4l-3 9L9 3l-3 9H2"/></svg>
+    Requests
   </button>
   <button class="bnav-item" data-screen="earnings" onclick="showScreen('earnings',this)">
     <svg class="bnav-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="12" y1="1" x2="12" y2="23"/><path d="M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
@@ -317,6 +343,7 @@ let weaidSb=null, weaidUser=null, weaidSession=null;
     document.getElementById('profPhone').textContent=user.phone||'';
     loadJobs();
     loadEarnings();
+    loadRequests();
   }catch(e){console.warn('Auth failed:',e);loadJobs();}
 })();
 
@@ -414,12 +441,100 @@ async function submitKyc(){
   }catch(e){mErr('kyErr',e.message);}finally{btn.disabled=false;btn.textContent='Submit for review';}
 }
 
-const TITLES={jobs:'Available Jobs',schedule:'My Schedule',earnings:'Earnings',profile:'Profile'};
+// ── Unified Requests: service bookings + rides/courier + food ──
+function esc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+function contactLinks(phone){if(!phone)return '';const p=String(phone).replace(/[^0-9+]/g,'');return `<div class="req-contact"><a href="tel:${p}">📞 Call</a><a href="https://wa.me/${p.replace(/[^0-9]/g,'')}" target="_blank" rel="noopener">💬 WhatsApp</a></div>`;}
+const when=b=>b.timing_mode==='scheduled'&&b.scheduled_at?new Date(b.scheduled_at).toLocaleString('en-IN',{day:'numeric',month:'short',hour:'2-digit',minute:'2-digit'}):'ASAP';
+
+async function loadRequests(){
+  if(!weaidSession)return;
+  const H=authHeaders();let any=false,noSvc=false;
+  try{const r=await fetch('/api/provider/jobs',{headers:H});if(r.ok){const d=await r.json();any=renderBookings(d)||any;}}catch(e){}
+  try{const r=await fetch('/api/provider/trips',{headers:H});if(r.ok){const d=await r.json();any=renderRides(d)||any;}}catch(e){}
+  try{const r=await fetch('/api/provider/orders',{headers:H});if(r.ok){const d=await r.json();any=renderFood(d)||any;}}catch(e){}
+  try{const r=await fetch('/api/provider/self',{headers:H});if(r.ok){const d=await r.json();noSvc=d.hasListing&&(!(d.provider?.services||[]).length);}}catch(e){}
+  document.getElementById('reqEmpty').style.display=any?'none':'block';
+  document.getElementById('reqListingWarn').style.display=noSvc?'block':'none';
+}
+
+function renderBookings(d){
+  const inc=d.incoming||[],act=d.active||[];const el=document.getElementById('reqBookings');
+  if(!inc.length&&!act.length){el.innerHTML='';return false;}
+  let h='';
+  if(inc.length){h+=`<div class="req-sec-t">🧰 New service bookings <span class="c">${inc.length}</span></div>`;
+    h+=inc.map(b=>`<div class="req-card"><span class="req-tag">${esc(CAT[b.service]||b.service)}</span>
+      <div class="req-top"><div class="req-title">${esc(CAT[b.service]||b.service)}${b.workers>1?' · '+b.workers+' workers':''}</div><div class="req-earn">${rup(b.provider_earnings)}</div></div>
+      <div class="req-meta">📍 ${esc(b.city)}${b.distanceKm!=null?' · '+b.distanceKm+' km away':''} · 🕒 ${when(b)}${b.description?'<br>📝 '+esc(b.description):''}</div>
+      <div class="req-acts"><button class="req-btn accept" onclick="acceptBooking('${b.id}',this)">Accept job</button></div></div>`).join('');}
+  if(act.length){h+=`<div class="req-sec-t">✅ Your active jobs <span class="c">${act.length}</span></div>`;
+    h+=act.map(b=>`<div class="req-card"><div class="req-top"><div class="req-title">${esc(CAT[b.service]||b.service)}</div><div class="req-earn">${rup(b.provider_earnings)}</div></div>
+      <div class="req-meta">👤 ${esc(b.customer_name||'Customer')} · 🕒 ${when(b)}${b.address?'<br>📍 '+esc(b.address):''}</div>
+      ${contactLinks(b.mask_number||b.customer_phone)}
+      <div class="req-acts"><button class="req-btn done" onclick="completeBooking('${b.id}',this)">Mark done</button></div></div>`).join('');}
+  el.innerHTML=h;return true;
+}
+async function acceptBooking(id,btn){btn.disabled=true;btn.textContent='Accepting…';
+  try{const r=await fetch('/api/provider/jobs',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({bookingId:id,action:'accept'})});const d=await r.json();if(!r.ok)throw new Error(d.alreadyTaken?'Already taken by another pro':(d.error||'Failed'));toast('Job accepted ✓');loadRequests();}catch(e){btn.disabled=false;btn.textContent='Accept job';toast(e.message);}}
+async function completeBooking(id,btn){btn.disabled=true;btn.textContent='…';
+  try{const r=await fetch('/api/provider/jobs',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({bookingId:id,action:'complete'})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');toast('Marked done ✓');loadRequests();loadEarnings();}catch(e){btn.disabled=false;btn.textContent='Mark done';toast(e.message);}}
+
+function renderRides(d){
+  const inc=d.incoming||[],act=d.active||[];const el=document.getElementById('reqRides');
+  if(!d.driving||(!inc.length&&!act.length)){el.innerHTML='';return (inc.length+act.length)>0;}
+  let h='';
+  if(inc.length){h+=`<div class="req-sec-t">🚗 New ride / courier <span class="c">${inc.length}</span></div>`;
+    h+=inc.map(t=>`<div class="req-card"><span class="req-tag ride">${t.type}</span>
+      <div class="req-top"><div class="req-title">${esc(t.type==='courier'?'Delivery':'Ride')} · ${t.distance_km||'?'} km</div><div class="req-earn">${rup(t.provider_earnings||t.fare)}</div></div>
+      <div class="req-meta">🟢 ${esc(t.pickup_address||'Pickup')}<br>🔴 ${esc(t.drop_address||'Drop')}${t.item_description?'<br>📦 '+esc(t.item_description):''}</div>
+      <div class="req-acts"><button class="req-btn accept" onclick="acceptTrip('${t.id}',this)">Accept</button></div></div>`).join('');}
+  if(act.length){startLocationShare(act[0].id);h+=`<div class="req-sec-t">🛵 On the way <span class="c">${act.length}</span></div>`;
+    h+=act.map(t=>{let acts='';
+      if(t.needs_pickup_token)acts=`<button class="req-btn ghost" onclick="verifyCourier('${t.id}','pickup',this)">Enter pickup code</button>`;
+      else if(t.needs_delivery_token)acts=`<button class="req-btn done" onclick="verifyCourier('${t.id}','delivery',this)">Enter delivery code</button>`;
+      else acts=`<button class="req-btn ghost" onclick="tripStatus('${t.id}','arrived',this)">Arrived</button><button class="req-btn ghost" onclick="tripStatus('${t.id}','in_transit',this)">Started</button><button class="req-btn done" onclick="tripStatus('${t.id}','completed',this)">Complete</button>`;
+      return `<div class="req-card"><div class="req-top"><div class="req-title">${esc(t.type==='courier'?'Delivery':'Ride')}</div><div class="req-earn">${rup(t.provider_earnings||t.fare)}</div></div>
+      <div class="req-meta">👤 ${esc(t.customer_name||'Customer')}<br>🟢 ${esc(t.pickup_address||'')}<br>🔴 ${esc(t.drop_address||'')}</div>
+      ${contactLinks(t.customer_contact)}<div class="req-acts">${acts}</div></div>`;}).join('');}
+  el.innerHTML=h;return true;
+}
+async function acceptTrip(id,btn){btn.disabled=true;btn.textContent='…';
+  try{const r=await fetch('/api/provider/trips',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({tripId:id,action:'accept'})});const d=await r.json();if(!r.ok)throw new Error(d.alreadyTaken?'Already taken':(d.error||'Failed'));toast('Accepted ✓');startLocationShare(id);loadRequests();}catch(e){btn.disabled=false;btn.textContent='Accept';toast(e.message);}}
+async function tripStatus(id,status,btn){btn.disabled=true;
+  try{const r=await fetch('/api/provider/trips',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({tripId:id,action:'status',status})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');toast('Updated ✓');if(status==='completed')loadEarnings();loadRequests();}catch(e){btn.disabled=false;toast(e.message);}}
+async function verifyCourier(id,stage,btn){const code=prompt((stage==='delivery'?'Delivery':'Pickup')+' code from the customer:');if(!code)return;btn.disabled=true;
+  try{const r=await fetch('/api/provider/trips',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({tripId:id,action:'verify',stage,code})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Wrong code');toast('Verified ✓');loadRequests();}catch(e){btn.disabled=false;toast(e.message);}}
+
+let _locWatch=null;
+function startLocationShare(tripId){
+  if(_locWatch!=null||!navigator.geolocation)return;
+  _locWatch=navigator.geolocation.watchPosition(p=>{
+    fetch('/api/provider/trips',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({action:'location',tripId,lat:p.coords.latitude,lng:p.coords.longitude})}).catch(()=>{});
+  },()=>{},{enableHighAccuracy:true,maximumAge:10000});
+}
+
+const FOOD_NEXT={placed:['accepted','Accept'],accepted:['preparing','Start preparing'],preparing:['ready','Mark ready (send driver)']};
+function renderFood(d){
+  const el=document.getElementById('reqFood');const orders=(d.orders||[]).filter(o=>!['delivered','cancelled','out_for_delivery'].includes(o.status));
+  if(!d.isFood||!orders.length){el.innerHTML='';return false;}
+  let h=`<div class="req-sec-t">🍱 Food orders <span class="c">${orders.length}</span></div>`;
+  h+=orders.map(o=>{const nx=FOOD_NEXT[o.status];const items=(o.items||[]).map(i=>`${i.qty||1}× ${esc(i.name||'')}`).join(', ');
+    return `<div class="req-card"><span class="req-tag food">${esc(o.status)}</span>
+    <div class="req-top"><div class="req-title">Order</div><div class="req-earn">${rup(o.total)}</div></div>
+    <div class="req-meta">👤 ${esc(o.customer_name||'')}${items?'<br>🍽 '+items:''}${o.address?'<br>📍 '+esc(o.address):''}</div>
+    ${contactLinks(o.customer_phone)}
+    <div class="req-acts">${nx?`<button class="req-btn accept" onclick="foodStatus('${o.id}','${nx[0]}',this)">${nx[1]}</button>`:''}</div></div>`;}).join('');
+  el.innerHTML=h;return true;
+}
+async function foodStatus(id,status,btn){btn.disabled=true;btn.textContent='…';
+  try{const r=await fetch('/api/provider/orders',{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({orderId:id,status})});const d=await r.json();if(!r.ok)throw new Error(d.error||'Failed');toast('Updated ✓');loadRequests();}catch(e){btn.disabled=false;toast(e.message);}}
+
+const TITLES={jobs:'Available Jobs',requests:'Requests',earnings:'Earnings',profile:'Profile'};
 function showScreen(name,navEl){
   document.querySelectorAll('.screen').forEach(s=>s.classList.remove('on'));
   document.getElementById('sc-'+name).classList.add('on');
   document.querySelectorAll('.bnav-item').forEach(b=>b.classList.remove('active'));
   if(navEl)navEl.classList.add('active');
+  if(name==='requests')loadRequests();
   window.scrollTo(0,0);
 }
 

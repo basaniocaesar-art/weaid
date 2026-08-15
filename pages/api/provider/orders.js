@@ -1,7 +1,8 @@
 import {
-  getProviderByEditToken, getFoodOrdersForProvider, getFoodOrder, updateFoodOrder,
+  getFoodOrdersForProvider, getFoodOrder, updateFoodOrder,
   insertTrip, getAvailableDriversByType,
 } from "../../../lib/supabase.js";
+import { resolveProvider } from "../../../lib/auth.js";
 import { notifyDriverNewTrip, sendMessage } from "../../../lib/whatsapp.js";
 
 const otp = () => String(Math.floor(1000 + Math.random() * 9000));
@@ -13,10 +14,8 @@ function distanceKm(lat1, lng1, lat2, lng2) {
 
 export default async function handler(req, res) {
   try {
-    const token = req.query.token || req.body?.token;
-    if (!token) return res.status(401).json({ error: "Missing token" });
-    const provider = await getProviderByEditToken(token);
-    if (!provider) return res.status(404).json({ error: "Not found" });
+    const provider = await resolveProvider(req);
+    if (!provider) return res.status(401).json({ error: "Sign in to view orders" });
     const isFood = (provider.services || []).some((s) => s === "food" || s === "homefood");
 
     if (req.method === "GET") {
