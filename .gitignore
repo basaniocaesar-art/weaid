@@ -4,3 +4,6 @@ node_modules/
 .env.local
 .env.production
 .vercel
+.env*.local
+seed/__pycache__/
+seed/providers-raw.json
