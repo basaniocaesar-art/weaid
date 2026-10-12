@@ -17,7 +17,7 @@
  */
 import { supabase } from "../../../lib/supabase.js";
 import {
-  openErrands, ringRound, settle, tellCustomer,
+  openErrands, ringRound, settle, tellCustomer, askedEnough,
   ROUND_SECONDS, GIVE_UP_MINUTES, withinCallingHours,
 } from "../../../lib/errands.js";
 
@@ -56,7 +56,9 @@ export default async function handler(req, res) {
       const age = now - new Date(e.created_at).getTime();
       const since = e.round_at ? now - new Date(e.round_at).getTime() : Infinity;
 
-      if (age > GIVE_UP_MINUTES * 60_000) {
+      // Time alone is not enough: ten people have to have been asked before
+      // "nobody could take it" is a true sentence.
+      if (age > GIVE_UP_MINUTES * 60_000 && askedEnough(e)) {
         await supabase
           .from("errands")
           .update({ status: "nobody", updated_at: new Date().toISOString() })

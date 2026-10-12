@@ -87,7 +87,7 @@ const CALL_TOOLS = [
         customer_phone: { type: "string", description: "The number to ring THEM back on once it is arranged." },
         candidates: {
           type: "array",
-          description: "The businesses to try, from find_businesses. Best-reviewed first; three are rung at once and more if nobody agrees.",
+          description: "The businesses to try, from find_businesses. Pass EVERY one that has a number — at least ten if that many exist. Three are rung at once and the circle widens until somebody agrees; a short list is the main reason an errand fails.",
           items: {
             type: "object",
             additionalProperties: false,
@@ -201,11 +201,14 @@ export default async function handler(req, res) {
           return res.status(200).json({
             result: {
               errand_id: r.errand.id,
-              ringing: (r.round?.called || []).length,
+              // The real number on the list, which is what to tell the
+              // customer: "we have 24 in that area" is reassuring AND true.
+              found: (r.errand.candidates || []).length,
+              ringing_now: (r.round?.called || []).length,
               note:
-                "We are ringing them now. Tell the customer we will call them back as soon as somebody "
-                + "has agreed — do NOT make them wait on this conversation, and do not promise a "
-                + "particular business yet.",
+                "Tell the customer how many we have in that area and that you are checking their "
+                + "availability and will come back to them. Do NOT make them wait on this "
+                + "conversation and do NOT name a particular business — none has agreed yet.",
             },
           });
         }
