@@ -17,7 +17,7 @@
  */
 import { supabase } from "../../../lib/supabase.js";
 import {
-  openErrands, ringRound, settle, tellCustomer, askedEnough,
+  openErrands, ringRound, settle, tellCustomer, askedEnough, releaseOthers,
   ROUND_SECONDS, GIVE_UP_MINUTES, withinCallingHours,
 } from "../../../lib/errands.js";
 
@@ -31,7 +31,7 @@ export default async function handler(req, res) {
 
   const now = Date.now();
   const open = await openErrands(30);
-  const out = { settled: [], told: [], widened: [], gaveUp: [], skipped: 0 };
+  const out = { settled: [], told: [], released: [], widened: [], gaveUp: [], skipped: 0 };
 
   for (const e of open) {
     try {
@@ -47,9 +47,12 @@ export default async function handler(req, res) {
       const s = await settle(e);
       if (s.arranged) {
         out.settled.push({ id: e.id, who: s.arranged.provider_name });
-        // Rung back in the same tick: the news is a minute old at most.
+        // The customer first — they are the one waiting. Then anyone else who
+        // said yes, so nobody holds a slot for a job that is already covered.
         const t = await tellCustomer(s.arranged);
         if (t.calling) out.told.push({ id: e.id, to: t.calling });
+        const r = await releaseOthers(s.arranged).catch(() => ({ released: [] }));
+        if (r.released?.length) out.released.push({ id: e.id, who: r.released });
         continue;
       }
 
