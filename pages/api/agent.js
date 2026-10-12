@@ -21,6 +21,7 @@
 import crypto from "crypto";
 import { TOOLS, runTool } from "../../lib/concierge-tools";
 import { placeErrandCall, errandOutcome, errandReady } from "../../lib/errand";
+import { createErrand, getErrand } from "../../lib/errands";
 
 /*
  * Where WeAid actually operates.
@@ -69,6 +70,49 @@ function outOfArea(input) {
  * phone call.
  */
 const CALL_TOOLS = [
+  {
+    name: "arrange_job",
+    description:
+      "Get something sorted out: ring round several businesses at once, find one who will do it, and ring the CUSTOMER back with a name and a time. Use this rather than place_call whenever the point is to get a job done — a repair, a service, a visit. Ask when they want it BEFORE calling this; a job with no time wanted is a job nobody can agree to. Returns straight away: tell the customer we will call them back, and do not make them wait.",
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["what", "customer_phone", "candidates"],
+      properties: {
+        what: { type: "string", description: "What needs doing, in the customer's own words: \"ceiling fan has stopped working\", \"AC needs a service\"." },
+        area: { type: "string", description: "The locality, e.g. Kakkanad." },
+        city: { type: "string", description: "The town or city." },
+        wanted_window: { type: "string", description: "When they want it, as they said it: \"tomorrow morning\", \"before Friday\", \"today if possible\". Ask them if they have not said." },
+        customer_name: { type: "string" },
+        customer_phone: { type: "string", description: "The number to ring THEM back on once it is arranged." },
+        candidates: {
+          type: "array",
+          description: "The businesses to try, from find_businesses. Best-reviewed first; three are rung at once and more if nobody agrees.",
+          items: {
+            type: "object",
+            additionalProperties: false,
+            required: ["name", "phone"],
+            properties: {
+              name: { type: "string" },
+              phone: { type: "string" },
+              rating: { type: "number" },
+              reviews: { type: "integer" },
+            },
+          },
+        },
+      },
+    },
+  },
+  {
+    name: "errand_status",
+    description: "How an arrange_job is getting on — who has been rung, whether anybody agreed, when they are coming and what it costs. Use when the customer asks whether it is sorted yet.",
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["errand_id"],
+      properties: { errand_id: { type: "string" } },
+    },
+  },
   {
     name: "place_call",
     description:
@@ -142,6 +186,51 @@ export default async function handler(req, res) {
     if (isCallTool(name)) {
       const input = body.input || {};
       try {
+        if (name === "arrange_job") {
+          const r = await createErrand({
+            what: input.what,
+            area: input.area,
+            city: input.city,
+            wantedWindow: input.wanted_window,
+            customerName: input.customer_name,
+            customerPhone: input.customer_phone,
+            ownerRef: body.owner_ref || null,
+            candidates: input.candidates,
+          });
+          if (r.error) return res.status(200).json({ error: r.error });
+          return res.status(200).json({
+            result: {
+              errand_id: r.errand.id,
+              ringing: (r.round?.called || []).length,
+              note:
+                "We are ringing them now. Tell the customer we will call them back as soon as somebody "
+                + "has agreed — do NOT make them wait on this conversation, and do not promise a "
+                + "particular business yet.",
+            },
+          });
+        }
+
+        if (name === "errand_status") {
+          const e = await getErrand(String(input.errand_id || ""));
+          if (!e) return res.status(200).json({ error: "No such job." });
+          return res.status(200).json({
+            result: {
+              status: e.status,
+              what: e.what,
+              wanted: e.wanted_window,
+              rung_so_far: (e.tried || []).length,
+              ...(e.status === "arranged" && {
+                provider: e.provider_name,
+                coming: e.agreed_time,
+                price: e.agreed_price,
+                summary: e.summary,
+                customer_told: Boolean(e.customer_told_at),
+              }),
+              ...(e.status === "nobody" && { note: "Nobody could take it. The customer has been told." }),
+            },
+          });
+        }
+
         if (name === "place_call") {
           const r = await placeErrandCall({
             phone: input.phone,
