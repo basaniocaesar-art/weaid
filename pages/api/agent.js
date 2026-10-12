@@ -20,6 +20,7 @@
  */
 import crypto from "crypto";
 import { TOOLS, runTool } from "../../lib/concierge-tools";
+import { placeErrandCall, errandOutcome, errandReady } from "../../lib/errand";
 
 /*
  * Where WeAid actually operates.
@@ -54,6 +55,59 @@ function outOfArea(input) {
 }
 
 /** Constant-time, and length-safe: timingSafeEqual throws on a length mismatch. */
+/*
+ * Ringing somebody, which the website's concierge has no tool for.
+ *
+ * It belongs to WeAid rather than to the hub that asks for it: the number the
+ * shop sees is a WeAid number, the job and the money are already here, and a
+ * plumber should hear from the service brand arranging his work rather than
+ * from a B2B umbrella he has never heard of.
+ *
+ * These two are NOT subject to the Kochi boundary below. Quoting from our own
+ * price list or promising our own vetted providers outside Kochi would be a
+ * lie; ringing a business that somebody has already found, anywhere, is just a
+ * phone call.
+ */
+const CALL_TOOLS = [
+  {
+    name: "place_call",
+    description:
+      "Ring a business on the customer's behalf and have the AI handle the call — booking a repair, chasing a delivery, asking whether something is in stock. Say what the call is for; the agent does the talking. Works anywhere, not only Kochi.",
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: ["phone", "task"],
+      properties: {
+        phone: { type: "string", description: "The number to ring." },
+        task: {
+          type: "string",
+          description:
+            "What the call is for, in one or two sentences, as the agent should understand it: \"Ask if they can send someone to fix a ceiling fan in Kakkanad tomorrow morning, and what it will cost.\"",
+        },
+        on_behalf_of: { type: "string", description: "The customer's name, so the agent can say who it is calling for." },
+        callback_number: { type: "string", description: "A number the business can call back on." },
+      },
+    },
+  },
+  {
+    name: "check_call",
+    description:
+      "Find out what happened on a call we made — whether they answered, what was agreed, when, and what it will cost. Give the number that was rung.",
+    input_schema: {
+      type: "object",
+      additionalProperties: false,
+      required: [],
+      properties: {
+        phone: { type: "string", description: "The number that was rung. The easiest way to find the call." },
+        attempt_id: { type: "string", description: "The id place_call returned, if you still have it." },
+        hours: { type: "integer", description: "How far back to look. Default 6." },
+      },
+    },
+  },
+];
+
+const isCallTool = (name) => CALL_TOOLS.some((t) => t.name === name);
+
 function keyOk(req) {
   const expected = process.env.WEAID_AGENT_KEY;
   if (!expected) return false;
@@ -73,16 +127,65 @@ export default async function handler(req, res) {
     // Anthropic's spelling, because that is what the calling agent feeds
     // straight to the model.
     return res.status(200).json({
-      tools: TOOLS.map((t) => ({
-        name: t.name,
-        description: t.description,
-        input_schema: t.input_schema,
-      })),
+      tools: [
+        ...TOOLS.map((t) => ({ name: t.name, description: t.description, input_schema: t.input_schema })),
+        // Only offered once a committed agent and a number exist, so the
+        // caller is never told we can ring somebody and then cannot.
+        ...(errandReady() ? CALL_TOOLS : []),
+      ],
     });
   }
 
   if (body.op === "call") {
     const name = String(body.name || "");
+
+    if (isCallTool(name)) {
+      const input = body.input || {};
+      try {
+        if (name === "place_call") {
+          const r = await placeErrandCall({
+            phone: input.phone,
+            task: input.task,
+            onBehalfOf: input.on_behalf_of,
+            callbackNumber: input.callback_number,
+          });
+          if (!r.ok) return res.status(200).json({ error: r.error, ...(r.needs ? { needs: r.needs } : {}) });
+          return res.status(200).json({
+            result: {
+              calling: r.calling,
+              attempt_id: r.attemptId,
+              note: "The call is being placed. Give it a minute, then check_call will say what was agreed.",
+            },
+          });
+        }
+        const r = await errandOutcome({
+          phone: input.phone,
+          attemptId: input.attempt_id,
+          hours: Number(input.hours) || 6,
+        });
+        if (!r.ok) return res.status(200).json({ error: r.error });
+        if (!r.found) {
+          return res.status(200).json({
+            result: {
+              found: false,
+              note: "No call to that number yet. It may still be connecting — wait a moment and look again.",
+            },
+          });
+        }
+        return res.status(200).json({
+          result: {
+            ...r,
+            note: r.summary
+              ? "Tell them what was agreed in a sentence."
+              : "No summary yet, so the call may still be going. Say that rather than guessing.",
+          },
+        });
+      } catch (e) {
+        console.error("[agent]", name, e?.message);
+        return res.status(200).json({ error: String(e?.message || e).slice(0, 300) });
+      }
+    }
+
     if (!TOOLS.some((t) => t.name === name)) {
       return res.status(200).json({ error: `WeAid has no capability called ${name}.` });
     }
