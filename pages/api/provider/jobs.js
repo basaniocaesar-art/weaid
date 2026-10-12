@@ -66,13 +66,22 @@ export default async function handler(req, res) {
     }
 
     if (req.method === "POST") {
-      const { bookingId, action } = req.body;
+      const { bookingId, action, etaMinutes, agreedAt } = req.body;
       if (!bookingId || !action) return res.status(400).json({ error: "Missing bookingId or action" });
 
       if (action === "accept") {
+        /*
+         * Taking the job means saying when. For an "as soon as possible" job
+         * that is how many minutes away they are; for a scheduled one it is the
+         * time they are confirming. Either way the customer is told an hour,
+         * not just that somebody somewhere said yes.
+         */
+        const eta = etaMinutes == null ? null : Math.max(5, Math.min(600, Number(etaMinutes) || 0));
+        if (etaMinutes != null && !eta) return res.status(400).json({ error: "etaMinutes must be a number of minutes" });
+        const when = agreedAt || (eta ? new Date(Date.now() + eta * 60000).toISOString() : null);
         try {
-          const booking = await providerAcceptJob(bookingId, provider.id);
-          return res.status(200).json({ ok: true, status: booking.status });
+          const booking = await providerAcceptJob(bookingId, provider.id, { agreedAt: when, etaMinutes: eta });
+          return res.status(200).json({ ok: true, status: booking.status, agreedAt: booking.agreed_at, etaMinutes: booking.eta_minutes });
         } catch (e) {
           if (e.code === "ALREADY_TAKEN") {
             return res.status(409).json({ error: e.message, alreadyTaken: true });

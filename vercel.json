@@ -1,30 +1,189 @@
 {
+  "regions": [
+    "bom1"
+  ],
   "rewrites": [
-    { "source": "/", "destination": "/weaid.html" },
-    { "source": "/blog", "destination": "/weaid-blog.html" },
-    { "source": "/login", "destination": "/weaid-login.html" },
-    { "source": "/dashboard", "destination": "/weaid-user.html" },
-    { "source": "/provider", "destination": "/weaid-provider.html" },
-    { "source": "/admin", "destination": "/weaid-admin.html" },
-    { "source": "/affiliate", "destination": "/weaid-affiliate.html" },
-    { "source": "/post-job", "destination": "/weaid-post-job.html" },
-    { "source": "/jobs", "destination": "/weaid-jobs.html" },
-    { "source": "/directory", "destination": "/weaid-directory.html" },
-    { "source": "/find", "destination": "/weaid-directory.html" },
-    { "source": "/list-business", "destination": "/weaid-provider-signup.html" },
-    { "source": "/provider-signup", "destination": "/weaid-provider-signup.html" },
-    { "source": "/voice-outreach", "destination": "/weaid-voice-outreach.html" },
-    { "source": "/p/:slug", "destination": "/weaid-provider-profile.html" },
-    { "source": "/dashboard-pro", "destination": "/weaid-pro-dashboard.html" },
-    { "source": "/ride", "destination": "/weaid-ride.html" },
-    { "source": "/courier", "destination": "/weaid-ride.html?type=courier" },
-    { "source": "/carpool", "destination": "/weaid-carpool.html" },
-    { "source": "/food", "destination": "/weaid-food.html" }
+    {
+      "source": "/",
+      "destination": "/weaid.html"
+    },
+    {
+      "source": "/blog",
+      "destination": "/weaid-blog.html"
+    },
+    {
+      "source": "/login",
+      "destination": "/weaid-login.html"
+    },
+    {
+      "source": "/dashboard",
+      "destination": "/weaid-user.html"
+    },
+    {
+      "source": "/provider",
+      "destination": "/weaid-provider.html"
+    },
+    {
+      "source": "/admin",
+      "destination": "/weaid-admin.html"
+    },
+    {
+      "source": "/affiliate",
+      "destination": "/weaid-affiliate.html"
+    },
+    {
+      "source": "/post-job",
+      "destination": "/weaid-post-job.html"
+    },
+    {
+      "source": "/jobs",
+      "destination": "/weaid-jobs.html"
+    },
+    {
+      "source": "/directory",
+      "destination": "/weaid-directory.html"
+    },
+    {
+      "source": "/find",
+      "destination": "/weaid-directory.html"
+    },
+    {
+      "source": "/list-business",
+      "destination": "/weaid-provider-signup.html"
+    },
+    {
+      "source": "/provider-signup",
+      "destination": "/weaid-provider-signup.html"
+    },
+    {
+      "source": "/voice-outreach",
+      "destination": "/weaid-voice-outreach.html"
+    },
+    {
+      "source": "/dashboard-pro",
+      "destination": "/weaid-pro-dashboard.html"
+    },
+    {
+      "source": "/ride",
+      "destination": "/weaid-ride.html"
+    },
+    {
+      "source": "/courier",
+      "destination": "/weaid-ride.html?type=courier"
+    },
+    {
+      "source": "/carpool",
+      "destination": "/weaid-carpool.html"
+    },
+    {
+      "source": "/food",
+      "destination": "/weaid-food.html"
+    },
+    {
+      "source": "/track",
+      "destination": "/weaid-track.html"
+    },
+    {
+      "source": "/job",
+      "destination": "/weaid-job.html"
+    },
+    {
+      "source": "/ops",
+      "destination": "/weaid-ops.html"
+    },
+    {
+      "source": "/pro",
+      "destination": "/weaid-pro-download.html"
+    },
+    {
+      "source": "/verify",
+      "destination": "/weaid-verify.html"
+    },
+    {
+      "source": "/id",
+      "destination": "/weaid-id.html"
+    },
+    {
+      "source": "/terms",
+      "destination": "/weaid-terms.html"
+    },
+    {
+      "source": "/refunds",
+      "destination": "/weaid-refunds.html"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/weaid-privacy.html"
+    },
+    {
+      "source": "/carpool-drive",
+      "destination": "/weaid-carpool-drive.html"
+    },
+    {
+      "source": "/candidate",
+      "destination": "/weaid-candidate.html"
+    },
+    {
+      "source": "/hire",
+      "destination": "/weaid-employer.html"
+    },
+    {
+      "source": "/employer",
+      "destination": "/weaid-employer.html"
+    }
   ],
   "crons": [
-    { "path": "/api/cron/tick", "schedule": "0 9 * * *" },
-    { "path": "/api/cron/booking-reminders", "schedule": "*/30 * * * *" },
-    { "path": "/api/cron/weekly-payout", "schedule": "0 6 * * 1" },
-    { "path": "/api/cron/affiliate-month-end", "schedule": "0 8 1 * *" }
+    {
+      "path": "/api/cron/dispatch-tick",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/tick",
+      "schedule": "0 9 * * *"
+    },
+    {
+      "path": "/api/cron/booking-reminders",
+      "schedule": "*/30 * * * *"
+    },
+    {
+      "path": "/api/cron/weekly-payout",
+      "schedule": "0 6 * * 1"
+    },
+    {
+      "path": "/api/cron/affiliate-month-end",
+      "schedule": "0 8 1 * *"
+    }
+  ],
+  "headers": [
+    {
+      "source": "/pro/weaid-pro.apk",
+      "headers": [
+        {
+          "key": "Content-Type",
+          "value": "application/vnd.android.package-archive"
+        },
+        {
+          "key": "Content-Disposition",
+          "value": "attachment; filename=\"WeAid-Pro.apk\""
+        },
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=300"
+        }
+      ]
+    }
+  ],
+  "redirects": [
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.weaid.in"
+        }
+      ],
+      "destination": "https://weaid.in/:path*",
+      "permanent": true
+    }
   ]
 }

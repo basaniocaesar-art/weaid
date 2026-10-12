@@ -1,0 +1,137 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>My job profile — WeAid Jobs</title>
+<meta name="description" content="Create your free WeAid Jobs profile in Kochi: add your CV or a voice intro, apply to jobs with one tap, and let employers find you.">
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0f14;--mut:#5b6573;--line:#e7ebf0;--bg:#f6f8fa;--teal:#0d9488;--teal-d:#0f766e;--orange:#f97316;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;line-height:1.5}
+.top{background:#fff;border-bottom:1px solid var(--line)}.top div{max-width:620px;margin:0 auto;padding:12px 16px;font-weight:800;font-size:20px;display:flex;justify-content:space-between;align-items:center}.top b{color:var(--orange)}.top a{text-decoration:none;color:inherit}
+main{max-width:620px;margin:0 auto;padding:16px 16px 60px}
+h1{font-size:26px;margin:6px 0 4px}h3{margin:20px 2px 8px}.mut{color:var(--mut);font-size:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px}
+label{display:block;font-size:13px;font-weight:700;margin-top:10px}
+input,select,textarea{display:block;width:100%;font:inherit;font-size:16px;padding:11px;border-radius:12px;border:1.5px solid var(--line);margin-top:4px;background:#fff}
+.two{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.btn{display:block;width:100%;text-align:center;font:inherit;font-weight:800;font-size:16px;padding:13px;border-radius:14px;border:0;background:linear-gradient(90deg,var(--teal),var(--orange));color:#fff;margin-top:12px;cursor:pointer;text-decoration:none}
+.btn.light{background:#fff;color:var(--ink);border:1.5px solid var(--line)}.btn:disabled{opacity:.6}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin-top:6px}.chips button{font:inherit;font-size:13px;font-weight:700;padding:7px 11px;border-radius:999px;border:1.5px solid var(--line);background:#fff;cursor:pointer}.chips button.on{background:#f0fdfa;border-color:var(--teal);color:var(--teal-d)}
+.err{color:var(--red);font-size:14px;margin-top:8px}.ok{color:var(--teal-d);font-size:14px;margin-top:8px}
+.pill{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;background:#eef2f6}.pill.g{background:#dcfce7;color:#166534}
+.ph{width:84px;height:84px;border-radius:50%;object-fit:cover;background:#e7ebf0;display:block}
+</style>
+</head>
+<body>
+<div class="top"><div><a href="/jobs-in-kochi"><img src="/icon-192.png" alt="" style="width:30px;height:30px;vertical-align:middle;margin-right:6px;border-radius:7px">We<b>Aid</b> <span class="mut" style="font-weight:600">Jobs</span></a><a class="mut" style="font-size:14px" href="/jobs-in-kochi">Find jobs</a></div></div>
+<main id="app"><div class="mut">Loading…</div></main>
+<script>
+const Q = new URLSearchParams(location.search);
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+let T = null; try { T = new URLSearchParams(location.hash.slice(1)).get("t") || localStorage.getItem("weaid_cand"); if (T) localStorage.setItem("weaid_cand", T); history.replaceState(null, "", location.pathname + location.search); } catch {}
+let ROLES = [], me = null, roles = [], langs = [];
+const app = document.getElementById("app");
+async function api(a, body) {
+  const r = await fetch("/api/jp/" + a, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", ...(T ? { "X-Cand-Token": T } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.error || "Something went wrong."); e.status = r.status; throw e; } return d;
+}
+const LANGS = ["Malayalam", "English", "Hindi", "Tamil"];
+const EDU = ["Below 10th", "10th pass", "12th pass", "ITI / Diploma", "Graduate", "Post-graduate"];
+function form(c) {
+  c = c || {};
+  roles = c.roles && c.roles.length ? c.roles.slice() : (c.role ? [c.role] : []); langs = c.languages ? c.languages.slice() : ["Malayalam"];
+  return `<div class="card">
+    <label>Full name<input id="name" value="${esc(c.name || "")}"></label>
+    ${me ? "" : `<label>Mobile number<input id="phone" inputmode="tel" maxlength="14" placeholder="98xxxxxxxx"></label>`}
+    <div class="mut" style="margin-top:12px;font-weight:700">Jobs you want (up to 3)</div>
+    <div class="chips" id="roles">${ROLES.map((r) => `<button data-r="${esc(r)}" class="${roles.includes(r) ? "on" : ""}">${esc(r)}</button>`).join("")}</div>
+    <div class="two"><label>Experience (years)<input id="exp" type="number" min="0" max="50" value="${c.experience ?? ""}"></label><label>Expected salary / month<input id="sal" type="number" min="0" placeholder="₹" value="${c.expectedSalary || ""}"></label></div>
+    <div class="two"><label>Education<select id="edu"><option value="">—</option>${EDU.map((e) => `<option ${c.education === e ? "selected" : ""}>${e}</option>`).join("")}</select></label><label>Your area<input id="area" placeholder="e.g. Kakkanad" value="${esc(c.area || "")}"></label></div>
+    <div class="two"><label>Gender<select id="gender"><option value="">—</option>${["Male", "Female", "Other"].map((g) => `<option ${c.gender === g ? "selected" : ""}>${g}</option>`).join("")}</select></label><label>Age<input id="age" type="number" min="16" max="70" value="${c.age || ""}"></label></div>
+    <div class="mut" style="margin-top:12px;font-weight:700">Languages</div>
+    <div class="chips" id="langs">${LANGS.map((l) => `<button data-l="${l}" class="${langs.includes(l) ? "on" : ""}">${l}</button>`).join("")}</div>
+    <label>About you (optional)<textarea id="about" rows="3" placeholder="e.g. 5 years as a driver in Kochi, know all routes, clean licence">${esc(c.about || "")}</textarea></label>
+    <button class="btn" id="save">${me ? "Save changes" : "Create my profile"}</button><div class="err" id="err"></div></div>`;
+}
+function wireForm(after) {
+  app.querySelectorAll("[data-r]").forEach((b) => b.onclick = (e) => { e.preventDefault(); const r = b.dataset.r; if (roles.includes(r)) roles = roles.filter((x) => x !== r); else if (roles.length < 3) roles.push(r); b.parentNode.querySelectorAll("[data-r]").forEach((x) => x.classList.toggle("on", roles.includes(x.dataset.r))); });
+  app.querySelectorAll("[data-l]").forEach((b) => b.onclick = (e) => { e.preventDefault(); const l = b.dataset.l; langs = langs.includes(l) ? langs.filter((x) => x !== l) : [...langs, l]; b.classList.toggle("on"); });
+  document.getElementById("save").onclick = async (e) => {
+    const v = (id) => (document.getElementById(id) || {}).value;
+    e.target.disabled = true;
+    try {
+      const d = await api("cand_save", { profile: { name: v("name"), phone: v("phone"), role: roles[0], roles, experience_years: v("exp"), expected_salary: v("sal"), education: v("edu"), area: v("area"), gender: v("gender"), age: v("age"), languages: langs, about: v("about") } });
+      T = d.token; try { localStorage.setItem("weaid_cand", T); } catch {}
+      after && (await after());
+      await load();
+    } catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
+  };
+}
+function fileToData(file, maxPx) {
+  return new Promise((res, rej) => {
+    if (!file.type.startsWith("image/") || !maxPx) { const fr = new FileReader(); fr.onload = () => res({ mime: file.type || "application/pdf", data: fr.result }); fr.onerror = rej; fr.readAsDataURL(file); return; }
+    const img = new Image(); img.onload = () => { const s = Math.min(1, maxPx / Math.max(img.width, img.height)); const c = document.createElement("canvas"); c.width = img.width * s; c.height = img.height * s; c.getContext("2d").drawImage(img, 0, 0, c.width, c.height); res({ mime: "image/jpeg", data: c.toDataURL("image/jpeg", 0.85) }); }; img.onerror = rej; img.src = URL.createObjectURL(file);
+  });
+}
+async function upload(kind, file) {
+  if (!file) return;
+  const msg = document.getElementById("fmsg"); msg.className = "mut"; msg.textContent = "Uploading…";
+  try { const { mime, data } = await fileToData(file, kind === "cv" ? 1800 : kind === "photo" ? 800 : 0); await api("cand_file", { kind, mime, data }); await load(); }
+  catch (x) { msg.className = "err"; msg.textContent = x.message; }
+}
+let rec = null, chunks = [];
+async function toggleVoice(btn) {
+  if (rec) { rec.stop(); return; }
+  try {
+    const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+    rec = new MediaRecorder(stream); chunks = [];
+    rec.ondataavailable = (e) => chunks.push(e.data);
+    rec.onstop = async () => { stream.getTracks().forEach((t) => t.stop()); const blob = new Blob(chunks, { type: rec.mimeType || "audio/webm" }); rec = null; btn.textContent = "🎙️ Record again"; await upload("voice", new File([blob], "voice", { type: (blob.type || "audio/webm").split(";")[0] })); };
+    rec.start(); btn.textContent = "⏹ Stop (max 45 s)"; setTimeout(() => rec && rec.stop(), 45000);
+  } catch { alert("Couldn't use the microphone. Allow it in your browser settings."); }
+}
+async function load() {
+  try { ROLES = (await api("meta")).roles; } catch {}
+  if (!T) { renderNew(); return; }
+  let d; try { d = await api("cand_me"); } catch (e) { if (e.status === 401) { T = null; try { localStorage.removeItem("weaid_cand"); } catch {} renderNew(); return; } app.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  me = d.candidate;
+  const applyId = Q.get("apply");
+  if (applyId) {
+    try { await api("apply", { jobId: applyId }); } catch (x) { if (!/already/.test(x.message)) alert(x.message); }
+    const back = Q.get("back"); history.replaceState(null, "", "/candidate"); if (back) { location.href = back; return; } return load();
+  }
+  const link = `${location.origin}/candidate#t=${T}`;
+  app.innerHTML = `
+    <div class="card" style="display:flex;gap:14px;align-items:center">${me.photo ? `<img class="ph" src="${esc(me.photo)}">` : `<div class="ph"></div>`}
+      <div><h1 style="margin:0">${esc(me.name)}</h1><div class="mut">${esc((me.roles.length ? me.roles : [me.role]).join(" · "))}${me.area ? ` · ${esc(me.area)}` : ""}</div>${me.verified ? '<span class="pill g">✓ ID checked</span>' : ""}</div></div>
+    <div class="card"><b>Make your profile stand out</b><div class="mut">Employers pick profiles with a photo and CV first.</div>
+      <label style="display:block"><input type="file" accept="image/*" capture="user" id="fphoto" hidden><span class="btn light" role="button">📷 ${me.photo ? "Change photo" : "Add your photo"}</span></label>
+      <label style="display:block"><input type="file" accept="application/pdf,image/*" id="fcv" hidden><span class="btn light" role="button">📄 ${me.hasCv ? "Replace CV ✓" : "Upload CV (PDF or photo)"}</span></label>
+      <button class="btn light" id="voice">🎙️ ${me.hasVoice ? "Re-record voice intro ✓" : "Record a 30-second voice intro"}</button>
+      <div class="mut" id="fmsg" style="margin-top:6px">No CV? A short voice intro works too — say your name, your work and your experience.</div></div>
+    <h3>Your applications</h3>
+    ${d.applications.length ? d.applications.map((a) => `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b><a href="/job/${esc(a.job.slug)}">${esc(a.job.title)}</a></b><span class="pill ${a.status === "hired" ? "g" : ""}">${esc(a.status)}</span></div>
+      <div class="mut">${esc(a.job.employer)} · ${esc(a.job.area)}</div>
+      ${a.slots && a.slots.length && !a.chosen ? `<div style="margin-top:8px"><b>Choose an interview time:</b><div class="chips">${a.slots.map((s) => `<button data-app="${a.id}" data-slot="${s}">${new Date(s).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</button>`).join("")}</div></div>` : ""}
+      ${a.chosen ? `<div class="ok">📅 Interview: ${new Date(a.chosen).toLocaleString("en-IN", { weekday: "long", day: "numeric", month: "long", hour: "numeric", minute: "2-digit" })}</div>` : ""}</div>`).join("")
+      : `<div class="card mut">No applications yet. <a href="/jobs-in-kochi${me.role ? `?role=${encodeURIComponent(me.role)}` : ""}">Find ${esc(me.role || "")} jobs →</a></div>`}
+    <h3>Edit profile</h3>${form(me)}
+    <div class="card"><b>Your login link</b><div class="mut">Save this — it opens your profile on any phone.</div>
+      <a class="btn light" href="https://wa.me/?text=${encodeURIComponent("My WeAid Jobs profile: " + link)}">Save it to WhatsApp</a></div>`;
+  wireForm();
+  document.getElementById("fphoto").onchange = (e) => upload("photo", e.target.files[0]);
+  document.getElementById("fcv").onchange = (e) => upload("cv", e.target.files[0]);
+  document.getElementById("voice").onclick = (e) => toggleVoice(e.target);
+  app.querySelectorAll("[data-slot]").forEach((b) => b.onclick = async () => { try { await api("choose_slot", { appId: b.dataset.app, slot: b.dataset.slot }); load(); } catch (x) { alert(x.message); } });
+}
+function renderNew() {
+  app.innerHTML = `<h1>Get hired in Kochi</h1><div class="mut">Free for job seekers — WeAid never charges candidates. Make your profile once, apply with one tap, and let employers find you.</div>
+    ${Q.get("apply") ? `<div class="card ok">Create your profile to finish applying for the job.</div>` : ""}${form()}`;
+  wireForm();
+}
+load();
+</script>
+</body>
+</html>

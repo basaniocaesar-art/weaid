@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="robots" content="noindex">
+<title>WeAid Pro ID</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box}body{margin:0;min-height:100vh;font-family:"DM Sans",system-ui,sans-serif;background:#0b0f14;color:#fff;display:flex;align-items:center;justify-content:center;padding:18px}
+.id{width:100%;max-width:380px;border-radius:26px;overflow:hidden;background:#fff;color:#0b0f14;box-shadow:0 20px 50px rgba(0,0,0,.5)}
+.band{position:relative;padding:18px 20px 70px;color:#fff;background:linear-gradient(120deg,#0d9488,#f97316,#0d9488);background-size:300% 100%;animation:flow 6s linear infinite}
+@keyframes flow{to{background-position:300% 0}}
+.band b{font-size:22px}.band span{display:block;font-size:13px;opacity:.9}
+.photo{width:132px;height:132px;border-radius:50%;object-fit:cover;border:5px solid #fff;display:block;margin:-66px auto 0;background:#e7ebf0;position:relative}
+.body{text-align:center;padding:10px 20px 22px}
+h1{margin:8px 0 2px;font-size:26px}
+.ok{display:inline-block;background:#ccfbf1;color:#0f766e;font-weight:800;font-size:14px;padding:5px 12px;border-radius:999px;margin:4px 2px}
+.clock{font-size:34px;font-weight:800;letter-spacing:.02em;margin-top:14px;font-variant-numeric:tabular-nums}
+.mut{color:#5b6573;font-size:13.5px}
+.job{background:#f6f8fa;border-radius:14px;padding:10px;margin-top:12px;font-size:14px}
+.dot{display:inline-block;width:9px;height:9px;border-radius:50%;background:#16a34a;margin-right:6px;animation:p 1.2s infinite}@keyframes p{50%{opacity:.2}}
+</style>
+</head>
+<body>
+<div class="id" id="card"><div class="body"><div class="mut">Loading…</div></div></div>
+<script>
+const T = new URLSearchParams(location.hash.slice(1)).get("t") || "";
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+(async () => {
+  const r = await fetch("/api/pro/card", { headers: { "X-Pro-Token": T } });
+  const d = await r.json().catch(() => ({}));
+  const card = document.getElementById("card");
+  if (!r.ok) { card.innerHTML = `<div class="body"><h1>Not verified yet</h1><div class="mut">${esc(d.error || "Please open this from the WeAid Pro app.")}</div></div>`; return; }
+  card.innerHTML = `
+    <div class="band"><img src="/icon-192.png" alt="" style="width:38px;height:38px;border-radius:10px;background:#fff;vertical-align:middle;margin-right:8px"><b>WeAid</b> Pro<span>Verified home-services professional</span></div>
+    ${d.photo ? `<img class="photo" src="${esc(d.photo)}" alt="">` : `<div class="photo"></div>`}
+    <div class="body">
+      <h1>${esc(d.name)}</h1>
+      <div>${d.idChecked ? '<span class="ok">✓ ID checked</span>' : ""}${d.police ? '<span class="ok">✓ Police-verified</span>' : ""}</div>
+      ${d.since ? `<div class="mut" style="margin-top:6px">Verified by WeAid on ${new Date(d.since).toLocaleDateString("en-IN", { day: "numeric", month: "short", year: "numeric" })}</div>` : ""}
+      ${d.job ? `<div class="job"><span class="dot"></span>On a WeAid job: <b>${esc(d.job.service)}</b> for <b>${esc(d.job.customer)}</b></div>` : ""}
+      <div class="clock" id="clock"></div>
+      <div class="mut">Live — the colours move and the clock ticks, so this can't be a screenshot.</div>
+    </div>`;
+  const tick = () => { document.getElementById("clock").textContent = new Date().toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }); };
+  tick(); setInterval(tick, 1000);
+})();
+</script>
+</body>
+</html>

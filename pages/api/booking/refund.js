@@ -1,12 +1,15 @@
 import { getBooking, updateBooking } from "../../../lib/supabase.js";
 import { processRefund as razorpayRefund } from "../../../lib/razorpay.js";
 import { processRefund as stripeRefund } from "../../../lib/stripe.js";
+import { checkOpsKey } from "../../../lib/jobs.js";
 import { sendRefundConfirmation } from "../../../lib/email.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
   }
+  // Money leaves WeAid here: owner only (X-Ops-Key), never the public.
+  if (!checkOpsKey(req)) return res.status(401).json({ error: "unauthorized" });
 
   try {
     const { bookingId, reason } = req.body;

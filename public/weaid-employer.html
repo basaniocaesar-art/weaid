@@ -1,0 +1,157 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hire staff in Kochi — post a job | WeAid Jobs</title>
+<meta name="description" content="Hire drivers, cooks, maids, nurses, sales staff, trainers and more in Kochi. Post a job, get applications with CVs, schedule interviews. Plans from ₹1,499.">
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--ink:#0b0f14;--mut:#5b6573;--line:#e7ebf0;--bg:#f6f8fa;--teal:#0d9488;--teal-d:#0f766e;--orange:#f97316;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;line-height:1.5}
+.top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}.top div{max-width:900px;margin:0 auto;padding:12px 16px;font-weight:800;font-size:20px;display:flex;justify-content:space-between;align-items:center;gap:8px}.top b{color:var(--orange)}.top a{text-decoration:none;color:inherit}
+main{max-width:900px;margin:0 auto;padding:16px 16px 60px}
+h1{font-size:28px;margin:8px 0 4px}h2{font-size:20px;margin:24px 2px 8px}.mut{color:var(--mut);font-size:14px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:16px;margin-top:12px}
+label{display:block;font-size:13px;font-weight:700;margin-top:10px}
+input,select,textarea{display:block;width:100%;font:inherit;font-size:16px;padding:11px;border-radius:12px;border:1.5px solid var(--line);margin-top:4px;background:#fff}
+.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:10px}
+.btn{display:inline-block;text-align:center;font:inherit;font-weight:800;font-size:15px;padding:11px 14px;border-radius:12px;border:0;background:linear-gradient(90deg,var(--teal),var(--orange));color:#fff;cursor:pointer;text-decoration:none}
+.btn.block{display:block;width:100%;margin-top:12px;font-size:16px;padding:13px}.btn.light{background:#fff;color:var(--ink);border:1.5px solid var(--line)}.btn.wa{background:#25d366}.btn:disabled{opacity:.6}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px}.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:8px 14px;font:inherit;font-weight:700;cursor:pointer}.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.plan{border:2px solid var(--line);border-radius:18px;padding:16px;background:#fff}.plan.best{border-color:var(--teal)}.price{font-size:30px;font-weight:800}.plan ul{padding-left:18px;font-size:14px;margin:8px 0 0}
+.pill{font-size:12px;font-weight:800;padding:2px 9px;border-radius:999px;background:#eef2f6}.pill.g{background:#dcfce7;color:#166534}.pill.o{background:#fef3c7;color:#b45309}.pill.r{background:#fee2e2;color:var(--red)}
+.cand{display:flex;gap:12px;align-items:flex-start}.cand img,.cand .ph{width:56px;height:56px;border-radius:50%;object-fit:cover;background:#e7ebf0;flex:none}
+.err{color:var(--red);font-size:14px;margin-top:8px}
+.row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+</style>
+</head>
+<body>
+<div class="top"><div><a href="/jobs-in-kochi"><img src="/icon-192.png" alt="" style="width:30px;height:30px;vertical-align:middle;margin-right:6px;border-radius:7px">We<b>Aid</b> <span class="mut" style="font-weight:600">Jobs for employers</span></a></div></div>
+<main id="app"><div class="mut">Loading…</div></main>
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inr = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
+const H = new URLSearchParams(location.hash.slice(1));
+let T = null; try { T = H.get("t") || localStorage.getItem("weaid_emp"); if (T) localStorage.setItem("weaid_emp", T); } catch {}
+const focusApp = H.get("a"); history.replaceState(null, "", location.pathname);
+let ROLES = [], PLANS = {}, D = null, tab = focusApp ? "applicants" : "jobs";
+const app = document.getElementById("app");
+async function api(a, body) {
+  const r = await fetch("/api/jp/" + a, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", ...(T ? { "X-Emp-Token": T } : {}) }, body: body ? JSON.stringify(body) : undefined });
+  const d = await r.json().catch(() => ({})); if (!r.ok) { const e = new Error(d.error || "Something went wrong."); e.status = r.status; throw e; } return d;
+}
+function plansHtml(current) {
+  const P = PLANS;
+  return `<div class="grid">${Object.entries(P).map(([k, p]) => `<div class="plan ${k === "y1" ? "best" : ""}"><b>${p.label}</b> ${k === "y1" ? '<span class="pill g">Best value</span>' : ""}
+    <div class="price">${inr(p.price)}</div><div class="mut">${inr(Math.round(p.price / (p.days / 30)))}/month</div>
+    <ul><li>Post unlimited jobs, unlimited applications</li><li>Keep 1 job live at a time</li><li>Unlock <b>${p.unlocks}</b> candidates' contacts</li><li>Boost your job <b>${p.boosts}×</b> to the top</li><li>Valid ${p.days} days · Kochi</li></ul>
+    ${current ? `<a class="btn block" href="https://wa.me/918064267771?text=${encodeURIComponent(`Hi WeAid, I'd like the WeAid Jobs ${p.label} plan (${inr(p.price)}) for ${D.employer.name} ${D.employer.phone}`)}">Get this plan</a>` : ""}</div>`).join("")}</div>
+    <div class="mut" style="margin-top:8px">Pay by UPI — WeAid activates your plan the same day. Your first job post is free.</div>`;
+}
+function landing() {
+  app.innerHTML = `<h1>Hire staff in Kochi</h1>
+    <div class="mut">Drivers, cooks, maids, home nurses, delivery staff, sales, telecallers, trainers, technicians — post a job and get applications from local candidates, many with ✓ ID checked by WeAid.</div>
+    <div class="grid" style="margin-top:14px">${[["1. Post a job", "Title, salary, area — 2 minutes. Your first post is free."], ["2. Get applications", "Each applicant's profile, phone and CV comes to your email and dashboard."], ["3. Interview & hire", "Offer interview times; candidates pick one. Search and unlock more candidates on a plan."]].map(([a, b]) => `<div class="card" style="margin:0"><b>${a}</b><div class="mut">${b}</div></div>`).join("")}</div>
+    <h2>Create your employer account</h2>
+    <div class="card"><div class="grid">
+      <label>Business name<input id="bn" placeholder="e.g. Caesars Fitness (or your name for a household)"></label>
+      <label>Your name<input id="cn"></label>
+      <label>Mobile<input id="ph" inputmode="tel" maxlength="14"></label>
+      <label>Email (applications come here)<input id="em" type="email"></label>
+      <label>Area<input id="ar" placeholder="e.g. Fort Kochi"></label>
+      <label>Hiring for<select id="kd"><option value="business">A business</option><option value="household">My home (maid, cook, driver, nurse)</option></select></label></div>
+      <button class="btn block" id="go">Create account & post a job</button><div class="err" id="err"></div></div>
+    <h2>Plans</h2>${plansHtml(false)}`;
+  document.getElementById("go").onclick = async (e) => {
+    e.target.disabled = true; const v = (id) => document.getElementById(id).value;
+    try { const d = await api("emp_save", { business: { business_name: v("bn"), contact_name: v("cn"), phone: v("ph"), email: v("em"), area: v("ar"), kind: v("kd") } }); T = d.token; try { localStorage.setItem("weaid_emp", T); } catch {} tab = "post"; load(); }
+    catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
+  };
+}
+function header() {
+  const e = D.employer, p = e.plan;
+  return `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><div><h1 style="margin:0;font-size:24px">${esc(e.name)}</h1><div class="mut">${esc(e.phone)} · ${esc(e.email || "add an email to get applications")}</div></div>
+    <div>${p ? `<span class="pill g">${esc(p.label)} plan</span><div class="mut">${p.unlocksLeft} unlocks · ${p.boostsLeft} boosts · until ${new Date(p.until).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</div>` : `<span class="pill o">Free</span><div class="mut">1 free job post</div>`}</div></div></div>
+    <div class="tabs">${[["jobs", "My jobs"], ["applicants", `Applicants (${D.applicants.length})`], ["post", "+ Post a job"], ["search", "Search candidates"], ["plans", "Plans"]].map(([k, l]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${l}</button>`).join("")}</div><div id="body"></div>`;
+}
+function candHtml(c, extra = "") {
+  return `<div class="cand">${c.photo ? `<img src="${esc(c.photo)}">` : `<div class="ph"></div>`}<div style="flex:1"><b>${esc(c.name)}</b> ${c.verified ? '<span class="pill g">✓ ID checked</span>' : ""}
+    <div class="mut">${esc((c.roles && c.roles.length ? c.roles : [c.role]).join(" · "))}${c.experience != null ? ` · ${c.experience} yr` : ""}${c.education ? ` · ${esc(c.education)}` : ""}${c.area ? ` · ${esc(c.area)}` : ""}</div>
+    <div class="mut">${c.expectedSalary ? `Expects ${inr(c.expectedSalary)}` : ""}${c.languages && c.languages.length ? ` · ${esc(c.languages.join(", "))}` : ""}${c.age ? ` · ${c.age} yrs` : ""}${c.gender ? ` · ${esc(c.gender)}` : ""}</div>
+    ${c.about ? `<div style="font-size:14px;margin-top:4px">${esc(c.about)}</div>` : ""}
+    ${c.phone ? `<div class="row"><a class="btn light" href="tel:${esc(c.phone)}">📞 ${esc(c.phone)}</a><a class="btn wa" href="https://wa.me/91${esc(String(c.whatsapp || c.phone).replace(/\D/g, "").slice(-10))}">WhatsApp</a>${c.cv ? `<a class="btn light" href="${esc(c.cv)}" target="_blank">📄 CV</a>` : ""}${c.voice ? `<audio controls src="${esc(c.voice)}" style="height:40px"></audio>` : ""}</div>` : ""}
+    ${extra}</div></div>`;
+}
+function renderBody() {
+  const b = document.getElementById("body");
+  if (tab === "post") {
+    b.innerHTML = `<div class="card"><div class="grid">
+      <label>Job title<input id="jt" placeholder="e.g. Fitness Trainer"></label>
+      <label>Role<select id="jr">${ROLES.map((r) => `<option>${esc(r)}</option>`).join("")}</select></label>
+      <label>Area<input id="ja" value="${esc(D.employer.area || "")}"></label>
+      <label>Salary from (₹/month)<input id="js1" type="number"></label><label>Salary up to (₹/month)<input id="js2" type="number"></label>
+      <label>Experience<select id="je"><option value="">Any</option><option>Fresher</option><option>1+ year</option><option>2+ years</option><option>5+ years</option></select></label>
+      <label>Education<select id="jed"><option value="">Any</option><option>10th pass</option><option>12th pass</option><option>ITI / Diploma</option><option>Graduate</option></select></label>
+      <label>Job type<select id="jy"><option value="full_time">Full time</option><option value="part_time">Part time</option><option value="contract">Contract</option></select></label>
+      <label>Shift / timing<input id="jsh" placeholder="e.g. 6am–2pm"></label><label>Openings<input id="jo" type="number" value="1" min="1"></label>
+      <label>Gender (optional)<select id="jg"><option value="">Any</option><option>Male</option><option>Female</option></select></label></div>
+      <label>Description<textarea id="jd" rows="4" placeholder="What the work is, timings, benefits (food, stay, PF, incentives)…"></textarea></label>
+      <div class="mut" style="margin-top:6px">⚠️ Never ask candidates for money (registration, training, uniform deposits). Such posts are removed.</div>
+      <button class="btn block" id="pj">Post job</button><div class="err" id="err"></div></div>`;
+    document.getElementById("pj").onclick = async (e) => {
+      e.target.disabled = true; const v = (id) => document.getElementById(id).value;
+      try {
+        const { job } = await api("post_job", { job: { title: v("jt"), role: v("jr"), area: v("ja"), salary_min: v("js1"), salary_max: v("js2"), experience: v("je"), education: v("jed"), job_type: v("jy"), shift: v("jsh"), openings: v("jo"), gender: v("jg"), description: v("jd") } });
+        alert(job.status === "live" ? "Your job is live!" : job.status === "rejected" ? "This post can't be published. Call 080 6426 7771 if you think that's a mistake." : "Thanks! WeAid checks new posts — your job will be live shortly (usually within a few hours).");
+        tab = "jobs"; load();
+      } catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
+    };
+  } else if (tab === "jobs") {
+    b.innerHTML = D.jobs.length ? D.jobs.map((j) => `<div class="card"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(j.title)}</b><span class="pill ${j.status === "live" ? "g" : j.status === "review" ? "o" : j.status === "rejected" ? "r" : ""}">${{ live: "Live", review: "Being checked", paused: "Paused", closed: "Closed", rejected: "Not published" }[j.status] || esc(j.status)}</span></div>
+      <div class="mut">${esc(j.area)} · ${inr(j.salaryMin)}${j.salaryMax && j.salaryMax !== j.salaryMin ? `–${inr(j.salaryMax)}` : ""} · ${j.applicants} applicant${j.applicants === 1 ? "" : "s"}${j.boosted ? " · 🚀 boosted" : ""}</div>
+      <div class="row">${j.status === "live" ? `<a class="btn light" href="/job/${esc(j.slug)}" target="_blank">View</a><button class="btn light" data-js="${j.id}" data-s="paused">Pause</button><button class="btn light" data-js="${j.id}" data-s="closed">Close</button>${D.employer.plan && D.employer.plan.boostsLeft ? `<button class="btn" data-boost="${j.id}">🚀 Boost</button>` : ""}` : j.status === "paused" ? `<button class="btn light" data-js="${j.id}" data-s="live">Resume</button><button class="btn light" data-js="${j.id}" data-s="closed">Close</button>` : ""}</div></div>`).join("")
+      : `<div class="card">No jobs yet. <a href="#" id="toPost">Post your first job — free</a></div>`;
+    const tp = document.getElementById("toPost"); if (tp) tp.onclick = (e) => { e.preventDefault(); tab = "post"; render(); };
+    b.querySelectorAll("[data-js]").forEach((x) => x.onclick = async () => { try { await api("job_status", { jobId: x.dataset.js, status: x.dataset.s }); load(); } catch (e) { alert(e.message); } });
+    b.querySelectorAll("[data-boost]").forEach((x) => x.onclick = async () => { try { await api("boost", { jobId: x.dataset.boost }); alert("Boosted to the top for 3 days."); load(); } catch (e) { alert(e.message); } });
+  } else if (tab === "applicants") {
+    const jt = Object.fromEntries(D.jobs.map((j) => [j.id, j.title]));
+    b.innerHTML = D.applicants.length ? D.applicants.map((a) => `<div class="card" id="ap${a.id}" style="${a.id === focusApp ? "border-color:var(--teal);border-width:2px" : ""}"><div class="mut">For <b>${esc(jt[a.jobId] || "")}</b> · ${new Date(a.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · <span class="pill">${esc(a.status)}</span></div>
+      ${candHtml(a.candidate, `
+        ${a.chosen ? `<div style="margin-top:8px;color:var(--teal-d);font-weight:700">📅 Interview: ${new Date(a.chosen).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>` : a.slots && a.slots.length ? `<div class="mut" style="margin-top:8px">Waiting for them to pick a time.</div>` : ""}
+        <div class="row"><button class="btn" data-slots="${a.id}">📅 Schedule interview</button><button class="btn light" data-st="${a.id}" data-v="shortlisted">Shortlist</button><button class="btn light" data-st="${a.id}" data-v="hired">Hired</button><button class="btn light" data-st="${a.id}" data-v="rejected">Not suitable</button></div>
+        <div id="sl${a.id}"></div>`)}</div>`).join("") : `<div class="card mut">No applications yet. Make sure your job is live — and boost it to reach more candidates.</div>`;
+    b.querySelectorAll("[data-st]").forEach((x) => x.onclick = async () => { try { await api("app_status", { appId: x.dataset.st, status: x.dataset.v }); load(); } catch (e) { alert(e.message); } });
+    b.querySelectorAll("[data-slots]").forEach((x) => x.onclick = () => {
+      const box = document.getElementById("sl" + x.dataset.slots);
+      box.innerHTML = `<div class="mut" style="margin-top:8px">Offer up to 3 times — the candidate picks one:</div><div class="grid">${[1, 2, 3].map((i) => `<input type="datetime-local" class="slt">`).join("")}</div><button class="btn" style="margin-top:8px" id="sv${x.dataset.slots}">Send times</button>`;
+      document.getElementById("sv" + x.dataset.slots).onclick = async () => {
+        const slots = [...box.querySelectorAll(".slt")].map((i) => i.value).filter(Boolean).map((v) => new Date(v).toISOString());
+        try { await api("slots", { appId: x.dataset.slots, slots }); alert("Sent! The candidate will pick a time on their WeAid page — you'll get an email."); load(); } catch (e) { alert(e.message); }
+      };
+    });
+    if (focusApp) { const el = document.getElementById("ap" + focusApp); if (el) el.scrollIntoView({ behavior: "smooth" }); }
+  } else if (tab === "search") {
+    b.innerHTML = `<div class="card"><div class="grid"><label>Role<select id="sr"><option value="">Any</option>${ROLES.map((r) => `<option>${esc(r)}</option>`).join("")}</select></label><label>Area<input id="sa"></label><label>Keyword<input id="sq"></label></div><button class="btn block" id="sg">Search</button></div><div id="sres"></div>`;
+    document.getElementById("sg").onclick = async () => {
+      const out = document.getElementById("sres"); out.innerHTML = '<div class="mut" style="padding:10px">Searching…</div>';
+      try {
+        const { candidates } = await api("search", { role: document.getElementById("sr").value, area: document.getElementById("sa").value, q: document.getElementById("sq").value });
+        out.innerHTML = candidates.length ? candidates.map((c) => `<div class="card">${candHtml(c, c.unlocked ? "" : `<div class="row"><button class="btn" data-un="${c.id}">🔓 Unlock contact${c.hasCv ? " & CV" : ""}</button></div>`)}</div>`).join("") : '<div class="card mut">No candidates match yet — try a wider search.</div>';
+        out.querySelectorAll("[data-un]").forEach((x) => x.onclick = async () => { try { await api("unlock", { candidateId: x.dataset.un }); document.getElementById("sg").click(); load(); } catch (e) { alert(e.message); } });
+      } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
+    };
+  } else if (tab === "plans") { b.innerHTML = plansHtml(true); }
+}
+function render() { app.innerHTML = header(); app.querySelectorAll("[data-t]").forEach((x) => x.onclick = () => { tab = x.dataset.t; render(); }); renderBody(); }
+async function load() {
+  try { const m = await api("meta"); ROLES = m.roles; PLANS = m.plans; } catch {}
+  if (!T) return landing();
+  try { D = await api("emp_me"); } catch (e) { if (e.status === 401) { T = null; try { localStorage.removeItem("weaid_emp"); } catch {} return landing(); } app.innerHTML = `<div class="err">${esc(e.message)}</div>`; return; }
+  render();
+}
+load();
+</script>
+</body>
+</html>

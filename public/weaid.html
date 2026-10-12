@@ -3,9 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
-<title>WeAid — India's On-Demand Services Platform</title>
-<meta name="description" content="WeAid — India's on-demand services platform. Book verified pros for home, beauty, wellness, care & more.">
-<meta property="og:title" content="WeAid — India's On-Demand Services Platform">
+<title>WeAid Kochi — plumbers, electricians, AC repair, home nurses & more</title>
+<meta name="description" content="Book ID-checked pros in Kochi — plumbers, electricians, AC service, roofing, cleaning, cooks, home nurses, drivers and courier. Price shown upfront, pay securely, track your pro live.">
+<meta property="og:title" content="WeAid Kochi — trusted home services, price upfront">
 <meta property="og:description" content="Book verified pros for home, beauty, wellness, care & more.">
 <meta property="og:type" content="website">
 <meta property="og:url" content="https://weaid.in">
@@ -64,6 +64,86 @@ button{font-family:inherit;cursor:pointer;border:none;}
 .sr-ico{font-size:1.3rem;}
 .sr-name{font-size:0.9rem;font-weight:600;}
 .sr-price{margin-left:auto;font-size:0.78rem;color:var(--teal);font-weight:700;}
+
+/* THE BOX, AND WHAT IT BECOMES
+ *
+ * Two states, the way MunchPies does it. At rest the box is the front door:
+ * a big glowing mic and a line telling you to press it. Once she is talking
+ * the box unsticks itself and drops to the bottom of the screen, and the
+ * conversation runs down the page as ordinary content — not inside a panel
+ * with its own scrollbar, which makes a conversation feel like a widget
+ * bolted onto a website instead of being the website. */
+.searchrow{position:relative;display:flex;align-items:center;gap:10px;}
+.hero-mic{flex:0 0 56px;width:56px;height:56px;border:0;border-radius:18px;background:var(--teal);color:#fff;font-size:1.5rem;line-height:1;cursor:pointer;display:grid;place-items:center;transition:transform 0.15s;animation:micglow 2.4s ease-in-out infinite;}
+.hero-mic:hover{transform:scale(1.04);}
+.hero-mic.on{background:#D93F36;animation:micpulse 1.2s ease-in-out infinite;}
+@keyframes micglow{0%,100%{box-shadow:0 0 0 0 rgba(26,110,94,0.42)}50%{box-shadow:0 0 0 13px rgba(26,110,94,0)}}
+@keyframes micpulse{0%,100%{box-shadow:0 0 0 0 rgba(217,63,54,0.55)}50%{box-shadow:0 0 0 11px rgba(217,63,54,0)}}
+.mic-prompt{margin:12px 0 6px;font-size:0.96rem;font-weight:700;color:var(--teal2);}
+.vstatus{min-height:1.1em;margin:9px 0 0;font-size:0.8rem;font-weight:600;color:var(--teal);text-align:center;}
+.vstatus.idle{color:var(--t3);font-weight:500;}
+
+/* The conversation: plain page content, flowing, no inner scrollbar. */
+.convo{display:none;text-align:left;max-width:720px;margin:0 auto;}
+body.talking .convo{display:block;padding:8px 0 16px;}
+/* !important on purpose: several of these carry an inline style="display:flex"
+   from the original markup, and an inline style beats any selector without it. */
+body.talking .hide-talking{display:none!important;}
+body.talking .search-results{display:none;}
+body.talking .hero{padding-top:18px;}
+
+/* …and the box stays exactly where it was, pinned under the nav so it is always
+   in reach as the talk grows underneath it. */
+/* .hero carries overflow:hidden to clip its background video, which makes it a
+   scroll container — so a sticky child resolved top:60px against the HERO, not
+   the viewport, and sat 60px lower, right on top of the first message. It also
+   meant the box would never actually stick to anything. The video is not
+   showing while she is talking, so the clipping can go. */
+body.talking .hero{overflow:visible;}
+body.talking .search{position:sticky;top:60px;z-index:40;max-width:720px;margin:0 auto 6px;
+  background:var(--bg);padding:10px 0 8px;}
+body.talking .searchrow{background:var(--bg2);border:1.5px solid var(--bdr2);
+  border-radius:18px;padding:6px 6px 6px 8px;box-shadow:0 10px 28px rgba(20,23,31,0.10);}
+body.talking .search-input{background:transparent;border:0;padding:12px 4px 12px 44px;box-shadow:none;}
+body.talking .search-ico{left:14px;}
+body.talking .hero-mic{width:46px;height:46px;border-radius:14px;font-size:1.15rem;animation:none;}
+body.talking .hero-mic.on{animation:micpulse 1.2s ease-in-out infinite;}
+body.talking .vstatus{margin:8px 0 0;}
+/* Nothing else may sit over the box she is being answered in: the sticky CTA,
+   the WhatsApp bubble and the install prompt all live in that same corner. */
+body.talking .sticky-cta,body.talking .floater{display:none!important;}
+/* While she is talking the conversation IS the page. The marquee, the two
+   marketing sections and the footer all sit directly under it and scroll past
+   behind the box, which reads as a website with a chat bolted on. The nav, the
+   menu and the booking sheet stay — those still have to work. */
+body.talking .tmarquee,body.talking .sec,body.talking footer{display:none!important;}
+
+.jobmap{margin:0 0 14px;border:1.5px solid var(--bdr2);border-radius:16px;overflow:hidden;background:var(--bg2);}
+.jobmap .mapc{height:230px;width:100%;}
+.jobmap .mapfoot{padding:11px 14px;font-size:0.88rem;color:var(--t2);border-top:1px solid var(--bdr);}
+.jobmap .mapfoot b{color:var(--text);}
+.jobmap .live{display:inline-block;width:8px;height:8px;border-radius:50%;background:var(--teal);margin-right:7px;animation:livedot 1.6s ease-in-out infinite;}
+@keyframes livedot{0%,100%{opacity:1}50%{opacity:.25}}
+@media (prefers-reduced-motion:reduce){.jobmap .live{animation:none}}
+.pickmap{margin:0 0 14px;border:1.5px solid var(--bdr2);border-radius:16px;overflow:hidden;background:var(--bg2);}
+.pickmap .pm{height:250px;width:100%;}
+.pickmap .pmaddr{padding:10px 13px;font-size:0.88rem;line-height:1.45;color:var(--text);background:var(--bg3);border-top:1px solid var(--bdr);}
+.pickmap .pmaddr.done{font-weight:700;color:var(--teal2);background:var(--tdim);}
+.pickmap .pmbar{padding:11px 12px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;border-top:1px solid var(--bdr);}
+.pickmap .pmhint{flex:1;min-width:150px;font-size:0.84rem;color:var(--t2);}
+.pickmap button{padding:9px 15px;border-radius:100px;font-family:inherit;font-size:0.85rem;font-weight:700;cursor:pointer;border:1.5px solid var(--bdr2);background:var(--bg2);color:var(--text);}
+.pickmap button.go{background:var(--teal);border-color:var(--teal);color:#fff;}
+.pickmap button[disabled]{opacity:.5;cursor:default;}
+.msg{padding:11px 15px;border-radius:16px;margin-bottom:10px;max-width:84%;font-size:0.96rem;line-height:1.52;white-space:pre-wrap;overflow-wrap:anywhere;}
+.msg.me{background:var(--teal);color:#fff;margin-left:auto;border-bottom-right-radius:5px;}
+.msg.her{background:var(--bg3);color:var(--text);border-bottom-left-radius:5px;}
+.msg.err{background:#FDEBE9;color:#A32A22;}
+.msgrow{display:flex;flex-wrap:wrap;gap:8px;margin:0 0 14px;}
+.msgrow button{padding:9px 16px;border:1.5px solid var(--bdr2);background:var(--bg2);color:var(--text);border-radius:100px;font-family:inherit;font-size:0.88rem;font-weight:600;cursor:pointer;}
+.msgrow button:hover{border-color:var(--teal);color:var(--teal);}
+.msgrow button.pay{background:var(--teal);border-color:var(--teal);color:#fff;padding:12px 24px;font-size:0.92rem;font-weight:700;}
+.msgrow button[disabled]{opacity:0.5;cursor:default;}
+@media (prefers-reduced-motion:reduce){.hero-mic{animation:none}.hero-mic.on{animation:none}}
 
 /* TILES */
 .tiles{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin-top:6px;}
@@ -200,6 +280,10 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
   .h-title{font-size:5rem;}
 }
 </style>
+<link rel="canonical" href="https://weaid.in/">
+<meta property="og:image" content="https://weaid.in/icon-512.png">
+<meta name="twitter:card" content="summary">
+<script type="application/ld+json">{"@context": "https://schema.org", "@type": "HomeAndConstructionBusiness", "name": "WeAid", "url": "https://weaid.in", "logo": "https://weaid.in/icon-512.png", "image": "https://weaid.in/icon-512.png", "telephone": "+91-80-6426-7771", "priceRange": "₹₹", "description": "WeAid arranges ID-checked local pros across Kochi: repairs, AC service, roofing, painting, cleaning, cooks, maids, home nurses, elder care, drivers and courier delivery.", "address": {"@type": "PostalAddress", "addressLocality": "Kochi", "addressRegion": "Kerala", "addressCountry": "IN"}, "areaServed": [{"@type": "City", "name": "Kochi"}, {"@type": "City", "name": "Kakkanad"}, {"@type": "City", "name": "Edappally"}, {"@type": "City", "name": "Palarivattom"}, {"@type": "City", "name": "Vyttila"}, {"@type": "City", "name": "Kaloor"}, {"@type": "City", "name": "Aluva"}, {"@type": "City", "name": "Tripunithura"}, {"@type": "City", "name": "Kalamassery"}, {"@type": "City", "name": "Fort Kochi"}, {"@type": "City", "name": "Mattancherry"}, {"@type": "City", "name": "Angamaly"}, {"@type": "City", "name": "Perumbavoor"}, {"@type": "City", "name": "Maradu"}], "openingHoursSpecification": [{"@type": "OpeningHoursSpecification", "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"], "opens": "07:00", "closes": "22:00"}], "potentialAction": {"@type": "ReserveAction", "target": "https://weaid.in/?q={service}", "name": "Book a service"}}</script>
 </head>
 <body>
 
@@ -222,6 +306,16 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
   <a href="/directory">Find a pro near you</a>
   <a href="/post-job">Post a job</a>
   <a href="/jobs">Browse jobs</a>
+  <!--
+    Ride, courier and carpool are not advertised yet.
+
+    The pages work and the dispatch behind them is real, but there are zero
+    drivers in the directory: every one of the 650 providers is a trade
+    (electrical, plumbing, ac, cleaning, movers, carpentry). Offering a taxi
+    nobody can fulfil is worse than not offering it. The URLs still work for
+    testing — /ride /food /courier /carpool — and these links go back the day
+    there is supply.
+  -->
   <h4>Account</h4>
   <a href="/login">Sign in</a>
   <a href="/dashboard">My dashboard</a>
@@ -240,29 +334,28 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
     </video>
   </div>
   <div class="hero-inner">
-    <div class="h-eyebrow">Any Service, Anytime</div>
-    <h1 class="h-title">What do you need,<br><em>right now?</em></h1>
+    <div class="h-eyebrow hide-talking">Any Service, Anytime</div>
+    <h1 class="h-title hide-talking">What do you need,<br><em>right now?</em></h1>
 
-    <div style="display:flex;gap:8px;overflow-x:auto;justify-content:center;flex-wrap:wrap;margin:0 0 20px;-webkit-overflow-scrolling:touch">
-      <a href="#" onclick="document.querySelector('.tiles').scrollIntoView({behavior:'smooth'});return false;" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--teal);color:var(--bg);font-weight:700;font-size:0.88rem">🛠️ Services</a>
-      <a href="/ride" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🚕 Ride</a>
-      <a href="/food" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🍔 Food</a>
-      <a href="/courier" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">📦 Courier</a>
-      <a href="/carpool" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🧑‍🤝‍🧑 Carpool</a>
-      <a href="/directory" style="white-space:nowrap;padding:9px 16px;border-radius:100px;background:var(--bg2);border:1px solid var(--bdr2);color:var(--text);font-weight:700;font-size:0.88rem">🔎 Find a Pro</a>
-    </div>
 
-    <div class="search">
-      <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
-      <input type="text" class="search-input" id="heroSearch" placeholder="Search — nails, plumber, massage..." autocomplete="off">
+    <div class="search" id="searchBox">
+      <div class="searchrow">
+        <svg class="search-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="M21 21l-4.35-4.35"/></svg>
+        <input type="text" class="search-input" id="heroSearch" placeholder="Tell us what needs doing — or press the mic and talk" autocomplete="off">
+        <button type="button" class="hero-mic" id="heroMic" aria-label="Press to talk">🎤</button>
+      </div>
       <div class="search-results" id="searchResults"></div>
+      <p class="vstatus" id="vstatus"></p>
     </div>
 
-    <a href="/directory" style="display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px;font-size:0.92rem;font-weight:700;color:var(--teal2);">Or browse &amp; contact a local pro directly →</a>
+    <p class="mic-prompt hide-talking" id="micPrompt">Press the mic and just talk — English, Malayalam or Hindi</p>
 
-    <div class="hint"><span class="arrow">↓</span> Tap a service to start <span class="arrow">↓</span></div>
+    <section class="convo" id="convo" aria-live="polite"></section>
+    <a href="/directory" class="hide-talking" style="display:inline-flex;align-items:center;gap:6px;margin:2px 0 6px;font-size:0.92rem;font-weight:700;color:var(--t2);">Browse &amp; contact a local pro directly →</a>
 
-    <div class="tiles">
+    <div class="hint hide-talking"><span class="arrow">↓</span> Tap a service to start <span class="arrow">↓</span></div>
+
+    <div class="tiles hide-talking">
       <div class="tile" onclick="openSheet('electrical')"><div class="tile-ico">⚡</div><div class="tile-name">Electrical</div></div>
       <div class="tile" onclick="openSheet('plumbing')"><div class="tile-ico">🔧</div><div class="tile-name">Plumbing</div></div>
       <div class="tile" onclick="openSheet('cleaning')"><div class="tile-ico">🧹</div><div class="tile-name">Cleaning</div></div>
@@ -273,7 +366,7 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
       <div class="tile" onclick="openSheet('pickup')"><div class="tile-ico">🚗</div><div class="tile-name">Airport</div></div>
     </div>
 
-    <div class="trust">
+    <div class="trust hide-talking">
       <strong>4.9★</strong> <span class="dot">·</span>
       <strong>12K+</strong> customers <span class="dot">·</span>
       <strong>50+</strong> cities
@@ -286,6 +379,9 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
   <div class="tm-row a" id="tmA"></div>
   <div class="tm-row b" id="tmB"></div>
 </div>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://checkout.razorpay.com/v1/checkout.js"></script>
 <script>
 (function(){
   const A=[['✓','Verified Pros'],['⭐','4.9 Star Rating'],['🔒','Secure Payments'],['🛡️','Background Checked'],['🔄','Free Re-do Guarantee'],['📍','Live GPS Tracking'],['👥','12,000+ Customers'],['⚡','On-Demand, Anytime']];
@@ -332,6 +428,14 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
     <a href="/list-business">List your business</a>
     <a href="/login">For Pros</a>
     <a href="/affiliate">Affiliate</a>
+    <a href="/jobs-in-kochi">Jobs in Kochi</a>
+    <a href="/hire">Hire staff</a>
+    <a href="/guides">Guides</a>
+    <a href="/work">Work with WeAid</a>
+    <a href="/pro">WeAid Pro app</a>
+    <a href="/terms">Terms</a>
+    <a href="/refunds">Cancellation &amp; refunds</a>
+    <a href="/privacy">Privacy</a>
   </div>
   <div>© 2026 WeAid. India's on-demand services platform.</div>
 </footer>
@@ -457,13 +561,13 @@ footer{border-top:1px solid var(--bdr);padding:24px 20px 90px;text-align:center;
 </div>
 
 <!-- PWA Install Button -->
-<button id="installAppBtn" onclick="triggerInstall()" style="display:none;position:fixed;bottom:88px;left:20px;padding:10px 16px;background:var(--bg3);color:var(--text);border:1px solid var(--bdr2);border-radius:100px;font-weight:600;font-size:0.78rem;z-index:80;align-items:center;gap:6px;">
+<button class="floater" id="installAppBtn" onclick="triggerInstall()" style="display:none;position:fixed;bottom:88px;left:20px;padding:10px 16px;background:var(--bg3);color:var(--text);border:1px solid var(--bdr2);border-radius:100px;font-weight:600;font-size:0.78rem;z-index:80;align-items:center;gap:6px;">
   <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
   Install App
 </button>
 
 <!-- WhatsApp Chat Button -->
-<a href="https://wa.me/919876543210?text=Hi%20WeAid%2C%20I%20need%20help%20with%20a%20service" target="_blank" rel="noopener" style="position:fixed;bottom:88px;right:20px;width:48px;height:48px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:80;">
+<a class="floater" href="https://wa.me/919876543210?text=Hi%20WeAid%2C%20I%20need%20help%20with%20a%20service" target="_blank" rel="noopener" style="position:fixed;bottom:88px;right:20px;width:48px;height:48px;background:#25d366;border-radius:50%;display:flex;align-items:center;justify-content:center;box-shadow:0 4px 12px rgba(0,0,0,0.3);z-index:80;">
   <svg width="24" height="24" viewBox="0 0 24 24" fill="white"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/></svg>
 </a>
 
@@ -601,19 +705,690 @@ function toggleMenu(){
   document.getElementById('menuBg').classList.toggle('on');
 }
 
-// ── SEARCH ──
+// ── THE BOX ──
+//
+// The box used to match service names, which is not how anybody describes a
+// problem: "my tap is leaking" hits 'plumbing' by luck because the word tap is
+// in the list, and "someone to sit with my mother during the day" matches
+// nothing at all. Now the box IS the conversation — it grows in place, listens,
+// answers aloud, finds a real provider, prices the job and takes the payment
+// without ever leaving this page. The service tiles stay for people who already
+// know exactly what they want.
 const srcBox=document.getElementById('heroSearch');
 const srcResults=document.getElementById('searchResults');
+const convo=document.getElementById('convo');
+const heroMic=document.getElementById('heroMic');
+const searchBox=document.getElementById('searchBox');
+const vstatus=document.getElementById('vstatus');
+let chatHistory=[],chatBusy=false,talking=false;
+
+function setStatus(t,idle){vstatus.textContent=t||'';vstatus.classList.toggle('idle',!!idle);}
+// The conversation is page content, so the page is what scrolls. The composer
+// is fixed over the bottom ~104px, so stop short of it rather than parking the
+// newest message underneath the box.
+function convoScroll(){
+  const last=convo.lastElementChild;
+  if(!last)return;
+  const r=last.getBoundingClientRect();
+  // 60px nav + the sticky box: anything above this line is hidden behind them.
+  const top=60+(searchBox?searchBox.getBoundingClientRect().height:0)+10;
+  if(r.bottom>window.innerHeight)       // below the fold — bring it up
+    window.scrollTo({top:r.bottom+window.scrollY-window.innerHeight+24,behavior:'smooth'});
+  else if(r.top<top)                    // tucked under the box — push it down
+    window.scrollTo({top:r.top+window.scrollY-top,behavior:'smooth'});
+}
+function openConvo(){
+  if(talking)return;
+  talking=true;
+  document.body.classList.add('talking');
+  srcResults.classList.remove('on');
+  srcBox.placeholder='Reply, or press the mic';
+  // The hero furniture has just been removed from the flow; without this the
+  // page keeps whatever scroll position it had and the first line is missed.
+  window.scrollTo({top:0,behavior:'instant'});
+}
+function say(cls,text){
+  const d=document.createElement('div');
+  d.className='msg '+cls;
+  d.textContent=text;               // never innerHTML: their words are not markup
+  convo.appendChild(d);convoScroll();
+  return d;
+}
+
+/* ── Language, taken from the person and not from the reply ──────────────────
+ * Indian languages each have their own Unicode block, so the script is a
+ * reliable signal where guessing from words is not. Romanised Malayalam
+ * ("sheriyaanu") reads as English, which is right: that is how it sounds. */
+const SCRIPTS=[[/[ഀ-ൿ]/,'ml-IN'],[/[ऀ-ॿ]/,'hi-IN'],[/[஀-௿]/,'ta-IN'],
+               [/[ఀ-౿]/,'te-IN'],[/[ಀ-೿]/,'kn-IN'],[/[ঀ-৿]/,'bn-IN'],
+               [/[઀-૿]/,'gu-IN'],[/[਀-੿]/,'pa-IN']];
+function langOf(text,fb){for(let i=0;i<SCRIPTS.length;i++)if(SCRIPTS[i][0].test(text||''))return SCRIPTS[i][1];return fb||'en-IN';}
+// What THEY are speaking. Set from their words only: one Malayalam answer must
+// not stop the microphone understanding English.
+let heardLang='en-IN';
+
+/* ── Speaking, a sentence at a time ──────────────────────────────────────────
+ * Waiting for the whole reply before synthesising it costs seconds of silence
+ * with the words already on screen. The first finished sentence goes to the
+ * voice while the rest is still being written. */
+let sayQ=[],saying=false,sayDone=null,audioEl=null;
+const ABBREV=/(?:^|\s)(?:Rs|Mr|Mrs|Ms|Dr|St|No|vs|etc|approx|kg|km|sq|ft|hrs?|mins?)$/i;
+
+function pumpQ(){
+  if(saying)return;
+  const next=sayQ.shift();
+  if(!next){const f=sayDone;sayDone=null;if(f)f();return;}
+  saying=true;speakOne(next,()=>{saying=false;pumpQ();});
+}
+// A full stop ends a sentence only when it is not between digits, is not a
+// known abbreviation, and is followed by whitespace. "₹1,250." and "Rs. 400"
+// are each one thought, and a voice that splits them sounds broken.
+function sayStream(state,chunk){
+  state.buf+=chunk;
+  let out=0;
+  for(let i=0;i<state.buf.length;i++){
+    const ch=state.buf[i];
+    if(ch!=='.'&&ch!=='!'&&ch!=='?'&&ch!=='।'&&ch!=='\n')continue;
+    const next=state.buf[i+1];
+    if(ch==='.'){
+      if(/\d/.test(state.buf[i-1]||'')&&/\d/.test(next||''))continue;
+      if(ABBREV.test(state.buf.slice(out,i)))continue;
+    }
+    // Must be followed by real whitespace. At the end of the buffer we cannot
+    // yet tell: a chunk boundary right after "0." looks like a finished
+    // sentence until the 6 arrives. sayFlush handles the real tail.
+    if(next===undefined||!/\s/.test(next))continue;
+    const piece=state.buf.slice(out,i+1).trim();
+    if(piece.length>1){sayQ.push(piece);out=i+1;}
+  }
+  if(out){state.buf=state.buf.slice(out);pumpQ();}
+}
+function sayFlush(state,after){
+  const tail=(state.buf||'').trim();state.buf='';
+  if(tail)sayQ.push(tail);
+  sayDone=after;pumpQ();
+}
+function speakNow(text,after){sayQ=[];saying=false;speakOne(text,after);}
+function stopSpeaking(){
+  try{if(audioEl)audioEl.pause();}catch(e){}
+  try{if(window.speechSynthesis)speechSynthesis.cancel();}catch(e){}
+}
+function speakOne(text,after){
+  text=(text||'').replace(/\*\*/g,'').replace(/https?:\/\/\S+/g,'the link').replace(/\s+/g,' ').trim().slice(0,600);
+  if(!text)return after&&after();
+  stopSpeaking();
+  if(voiceMode)setStatus('🔊 Speaking…');
+  const lang=langOf(text,heardLang);
+  fetch('/api/voice/speak',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({text,lang})})
+    .then(r=>{if(!r.ok)throw new Error('no voice');return r.blob();})
+    .then(b=>{audioEl=new Audio(URL.createObjectURL(b));audioEl.onended=()=>after&&after();audioEl.onerror=()=>after&&after();return audioEl.play();})
+    .catch(()=>{
+      // Sarvam off or out of credits: the browser's own voice is worse, but it
+      // beats silence from something that has just offered to talk.
+      if(!window.speechSynthesis)return after&&after();
+      const u=new SpeechSynthesisUtterance(text);u.lang=lang;u.rate=1.02;u.onend=()=>after&&after();
+      speechSynthesis.speak(u);
+    });
+}
+
+/* ── Listening, hands free ───────────────────────────────────────────────────
+ * Chrome and Android use the browser's own recogniser: free and instant.
+ * iPhone Safari's is unreliable, so there the audio is recorded until a pause
+ * and transcribed by Sarvam, which detects the language itself rather than
+ * needing to be told one. */
+const Rec=window.SpeechRecognition||window.webkitSpeechRecognition;
+const CAN_RECORD=!!(navigator.mediaDevices&&navigator.mediaDevices.getUserMedia&&window.MediaRecorder);
+/*
+ * Record and send to Sarvam, rather than using the browser's own recogniser.
+ *
+ * This is the whole reason she was not switching languages. A browser
+ * recogniser has to be TOLD its language up front — rec.lang — and it then
+ * transcribes everything as that language. Started on English, somebody
+ * speaking Malayalam got confident English nonsense back, which is Latin
+ * script, so langOf() saw English and never switched. The language could only
+ * ever go in the direction it was already pointing.
+ *
+ * Sarvam is asked with language_code "unknown" and tells us what it heard, so
+ * the language follows the person instead of the other way round. The browser
+ * recogniser stays as the fallback for anything without MediaRecorder.
+ */
+const USE_RECORDER=CAN_RECORD;
+if(!Rec&&!CAN_RECORD)heroMic.hidden=true;
+let voiceMode=false,rec=null,silentRounds=0;
+let recStream=null,recorder=null,vadTimer=null,vadCtx=null,vadSrc=null;
+
+function endVoice(msg){
+  voiceMode=false;
+  try{if(rec)rec.abort();}catch(e){}
+  try{if(recorder&&recorder.state==='recording')recorder.stop();}catch(e){}
+  try{if(recStream)recStream.getTracks().forEach(t=>t.stop());}catch(e){}
+  recStream=null;stopSpeaking();
+  heroMic.classList.remove('on');
+  setStatus(msg||'',true);
+}
+function listenRecorded(){
+  if(chatBusy||!voiceMode)return;
+  stopSpeaking();
+  const ready=(recStream&&recStream.active)?Promise.resolve(recStream)
+    :navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true}});
+  ready.then(stream=>{
+    recStream=stream;
+    const chunks=[];let speechSeen=false;
+    recorder=new MediaRecorder(stream);
+    recorder.ondataavailable=e=>{if(e.data.size)chunks.push(e.data);};
+    recorder.onstop=()=>{
+      clearInterval(vadTimer);
+      try{if(vadSrc)vadSrc.disconnect();}catch(e){}
+      vadSrc=null;heroMic.classList.remove('on');
+      if(!voiceMode)return;
+      const blob=new Blob(chunks,{type:recorder.mimeType||'audio/mp4'});
+      if(!speechSeen||blob.size<2048){
+        if(++silentRounds>=3)return endVoice('Press the mic when you are ready');
+        return listenRecorded();
+      }
+      setStatus('💭 Listening back…');
+      fetch('/api/voice/listen',{method:'POST',headers:{'Content-Type':blob.type||'audio/mp4'},body:blob})
+        .then(r=>{if(r.status===503)throw new Error('Voice is busy right now — please type');return r.json();})
+        .then(d=>{
+          const said=(d.transcript||'').trim();
+          // Sarvam detects the language rather than being told one, so this is
+          // the best signal we get about what they are actually speaking.
+          if(d.language)heardLang=d.language;else if(said)heardLang=langOf(said,heardLang);
+          if(said){silentRounds=0;setStatus('💭 Thinking…');return chatSend(said);}
+          if(++silentRounds>=3)return endVoice('Press the mic when you are ready');
+          listenRecorded();
+        })
+        .catch(e=>endVoice(e.message.indexOf('busy')>-1?e.message:'Could not reach the voice service — please type'));
+    };
+    // Voice activity: learn the room's noise for ~0.4s, then stop 1.4s after
+    // speech ends, so nobody has to find a stop button mid-sentence.
+    try{
+      vadCtx=vadCtx||new (window.AudioContext||window.webkitAudioContext)();
+      if(vadCtx.state==='suspended')vadCtx.resume().catch(()=>{});
+      const an=vadCtx.createAnalyser();an.fftSize=1024;
+      vadSrc=vadCtx.createMediaStreamSource(stream);vadSrc.connect(an);
+      const buf=new Float32Array(an.fftSize);
+      let floor=0,n=0,quiet=0;const t0=Date.now();
+      vadTimer=setInterval(()=>{
+        if(!recorder||recorder.state!=='recording')return;
+        an.getFloatTimeDomainData(buf);
+        let sum=0;for(let i=0;i<buf.length;i++)sum+=buf[i]*buf[i];
+        const rms=Math.sqrt(sum/buf.length);
+        if(n<6){floor=(floor*n+rms)/(n+1);n++;return;}
+        if(rms>floor+0.012){speechSeen=true;quiet=0;}else if(speechSeen)quiet+=60;
+        const el=Date.now()-t0;
+        if((speechSeen&&quiet>=1400)||el>30000||(!speechSeen&&el>9000))recorder.stop();
+      },60);
+    }catch(e){
+      setTimeout(()=>{if(recorder&&recorder.state==='recording')recorder.stop();},8000);
+      speechSeen=true;
+    }
+    heroMic.classList.add('on');
+    setStatus('🎤 Listening… just talk');
+    recorder.start();
+  }).catch(()=>endVoice('Microphone is blocked — allow it in your browser settings, or type instead'));
+}
+function listen(){
+  if(USE_RECORDER)return listenRecorded();
+  if(!Rec||chatBusy||!voiceMode)return;
+  stopSpeaking();
+  rec=new Rec();rec.lang=heardLang;rec.interimResults=true;rec.maxAlternatives=1;
+  let final='',heard=false;
+  rec.onresult=e=>{
+    let interim='';
+    for(let i=e.resultIndex;i<e.results.length;i++){
+      if(e.results[i].isFinal)final+=e.results[i][0].transcript;else interim+=e.results[i][0].transcript;
+    }
+    heard=true;
+    if(final)heardLang=langOf(final,heardLang);
+    srcBox.value=(final+interim).trim();
+  };
+  rec.onerror=e=>{
+    if(e.error==='not-allowed'||e.error==='service-not-allowed')
+      endVoice('Microphone is blocked — allow it in your browser, or type instead');
+  };
+  rec.onend=()=>{
+    heroMic.classList.remove('on');
+    if(!voiceMode)return;
+    const said=(final||srcBox.value).trim();
+    if(said){silentRounds=0;setStatus('💭 Thinking…');return chatSend(said);}
+    if(!heard&&++silentRounds>=3)return endVoice('Press the mic when you are ready');
+    listen();
+  };
+  heroMic.classList.add('on');
+  setStatus('🎤 Listening… just talk');
+  try{rec.start();}catch(e){setTimeout(listen,300);}
+}
+
+/* ── Opening, and which language ─────────────────────────────────────────────
+ * Asked before anything else, because a recogniser pointed at the wrong
+ * language transcribes confident nonsense rather than failing honestly. The
+ * chips are there because somebody who only speaks Malayalam cannot be
+ * expected to answer an English question to say so. */
+const GREETING='Hi, you have reached WeAid. Are you comfortable in English, Malayalam or Hindi?';
+const LANGS=[['English','en-IN','English'],['മലയാളം','ml-IN','Malayalam'],['हिन्दी','hi-IN','Hindi']];
+let greeted=false;
+
+function greet(speakIt){
+  openConvo();
+  if(greeted)return;
+  greeted=true;
+
+  /*
+   * Somebody who has been here before is not a stranger.
+   *
+   * Their last few messages come back on screen so the thread is visibly
+   * continued rather than restarted, and the language question is skipped —
+   * they answered it last time, and asking again is the tell that nothing was
+   * remembered. First-time visitors get the full greeting below.
+   */
+  const past=memLoad();
+  if(past&&past.known&&past.known.name){
+    known=past.known;
+    lastSeenAt=past.at||null;
+    heardLang=past.lang||heardLang;
+    pickedLocation=past.location||null;
+    chatHistory=past.history||[];
+    (past.shown||[]).forEach(m=>{const b=say(m.me?'me':'her',m.t);b.style.opacity='.55';});
+    const back='Welcome back, '+known.name+'. What needs doing today?';
+    say('her',back);
+    const row=document.createElement('div');row.className='msgrow';
+    const fresh=document.createElement('button');
+    fresh.textContent='Not '+known.name+'?';
+    fresh.onclick=()=>{memForget();row.remove();location.reload();};
+    row.appendChild(fresh);
+    convo.appendChild(row);convoScroll();
+    if(speakIt){setStatus('🔊 Speaking…');speakNow(back,listen);}
+    return;
+  }
+
+  say('her',GREETING);
+  const row=document.createElement('div');
+  row.className='msgrow';
+  LANGS.forEach(([label,code,english])=>{
+    const b=document.createElement('button');
+    b.textContent=label;
+    b.onclick=()=>{
+      heardLang=code;
+      row.remove();
+      // Said as the customer, so the model switches and keeps it switched.
+      chatSend('Let us speak in '+english+'.');
+    };
+    row.appendChild(b);
+  });
+  convo.appendChild(row);convoScroll();
+  if(speakIt){setStatus('🔊 Speaking…');speakNow(GREETING,listen);}
+}
+function startVoice(){
+  if(!Rec&&!USE_RECORDER){srcBox.focus();return setStatus('Voice is not supported in this browser — please type',true);}
+  if(voiceMode)return;
+  voiceMode=true;silentRounds=0;
+  // Safari will only create an AudioContext inside the tap that started it.
+  if(USE_RECORDER&&!vadCtx){try{vadCtx=new (window.AudioContext||window.webkitAudioContext)();vadCtx.resume().catch(()=>{});}catch(e){}}
+  if(!greeted)greet(true);else{openConvo();listen();}
+}
+heroMic.addEventListener('click',()=>{voiceMode?endVoice('Press the mic to talk again'):startVoice();});
+
+/*
+ * Pressing anywhere starts her talking.
+ *
+ * Browsers will not let a page speak or open a microphone until somebody has
+ * interacted with it, so the first press is the one chance to begin without
+ * making people hunt for a button. Anything that already does something of its
+ * own — a link, a button, the menu, a service tile, the box itself — is left
+ * alone, because hijacking those would break the site to deliver a greeting.
+ * Once she has been greeted this listener has no further job and removes
+ * itself, so the rest of the page behaves normally.
+ */
+function startOnFirstPress(e){
+  if(greeted||voiceMode)return done();
+  if(e.target.closest('a,button,input,textarea,select,label,[onclick],.tile,.menu,.sheet,.search'))return;
+  done();
+  startVoice();
+}
+function done(){document.removeEventListener('pointerdown',startOnFirstPress,true);}
+document.addEventListener('pointerdown',startOnFirstPress,true);
+
+// Pressing the box itself does the same, rather than only opening a keyboard.
+srcBox.addEventListener('pointerdown',()=>{if(!greeted&&!voiceMode)startVoice();});
+
+/* ── The conversation ───────────────────────────────────────────────────── */
+function chatSend(text){
+  text=(text||'').trim();
+  if(!text||chatBusy)return Promise.resolve();
+  chatBusy=true;
+  // Typing first rather than pressing the mic still has to restore who they are.
+  if(!greeted){
+    const past=memLoad();
+    if(past&&past.known&&past.known.name){
+      known=past.known;lastSeenAt=past.at||null;heardLang=past.lang||heardLang;
+      pickedLocation=past.location||null;chatHistory=past.history||[];
+    }
+    greeted=true;
+  }
+  openConvo();
+  srcBox.value='';
+  heardLang=langOf(text,heardLang);
+  say('me',text);
+  const her=say('her','…');
+  const state={buf:''};let shown='',cards=[];
+  return fetch('/api/concierge',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({message:text,messages:chatHistory,location:pickedLocation||undefined,known:{...known,lastSeen:lastSeenAt}})})
+    .then(r=>{
+      if(!r.ok||!r.body)throw new Error('No answer came back. Please try again.');
+      const reader=r.body.getReader(),dec=new TextDecoder();let buf='';
+      function pump(){
+        return reader.read().then(res=>{
+          if(res.done)return;
+          buf+=dec.decode(res.value,{stream:true});
+          const parts=buf.split('\n\n');buf=parts.pop();
+          parts.forEach(p=>{
+            const ev=(p.match(/^event: (.*)$/m)||[])[1];let d={};
+            try{d=JSON.parse((p.match(/^data: (.*)$/m)||[])[1]||'{}');}catch(e){}
+            if(ev==='delta'&&d.text){if(!shown&&voiceMode)setStatus('\ud83d\udcad Thinking\u2026');shown+=d.text;her.textContent=shown;convoScroll();if(voiceMode)sayStream(state,d.text);}
+            else if(ev==='status'&&d.text&&!shown){her.textContent=d.text;setStatus(d.text);}
+            else if(ev==='remember'&&d){known={...known,...d};}
+            else if(ev==='card'&&(d.kind==='pay'||d.kind==='map'||d.kind==='location'))cards.push(d);
+            else if(ev==='done'){if(d.reply){her.textContent=d.reply;shown=d.reply;}if(d.messages)chatHistory=d.messages;}
+            else if(ev==='error'){her.textContent=d.error;her.className='msg err';}
+          });
+          return pump();
+        });
+      }
+      return pump();
+    })
+    .then(()=>{
+      if(!shown)her.textContent='Nothing came back. Try asking that another way?';
+      cards.forEach(c=>c.kind==='location'?showLocationPicker():c.kind==='map'?showMap(c):showPayButton(c));convoScroll();
+      if(voiceMode)sayFlush(state,()=>{if(voiceMode)listen();});
+    })
+    .catch(e=>{
+      her.textContent=e.message;her.className='msg err';
+      if(voiceMode)speakNow(e.message,()=>{if(voiceMode)listen();});
+    })
+    .then(()=>{
+      chatBusy=false;convoScroll();memSave();
+      if(!voiceMode)setStatus('');
+    });
+}
+
+
+
+
+/* ── Remembering somebody between visits ─────────────────────────────────────
+ * All of it lives in this browser and never leaves it except back to us on the
+ * next message. Nothing here is a credential: it saves a returning customer
+ * repeating their name, number and street, and that is all it is allowed to do.
+ * Every read and write is wrapped, because a private window throws rather than
+ * returning nothing, and a page that cannot remember must still work. */
+const MEM='weaid_chat_v1';
+let known={};
+/* When they were last here, read once at load — memSave() is about to stamp
+   Date.now() over it, and the age of the OLD visit is the useful number. */
+let lastSeenAt=null;
+
+function memLoad(){
+  try{
+    const raw=localStorage.getItem(MEM);
+    if(!raw)return null;
+    const d=JSON.parse(raw);
+    // A month is long enough to be useful and short enough that a stale
+    // address does not quietly send somebody to an old flat.
+    if(!d||!d.at||Date.now()-d.at>30*86400000){localStorage.removeItem(MEM);return null;}
+    return d;
+  }catch(e){return null;}
+}
+function memSave(){
+  try{
+    localStorage.setItem(MEM,JSON.stringify({
+      at:Date.now(),
+      known,
+      lang:heardLang,
+      location:pickedLocation,
+      // The last few turns only: enough for her to pick up the thread, not a
+      // transcript of everything they have ever said.
+      history:(chatHistory||[]).slice(-8),
+      shown:[...convo.querySelectorAll('.msg')].slice(-6)
+        .map(m=>({me:m.classList.contains('me'),t:m.textContent})),
+    }));
+  }catch(e){}
+}
+function memForget(){
+  try{localStorage.removeItem(MEM);}catch(e){}
+  known={};pickedLocation=null;chatHistory=[];
+}
+
+/* ── Pinning the door, instead of reciting an address ────────────────────────
+ * Asked out loud, "what is the address" gets "it's in Fort Kochi", then three
+ * more questions, and the provider still ends up ringing to ask which gate. A
+ * pin is one action and it is what somebody actually navigates to.
+ *
+ * The coordinates are kept here and sent with every later message; the model
+ * never has to carry them. The written address is only for reading back to a
+ * human — Nominatim is asked for one, and if it does not answer, the pin is
+ * still perfectly good. */
+let pickedLocation = null;
+
+function showLocationPicker(){
+  const wrap=document.createElement('div');wrap.className='pickmap';
+  const el=document.createElement('div');el.className='pm';
+  const bar=document.createElement('div');bar.className='pmbar';
+  const hint=document.createElement('div');hint.className='pmhint';
+  hint.textContent='Drag the pin to your door, or tap the map.';
+  const locBtn=document.createElement('button');locBtn.type='button';locBtn.textContent='◎ Use my location';
+  const okBtn=document.createElement('button');okBtn.type='button';okBtn.className='go';okBtn.textContent='This is the spot';
+  okBtn.disabled=true;
+  // The address of wherever the pin currently sits, so they can read it back
+  // and see it is their street before they commit to it.
+  const addr=document.createElement('div');addr.className='pmaddr';addr.hidden=true;
+  bar.append(hint,locBtn,okBtn);
+  wrap.append(el,addr,bar);
+  convo.appendChild(wrap);convoScroll();
+
+  if(!window.L){
+    hint.textContent='The map could not load — just type your address instead.';
+    locBtn.remove();okBtn.remove();
+    return;
+  }
+  const KOCHI=[9.9312,76.2673];
+  const map=L.map(el,{zoomControl:true,attributionControl:false}).setView(KOCHI,13);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19}).addTo(map);
+  const icon=L.divIcon({className:'',iconSize:[34,34],iconAnchor:[17,30],
+    html:'<div style="font-size:28px;line-height:1;filter:drop-shadow(0 2px 3px rgba(0,0,0,.35))">📍</div>'});
+  const marker=L.marker(KOCHI,{draggable:true,icon}).addTo(map);
+  let pin=null, placeName='', lookup=null, lookupSeq=0;
+
+  /* Nominatim asks politely for no more than one call a second, and a drag
+     fires dozens of moves, so the lookup waits for the pin to settle. */
+  function describe(lat,lng){
+    const mine=++lookupSeq;
+    clearTimeout(lookup);
+    addr.hidden=false;
+    addr.textContent='Looking up this spot…';
+    lookup=setTimeout(async()=>{
+      try{
+        const r=await fetch('https://nominatim.openstreetmap.org/reverse?format=jsonv2&zoom=18&lat='+lat+'&lon='+lng,
+                            {headers:{'Accept-Language':'en'}});
+        const d=await r.json();
+        if(mine!==lookupSeq)return;              // the pin moved again; this answer is stale
+        placeName=(d.display_name||'').split(',').slice(0,4).join(',').trim();
+        addr.textContent=placeName||'Pin set — we could not name this spot, but the location is exact.';
+      }catch(e){
+        if(mine!==lookupSeq)return;
+        placeName='';
+        addr.textContent='Pin set — we could not look up the name, but the location is exact.';
+      }
+    },700);
+  }
+
+  function setPin(lat,lng){
+    pin={lat,lng};
+    marker.setLatLng([lat,lng]);
+    map.setView([lat,lng],Math.max(map.getZoom(),16));
+    okBtn.disabled=false;
+    hint.textContent='✓ Drag the pin if this is not quite your door.';
+    describe(lat,lng);
+  }
+  marker.on('dragend',()=>{const p=marker.getLatLng();setPin(p.lat,p.lng);});
+  map.on('click',e=>setPin(e.latlng.lat,e.latlng.lng));
+
+  locBtn.onclick=()=>{
+    if(!navigator.geolocation){hint.textContent='Your browser will not share a location — drag the pin instead.';return;}
+    hint.textContent='Finding you…';
+    navigator.geolocation.getCurrentPosition(
+      p=>setPin(p.coords.latitude,p.coords.longitude),
+      ()=>{hint.textContent='Could not get your location — drag the pin to your door.';},
+      {enableHighAccuracy:true,timeout:12000,maximumAge:60000});
+  };
+  // A permission already granted means we can place it without being asked.
+  if(navigator.permissions){
+    navigator.permissions.query({name:'geolocation'})
+      .then(r=>{if(r.state==='granted')locBtn.click();}).catch(()=>{});
+  }
+
+  okBtn.onclick=()=>{
+    if(!pin)return;
+    pickedLocation={lat:pin.lat,lng:pin.lng,address:placeName};
+    known.address=placeName||known.address;memSave();
+    // The map stays, with the address under it, so they can see afterwards
+    // exactly what they agreed to — the buttons are what goes.
+    bar.remove();
+    addr.hidden=false;
+    addr.className='pmaddr done';
+    addr.textContent='📍 '+(placeName||'Location set');
+    map.dragging.disable();map.scrollWheelZoom.disable();map.doubleClickZoom.disable();
+    marker.dragging.disable();map.off('click');
+    chatSend(placeName?('My location: '+placeName):'I have dropped the pin on my location.');
+  };
+}
+
+/* ── "Right away" deserves something to watch ────────────────────────────────
+ * No provider has a GPS feed, so this does not pretend to be live tracking. It
+ * shows the people being asked, pinned where they actually work, and keeps
+ * asking the server until one takes the job — then that pin turns green, their
+ * name and number appear, and the line underneath says the time they agreed.
+ * While nobody has taken it, it says exactly that rather than running a
+ * reassuring animation over nothing. */
+function showMap(card){
+  const wrap=document.createElement('div');wrap.className='jobmap';
+  const el=document.createElement('div');el.className='mapc';
+  const foot=document.createElement('div');foot.className='mapfoot';
+  foot.innerHTML='<span class="live"></span>Asking the nearest people now…';
+  wrap.appendChild(el);wrap.appendChild(foot);
+  convo.appendChild(wrap);convoScroll();
+  if(!window.L){foot.textContent='Your job is in. We will message you as soon as somebody takes it.';return;}
+  const map=L.map(el,{zoomControl:false,attributionControl:false}).setView([9.9312,76.2673],12);
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(map);
+  let pins=[],stop=false,tries=0;
+  const dot=c=>L.divIcon({className:'',iconSize:[16,16],
+    html:'<div style="width:16px;height:16px;border-radius:50%;background:'+c+';border:2.5px solid #fff;box-shadow:0 1px 5px rgba(0,0,0,.4)"></div>'});
+  function draw(d){
+    pins.forEach(p=>map.removeLayer(p));pins=[];
+    const pts=[];
+    (d.nearby||[]).forEach(p=>{
+      if(p.lat==null||p.lng==null)return;
+      const m=L.marker([p.lat,p.lng],{icon:dot(p.accepted?'#1A6E5E':'#94A3B8')}).addTo(map);
+      m.bindPopup(p.name+(p.accepted?' — taking your job':''));
+      pins.push(m);pts.push([p.lat,p.lng]);
+    });
+    if(pts.length)map.fitBounds(pts,{padding:[30,30],maxZoom:14});
+    if(d.provider){
+      stop=true;
+      let when='';
+      if(d.agreedAt){
+        when=' — arriving around '+new Date(d.agreedAt).toLocaleTimeString('en-IN',{hour:'numeric',minute:'2-digit'});
+      }else if(d.etaMinutes){ when=' — about '+d.etaMinutes+' minutes away'; }
+      foot.textContent='';
+      const b=document.createElement('b');b.textContent=d.provider.name;
+      foot.appendChild(document.createTextNode('✅ '));
+      foot.appendChild(b);
+      foot.appendChild(document.createTextNode(when+(d.provider.phone?' · '+d.provider.phone:'')));
+      if(voiceMode)speakNow(d.provider.name+' has taken your job'+when.replace('—','')+'.');
+    }else{
+      foot.innerHTML='<span class="live"></span>Asking '+((d.nearby||[]).length||'the nearest')+' people near you… nobody has taken it yet.';
+    }
+  }
+  function poll(){
+    if(stop)return;
+    // Every 6s for ten minutes; after that a page left open is just making
+    // requests nobody is reading.
+    if(++tries>100){foot.textContent='Still looking. We will message you the moment somebody takes it.';return;}
+    fetch('/api/booking/status?id='+encodeURIComponent(card.bookingId))
+      .then(r=>r.ok?r.json():null).then(d=>{if(d)draw(d);}).catch(()=>{})
+      .then(()=>{if(!stop)setTimeout(poll,6000);});
+  }
+  poll();
+}
+
+/* ── Paying, in the same box ─────────────────────────────────────────────────
+ * book_job has already opened a Razorpay order, and the server sends it here as
+ * a card rather than putting a link in the reply, so the sheet opens over the
+ * conversation and nobody is sent anywhere to finish. */
+function showPayButton(card){
+  const row=document.createElement('div');row.className='msgrow';
+  const b=document.createElement('button');b.className='pay';
+  b.textContent=card.label||'Pay now';
+  b.onclick=()=>payNow(card,b);
+  row.appendChild(b);convo.appendChild(row);convoScroll();
+}
+function payNow(card,btn){
+  if(!window.Razorpay){const m=say('her','The payment window could not load. Check your connection and press Pay again.');m.className='msg err';return;}
+  if(voiceMode)endVoice('');
+  btn.disabled=true;
+  const rz=new window.Razorpay({
+    key:card.key,order_id:card.orderId,amount:card.amount,currency:card.currency||'INR',
+    name:'WeAid',description:card.description||'Booking',prefill:card.prefill||{},theme:{color:'#1A6E5E'},
+    handler:resp=>{
+      btn.textContent='Checking…';
+      fetch('/api/booking/verify-razorpay',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({bookingId:card.bookingId,razorpay_order_id:resp.razorpay_order_id,
+          razorpay_payment_id:resp.razorpay_payment_id,razorpay_signature:resp.razorpay_signature})})
+        .then(r=>r.json().then(d=>({ok:r.ok,d})))
+        .then(o=>{
+          if(!o.ok)throw new Error(o.d.error||'We could not confirm the payment.');
+          btn.textContent='Paid';
+          say('her','Paid, and you are booked. The job has gone out to providers nearby and you will get a message as soon as one takes it.');
+        })
+        .catch(e=>{
+          // The money may well have left. Say so honestly, and do not offer a
+          // second Pay button that could take it twice.
+          btn.textContent='Paid — confirming';
+          const m=say('her',e.message+' If it was debited, do not pay again — we can see it at our end and will confirm shortly.');
+          m.className='msg err';
+        });
+    },
+    modal:{ondismiss:()=>{btn.disabled=false;}}
+  });
+  rz.on('payment.failed',()=>{btn.disabled=false;const m=say('her','That payment did not go through. Nothing has been charged — press Pay to try again.');m.className='msg err';});
+  rz.open();
+}
+
+/* ── Wiring ──────────────────────────────────────────────────────────────── */
 srcBox.addEventListener('input',e=>{
+  if(talking){srcResults.classList.remove('on');return;}
   const q=e.target.value.trim().toLowerCase();
   if(q.length<2){srcResults.classList.remove('on');return;}
   const emoji={electrical:'⚡',plumbing:'🔧',cleaning:'🧹',ac:'❄️',carpentry:'🪑',renovation:'🏗️',pickup:'🚗',caretaking:'🏡',haircut:'💇',barber:'💈',nails:'💅',makeup:'💄',facial:'✨',waxing:'🪒',mehendi:'🎨',massage:'💆',physio:'🩺',trainer:'🏋️',yoga:'🧘',eldercare:'👵',babysit:'👶',pet_grooming:'🐕',pet_walking:'🐾'};
-  const matches=Object.keys(SVC_LABELS).filter(id=>SVC_LABELS[id].toLowerCase().includes(q)||id.includes(q)).slice(0,6);
-  if(!matches.length){srcResults.classList.remove('on');return;}
+  const matches=Object.keys(SVC_LABELS).filter(id=>SVC_LABELS[id].toLowerCase().includes(q)||id.includes(q)).slice(0,5);
+  // Always first: describing it in your own words beats picking a category.
+  const ask=document.createElement('div');
+  ask.className='sr-item';
+  ask.innerHTML='<div class="sr-ico">💬</div><div class="sr-name"></div><div class="sr-price">Ask</div>';
+  ask.querySelector('.sr-name').textContent='Tell us: "'+e.target.value.trim()+'"';
+  ask.onclick=()=>chatSend(srcBox.value);
   srcResults.innerHTML=matches.map(id=>`<div class="sr-item" onclick="srcBox.blur();openSheet('${id}')"><div class="sr-ico">${emoji[id]||'🔧'}</div><div class="sr-name">${SVC_LABELS[id]}</div><div class="sr-price">From ₹${BASES[id]}</div></div>`).join('');
+  srcResults.prepend(ask);
   srcResults.classList.add('on');
 });
+srcBox.addEventListener('keydown',e=>{
+  if(e.key==='Enter'){e.preventDefault();srcResults.classList.remove('on');chatSend(srcBox.value);}
+});
+// Typing means they would rather type than be listened to.
+srcBox.addEventListener('input',()=>{if(voiceMode&&srcBox.value)endVoice('');});
 document.addEventListener('click',e=>{if(!e.target.closest('.search'))srcResults.classList.remove('on');});
+// A question in the URL (an ad, a shared link) opens the conversation on arrival.
+const seedQ=new URLSearchParams(location.search).get('q');
+if(seedQ)chatSend(seedQ);
 
 // ── STICKY CTA ──
 window.addEventListener('scroll',()=>{
@@ -638,5 +1413,14 @@ if('serviceWorker' in navigator)window.addEventListener('load',()=>navigator.ser
 // Load Supabase for auth check in sheet
 const s=document.createElement('script');s.src='https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2';document.head.appendChild(s);
 </script>
+
+<!-- Popular searches: links Google follows to the area pages (/kochi/...). -->
+<section style="max-width:1100px;margin:40px auto 0;padding:0 16px 110px;font-family:inherit">
+  <h3 style="font-size:16px;margin:0 0 10px">Popular searches in Kochi</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px;line-height:1.8">
+    <a href="/kochi/electricians">Electricians in Kochi</a> <a href="/kochi/plumbers">Plumbers in Kochi</a> <a href="/kochi/ac-repair">AC repair in Kochi</a> <a href="/kochi/cleaning-services">Cleaning services in Kochi</a> <a href="/kochi/packers-and-movers">Packers &amp; movers in Kochi</a>
+    <a href="/kochi/electricians/fort-kochi">Electricians in Fort Kochi</a> <a href="/kochi/electricians/mattancherry">Electricians in Mattancherry</a> <a href="/kochi/electricians/ernakulam-north">Electricians in Ernakulam North</a> <a href="/kochi/electricians/ernakulam-south">Electricians in Ernakulam South</a> <a href="/kochi/electricians/kakkanad">Electricians in Kakkanad</a> <a href="/kochi/electricians/edappally">Electricians in Edappally</a> <a href="/kochi/electricians/palarivattom">Electricians in Palarivattom</a> <a href="/kochi/electricians/vyttila">Electricians in Vyttila</a> <a href="/kochi/electricians/kaloor">Electricians in Kaloor</a> <a href="/kochi/electricians/panampilly-nagar">Electricians in Panampilly Nagar</a> <a href="/kochi/electricians/thevara">Electricians in Thevara</a> <a href="/kochi/electricians/thripunithura">Electricians in Thripunithura</a> <a href="/kochi/electricians/aluva">Electricians in Aluva</a> <a href="/kochi/electricians/angamaly">Electricians in Angamaly</a> <a href="/kochi/electricians/perumbavoor">Electricians in Perumbavoor</a> <a href="/kochi/electricians/muvattupuzha">Electricians in Muvattupuzha</a> <a href="/kochi/electricians/kothamangalam">Electricians in Kothamangalam</a> <a href="/kochi/electricians/north-paravur">Electricians in North Paravur</a> <a href="/kochi/electricians/thrikkakara">Electricians in Thrikkakara</a> <a href="/kochi/electricians/maradu">Electricians in Maradu</a> <a href="/kochi/electricians/cheranallur">Electricians in Cheranallur</a> <a href="/kochi/electricians/vypin">Electricians in Vypin</a> <a href="/kochi/electricians/kumbalangi">Electricians in Kumbalangi</a> <a href="/kochi/electricians/chottanikkara">Electricians in Chottanikkara</a> <a href="/kochi/electricians/piravom">Electricians in Piravom</a> <a href="/kochi/electricians/kalamassery">Electricians in Kalamassery</a> <a href="/kochi/plumbers/fort-kochi">Plumbers in Fort Kochi</a> <a href="/kochi/plumbers/mattancherry">Plumbers in Mattancherry</a> <a href="/kochi/plumbers/ernakulam-north">Plumbers in Ernakulam North</a> <a href="/kochi/plumbers/kakkanad">Plumbers in Kakkanad</a> <a href="/kochi/plumbers/edappally">Plumbers in Edappally</a> <a href="/kochi/plumbers/palarivattom">Plumbers in Palarivattom</a> <a href="/kochi/plumbers/vyttila">Plumbers in Vyttila</a> <a href="/kochi/plumbers/panampilly-nagar">Plumbers in Panampilly Nagar</a> <a href="/kochi/plumbers/thripunithura">Plumbers in Thripunithura</a> <a href="/kochi/plumbers/aluva">Plumbers in Aluva</a> <a href="/kochi/plumbers/muvattupuzha">Plumbers in Muvattupuzha</a> <a href="/kochi/plumbers/kothamangalam">Plumbers in Kothamangalam</a> <a href="/kochi/plumbers/north-paravur">Plumbers in North Paravur</a> <a href="/kochi/plumbers/thrikkakara">Plumbers in Thrikkakara</a> <a href="/kochi/plumbers/cheranallur">Plumbers in Cheranallur</a> <a href="/kochi/plumbers/vypin">Plumbers in Vypin</a> <a href="/kochi/plumbers/kumbalangi">Plumbers in Kumbalangi</a> <a href="/kochi/plumbers/chottanikkara">Plumbers in Chottanikkara</a> <a href="/kochi/plumbers/nedumbassery">Plumbers in Nedumbassery</a> <a href="/kochi/ac-repair/fort-kochi">AC repair in Fort Kochi</a> <a href="/kochi/ac-repair/ernakulam-north">AC repair in Ernakulam North</a> <a href="/kochi/ac-repair/ernakulam-south">AC repair in Ernakulam South</a> <a href="/kochi/ac-repair/kakkanad">AC repair in Kakkanad</a> <a href="/kochi/ac-repair/palarivattom">AC repair in Palarivattom</a> <a href="/kochi/ac-repair/vyttila">AC repair in Vyttila</a> <a href="/kochi/ac-repair/panampilly-nagar">AC repair in Panampilly Nagar</a> <a href="/kochi/ac-repair/thripunithura">AC repair in Thripunithura</a> <a href="/kochi/ac-repair/aluva">AC repair in Aluva</a> <a href="/kochi/ac-repair/angamaly">AC repair in Angamaly</a> <a href="/kochi/ac-repair/muvattupuzha">AC repair in Muvattupuzha</a> <a href="/kochi/ac-repair/kothamangalam">AC repair in Kothamangalam</a> <a href="/kochi/ac-repair/north-paravur">AC repair in North Paravur</a> <a href="/kochi/ac-repair/maradu">AC repair in Maradu</a> <a href="/kochi/ac-repair/cheranallur">AC repair in Cheranallur</a> <a href="/kochi/ac-repair/kumbalangi">AC repair in Kumbalangi</a> <a href="/kochi/ac-repair/kalamassery">AC repair in Kalamassery</a> <a href="/kochi/cleaning-services/fort-kochi">Cleaning in Fort Kochi</a> <a href="/kochi/cleaning-services/mattancherry">Cleaning in Mattancherry</a> <a href="/kochi/cleaning-services/ernakulam-south">Cleaning in Ernakulam South</a> <a href="/kochi/cleaning-services/kakkanad">Cleaning in Kakkanad</a> <a href="/kochi/cleaning-services/edappally">Cleaning in Edappally</a> <a href="/kochi/cleaning-services/kaloor">Cleaning in Kaloor</a> <a href="/kochi/cleaning-services/panampilly-nagar">Cleaning in Panampilly Nagar</a> <a href="/kochi/cleaning-services/aluva">Cleaning in Aluva</a> <a href="/kochi/cleaning-services/muvattupuzha">Cleaning in Muvattupuzha</a> <a href="/kochi/cleaning-services/north-paravur">Cleaning in North Paravur</a> <a href="/kochi/cleaning-services/thrikkakara">Cleaning in Thrikkakara</a> <a href="/kochi/cleaning-services/kalamassery">Cleaning in Kalamassery</a> <a href="/kochi/packers-and-movers/fort-kochi">Packers & movers in Fort Kochi</a> <a href="/kochi/packers-and-movers/mattancherry">Packers & movers in Mattancherry</a> <a href="/kochi/packers-and-movers/ernakulam-north">Packers & movers in Ernakulam North</a> <a href="/kochi/packers-and-movers/kakkanad">Packers & movers in Kakkanad</a> <a href="/kochi/packers-and-movers/aluva">Packers & movers in Aluva</a> <a href="/kochi/packers-and-movers/muvattupuzha">Packers & movers in Muvattupuzha</a>
+  </div>
+</section>
 </body>
 </html>

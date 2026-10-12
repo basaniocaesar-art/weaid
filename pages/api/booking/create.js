@@ -3,6 +3,7 @@ import { insertBooking } from "../../../lib/supabase.js";
 import { createOrder, razorpayKeyId } from "../../../lib/razorpay.js";
 import { createCheckoutSession } from "../../../lib/stripe.js";
 import { lookupAffiliateByRefCode } from "../../../lib/affiliate.js";
+import { alertTeamBooking } from "../../../lib/followup.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -10,7 +11,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { service, city, scope, slot, customer, gateway = "razorpay", refCode, scheduledAt, timingMode, lat, lng, description, address, workers } = req.body;
+    const { service, city, scope, slot, customer, gateway = "razorpay", refCode, scheduledAt, timingMode, lat, lng, description, address, workers, sqft, days, hours, months } = req.body;
 
     if (!service || !city || !scope || !customer) {
       return res.status(400).json({ error: "Missing required fields: service, city, scope, customer" });
@@ -19,7 +20,9 @@ export default async function handler(req, res) {
     const nWorkers = Math.max(1, Number(workers) || 1);
 
     // 1. Calculate price
-    const price = calculatePrice({ service, city, scope, slot, workers: nWorkers });
+    const pos = (v) => (Number(v) > 0 ? Number(v) : undefined);
+    // Same size inputs the quote used, or the charge silently falls to the minimum.
+    const price = calculatePrice({ service, city, scope, slot, workers: nWorkers, sqft: pos(sqft), days: pos(days), hours: pos(hours), months: pos(months) });
 
     // 2. Look up affiliate if ref code provided
     let affiliateId = null;
@@ -42,6 +45,17 @@ export default async function handler(req, res) {
       platform_fee: price.platformFee,
       total: price.total,
       commission: price.commission,
+      /*
+       * The two columns an older schema still insists on.
+       *
+       * `amount` and `commission_pct` predate `total` and `commission` and are
+       * NOT NULL, so every insert failed on them even after the missing columns
+       * were added. Rather than relax the constraints and leave two money
+       * columns permanently null, they are written with the same figures — one
+       * place to change if the old columns are ever dropped.
+       */
+      amount: Math.round(price.total),
+      commission_pct: price.subtotal > 0 ? Number((price.commission / price.subtotal).toFixed(4)) : 0,
       provider_earnings: price.providerEarnings,
       payment_gateway: gateway,
       ref_code: refCode || null,
@@ -56,19 +70,36 @@ export default async function handler(req, res) {
       status: "pending_payment",
     });
 
-    // 3. Create payment session based on chosen gateway
-    let payment;
+    /*
+     * 4. Open a payment session — but never at the cost of the booking.
+     *
+     * The row above is already written. This used to throw straight out of the
+     * handler when a gateway key was missing or the gateway was down, so the
+     * caller got a 500 and never learned the booking id: a customer who had
+     * given their name, number and address vanished, and nobody could ring
+     * them back. Now the booking is always returned and payment is reported as
+     * unavailable, which is something the concierge and the ops screen can
+     * both act on.
+     */
+    await alertTeamBooking(booking, "new");
 
-    if (gateway === "stripe") {
-      const session = await createCheckoutSession({
-        amount: price.total,
-        bookingId: booking.id,
-        customerEmail: customer.email,
-      });
-      payment = { gateway: "stripe", sessionId: session.id, url: session.url };
-    } else {
-      const order = await createOrder(price.total, `booking_${booking.id}`, { booking_id: booking.id });
-      payment = { gateway: "razorpay", orderId: order.id, key: razorpayKeyId, amount: order.amount, currency: order.currency };
+    let payment = null;
+    let paymentError = null;
+    try {
+      if (gateway === "stripe") {
+        const session = await createCheckoutSession({
+          amount: price.total,
+          bookingId: booking.id,
+          customerEmail: customer.email,
+        });
+        payment = { gateway: "stripe", sessionId: session.id, url: session.url };
+      } else {
+        const order = await createOrder(price.total, `booking_${booking.id}`, { booking_id: booking.id });
+        payment = { gateway: "razorpay", orderId: order.id, key: razorpayKeyId, amount: order.amount, currency: order.currency };
+      }
+    } catch (err) {
+      console.error("[booking/create] payment session failed", booking.id, err.message);
+      paymentError = "payment_unavailable";
     }
 
     return res.status(201).json({
@@ -76,6 +107,7 @@ export default async function handler(req, res) {
       amount: price.total,
       breakdown: price,
       payment,
+      ...(paymentError && { paymentError }),
     });
   } catch (err) {
     console.error("[booking/create]", err);

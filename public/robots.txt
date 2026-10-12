@@ -1,0 +1,17 @@
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /dashboard-pro
+Disallow: /provider
+Disallow: /affiliate
+
+# Not launched (legal review pending: permits / aggregator licence)
+Disallow: /ride
+Disallow: /carpool
+Disallow: /carpool-drive
+Disallow: /courier
+Disallow: /food
+
+Sitemap: https://weaid.in/sitemap.xml

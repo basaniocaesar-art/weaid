@@ -36,6 +36,9 @@
 @media(min-width:1360px){.grid{grid-template-columns:repeat(4,1fr);gap:20px;}}
 @media(min-width:900px){.pcard{padding:24px;}.c-top .avatar{width:64px;height:64px;font-size:1.6rem;}.c-name{font-size:19px;}#availMap{height:280px;}}
 
+.arrange{max-width:560px;margin:10px auto 0;text-align:center;padding:26px 20px 30px;}
+.arrange h3{font-size:1.25rem;font-weight:800;letter-spacing:-0.01em;margin:0 0 8px;color:var(--ink);}
+.arrange p{color:var(--muted,#565D6D);margin:0 0 18px;line-height:1.55;}
 .pcard{position:relative;display:flex;flex-direction:column;gap:12px;}
 .pcard.feat{border-color:#F0C24B;box-shadow:0 -3px 0 var(--gold) inset,var(--shadow-sm);}
 .pcard .topbadge{position:absolute;top:16px;right:16px;}
@@ -133,7 +136,24 @@
 
 <div class="results">
   <div class="res-meta" id="resMeta"></div>
-  <div class="grid" id="grid"></div>
+  <!--
+    No business cards.
+
+    This used to list every match with its name, its full street address and a
+    WhatsApp button. Most of those are businesses we imported from public map
+    listings: they never agreed to be a lead list, and handing out 645 phone
+    numbers to anyone who loaded the page is not ours to do. It also put the
+    work on the customer — pick a name off a grid, ring round, haggle — which
+    is exactly what WeAid is meant to take off them.
+
+    So the page now answers one question: is there anybody near me who does
+    this? The pins say yes. Arranging it is our job, not theirs.
+  -->
+  <div id="arrange" class="arrange" hidden>
+    <h3 id="arrangeHead"></h3>
+    <p id="arrangeSub"></p>
+    <a class="btn btn-primary btn-pill" id="arrangeCta" href="/">Tell us what you need →</a>
+  </div>
 </div>
 
 <script>
@@ -243,32 +263,51 @@ function renderAvail(list){
   const wrap=document.getElementById('availWrap');
   if(!(locPicked&&userLat!=null&&userLng!=null&&window.L)){wrap.style.display='none';return;}
   wrap.style.display='block';
-  document.getElementById('availCount').innerHTML=`<span class="avail-dot"></span> ${list.length} pro${list.length!==1?'s':''} available near you now`;
-  const withDist=list.filter(p=>p.distanceKm!=null);
+
+  /*
+   * Only the ones actually near them.
+   *
+   * The search returns the whole city sorted by distance, so a stray listing
+   * 100 km away was being pinned and fitBounds then zoomed out far enough to
+   * show Lakshadweep and Jaffna with the real pins as one dot. Twenty-five
+   * within 25 km is a map of your neighbourhood, which is the question being
+   * asked.
+   */
+  const near=list.filter(p=>p.distanceKm!=null&&p.distanceKm<=25).slice(0,25);
+  const n=near.length;
+  document.getElementById('availCount').innerHTML=
+    '<span class="avail-dot"></span> '+(n?n+' pro'+(n!==1?'s':'')+' near you right now':'Nobody listed this close yet');
+
   setTimeout(()=>{
     if(availMap){availMap.remove();availMap=null;}
     availMap=L.map('availMap',{zoomControl:false,scrollWheelZoom:false,attributionControl:false}).setView([userLat,userLng],13);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:18}).addTo(availMap);
-    L.circleMarker([userLat,userLng],{radius:8,color:'#14171F',weight:3,fillColor:'#fff',fillOpacity:1}).addTo(availMap).bindTooltip('You',{permanent:false});
-    let maxD=1;
-    withDist.forEach((p,i)=>{
-      const br=(i*2.399963); // golden-angle spread, deterministic
-      const d=p.distanceKm||0.5; maxD=Math.max(maxD,d);
+    L.circleMarker([userLat,userLng],{radius:8,color:'#14171F',weight:3,fillColor:'#fff',fillOpacity:1}).addTo(availMap).bindTooltip('You');
+    const pts=[[userLat,userLng]];
+    near.forEach((p,i)=>{
+      // Real distance, pseudo-random bearing: the spread is honest, the
+      // doorstep is not given away. Nothing is named — a pin says somebody is
+      // there, which is all anybody needs before we arrange it for them.
+      // Golden angle for the bearing, and a deterministic wobble on the radius:
+      // without it, pros who are all 2-3 km away land on one perfect circle,
+      // which looks invented rather than like a neighbourhood.
+      const br=i*2.399963, jitter=0.72+((Math.sin(i*12.9898)*43758.5453)%1+1)%1*0.5;
+      const d=(p.distanceKm||0.5)*jitter;
       const lat=userLat+(d/111)*Math.cos(br);
       const lng=userLng+(d/(111*Math.cos(userLat*Math.PI/180)))*Math.sin(br);
-      L.circleMarker([lat,lng],{radius:6,color:'#0E9488',weight:2,fillColor:'#0E9488',fillOpacity:.85}).addTo(availMap).bindTooltip(p.featured?'★ '+esc(p.name):esc(p.name));
+      L.circleMarker([lat,lng],{radius:6,color:'#0E9488',weight:2,fillColor:'#0E9488',fillOpacity:.85}).addTo(availMap);
+      pts.push([lat,lng]);
     });
-    try{availMap.fitBounds(L.latLngBounds([[userLat,userLng]].concat(withDist.map((p,i)=>{const br=i*2.399963,d=p.distanceKm||0.5;return [userLat+(d/111)*Math.cos(br),userLng+(d/(111*Math.cos(userLat*Math.PI/180)))*Math.sin(br)];}))).pad(0.3));}catch(e){}
+    try{ availMap.fitBounds(L.latLngBounds(pts).pad(0.3),{maxZoom:14}); }catch(e){}
   },60);
 }
 
 async function runSearch(){
   const service=document.getElementById('fService').value;
   const city=document.getElementById('fCity').value.trim();
-  const grid=document.getElementById('grid');
   const meta=document.getElementById('resMeta');
   meta.textContent='';
-  grid.innerHTML=skeletons(6);
+  meta.textContent='Looking…';
   const params=new URLSearchParams();
   if(service)params.set('service',service);
   // Precise location (detected or picked) → sort by nearest across all pros.
@@ -280,19 +319,37 @@ async function runSearch(){
     const d=await r.json();
     if(!r.ok)throw new Error(d.error||'Search failed');
     const list=d.providers||[];
+    const label=service?(SVC_LABEL[service]||service).toLowerCase():'this';
     if(!list.length){
       meta.textContent='';
       document.getElementById('availWrap').style.display='none';
-      grid.innerHTML=`<div class="empty"><div class="emo">🔍</div><div style="font-size:17px;color:var(--ink);font-weight:600;margin-bottom:6px">No pros here yet</div>Be the first to list in ${city?esc(city):'your area'}.<br><br><a href="/list-business" class="btn btn-primary btn-pill">List your business free →</a></div>`;
+      arrange(`Nobody is listed for ${esc(label)} here yet`,
+              `Tell us what you need anyway — we will ring round and come back to you.`);
       return;
     }
-    meta.innerHTML=`${d.count} pro${d.count>1?'s':''} <span>${city?'in '+esc(city):'available'}</span>`;
-    grid.innerHTML=list.map(card).join("");
+    meta.textContent='';
     renderAvail(list);
+    arrange(`Yes — there are people for ${esc(label)} near you`,
+            `You do not have to pick one or chase anybody. Tell us what needs doing and when, and we arrange it, agree the price and confirm the time.`);
   }catch(e){
     meta.textContent='';
-    grid.innerHTML=`<div class="empty"><div class="emo">⚠️</div>${esc(e.message)}</div>`;
+    document.getElementById('availWrap').style.display='none';
+    arrange('We could not search just now', esc(e.message)+' Tell us what you need and we will sort it by hand.');
   }
+}
+
+/** The one thing this page asks of anybody: let us do it for you. */
+function arrange(head, sub){
+  const box=document.getElementById('arrange');
+  document.getElementById('arrangeHead').textContent=head;
+  document.getElementById('arrangeSub').textContent=sub;
+  const svc=document.getElementById('fService').value;
+  const where=document.getElementById('fCity').value.trim();
+  // Carry what they already told us into the conversation, so the first thing
+  // she says is about their job rather than asking it all again.
+  const q=[svc?(SVC_LABEL[svc]||svc):'',where?('in '+where):''].filter(Boolean).join(' ');
+  document.getElementById('arrangeCta').href='/'+(q?'?q='+encodeURIComponent('I need '+q):'');
+  box.hidden=false;
 }
 
 (function(){
@@ -307,5 +364,14 @@ async function runSearch(){
   else autoDetect(false);                                       // Uber-style: auto-detect on arrival
 })();
 </script>
+
+<!-- Popular searches: links Google follows to the area pages (/kochi/...). -->
+<section style="max-width:1100px;margin:40px auto 0;padding:0 16px 110px;font-family:inherit">
+  <h3 style="font-size:16px;margin:0 0 10px">Popular searches in Kochi</h3>
+  <div style="display:flex;flex-wrap:wrap;gap:6px 14px;font-size:13.5px;line-height:1.8">
+    <a href="/kochi/electricians">Electricians in Kochi</a> <a href="/kochi/plumbers">Plumbers in Kochi</a> <a href="/kochi/ac-repair">AC repair in Kochi</a> <a href="/kochi/cleaning-services">Cleaning services in Kochi</a> <a href="/kochi/packers-and-movers">Packers &amp; movers in Kochi</a>
+    <a href="/kochi/electricians/fort-kochi">Electricians in Fort Kochi</a> <a href="/kochi/electricians/mattancherry">Electricians in Mattancherry</a> <a href="/kochi/electricians/ernakulam-north">Electricians in Ernakulam North</a> <a href="/kochi/electricians/ernakulam-south">Electricians in Ernakulam South</a> <a href="/kochi/electricians/kakkanad">Electricians in Kakkanad</a> <a href="/kochi/electricians/edappally">Electricians in Edappally</a> <a href="/kochi/electricians/palarivattom">Electricians in Palarivattom</a> <a href="/kochi/electricians/vyttila">Electricians in Vyttila</a> <a href="/kochi/electricians/kaloor">Electricians in Kaloor</a> <a href="/kochi/electricians/panampilly-nagar">Electricians in Panampilly Nagar</a> <a href="/kochi/electricians/thevara">Electricians in Thevara</a> <a href="/kochi/electricians/thripunithura">Electricians in Thripunithura</a> <a href="/kochi/electricians/aluva">Electricians in Aluva</a> <a href="/kochi/electricians/angamaly">Electricians in Angamaly</a> <a href="/kochi/electricians/perumbavoor">Electricians in Perumbavoor</a> <a href="/kochi/electricians/muvattupuzha">Electricians in Muvattupuzha</a> <a href="/kochi/electricians/kothamangalam">Electricians in Kothamangalam</a> <a href="/kochi/electricians/north-paravur">Electricians in North Paravur</a> <a href="/kochi/electricians/thrikkakara">Electricians in Thrikkakara</a> <a href="/kochi/electricians/maradu">Electricians in Maradu</a> <a href="/kochi/electricians/cheranallur">Electricians in Cheranallur</a> <a href="/kochi/electricians/vypin">Electricians in Vypin</a> <a href="/kochi/electricians/kumbalangi">Electricians in Kumbalangi</a> <a href="/kochi/electricians/chottanikkara">Electricians in Chottanikkara</a> <a href="/kochi/electricians/piravom">Electricians in Piravom</a> <a href="/kochi/electricians/kalamassery">Electricians in Kalamassery</a> <a href="/kochi/plumbers/fort-kochi">Plumbers in Fort Kochi</a> <a href="/kochi/plumbers/mattancherry">Plumbers in Mattancherry</a> <a href="/kochi/plumbers/ernakulam-north">Plumbers in Ernakulam North</a> <a href="/kochi/plumbers/kakkanad">Plumbers in Kakkanad</a> <a href="/kochi/plumbers/edappally">Plumbers in Edappally</a> <a href="/kochi/plumbers/palarivattom">Plumbers in Palarivattom</a> <a href="/kochi/plumbers/vyttila">Plumbers in Vyttila</a> <a href="/kochi/plumbers/panampilly-nagar">Plumbers in Panampilly Nagar</a> <a href="/kochi/plumbers/thripunithura">Plumbers in Thripunithura</a> <a href="/kochi/plumbers/aluva">Plumbers in Aluva</a> <a href="/kochi/plumbers/muvattupuzha">Plumbers in Muvattupuzha</a> <a href="/kochi/plumbers/kothamangalam">Plumbers in Kothamangalam</a> <a href="/kochi/plumbers/north-paravur">Plumbers in North Paravur</a> <a href="/kochi/plumbers/thrikkakara">Plumbers in Thrikkakara</a> <a href="/kochi/plumbers/cheranallur">Plumbers in Cheranallur</a> <a href="/kochi/plumbers/vypin">Plumbers in Vypin</a> <a href="/kochi/plumbers/kumbalangi">Plumbers in Kumbalangi</a> <a href="/kochi/plumbers/chottanikkara">Plumbers in Chottanikkara</a> <a href="/kochi/plumbers/nedumbassery">Plumbers in Nedumbassery</a> <a href="/kochi/ac-repair/fort-kochi">AC repair in Fort Kochi</a> <a href="/kochi/ac-repair/ernakulam-north">AC repair in Ernakulam North</a> <a href="/kochi/ac-repair/ernakulam-south">AC repair in Ernakulam South</a> <a href="/kochi/ac-repair/kakkanad">AC repair in Kakkanad</a> <a href="/kochi/ac-repair/palarivattom">AC repair in Palarivattom</a> <a href="/kochi/ac-repair/vyttila">AC repair in Vyttila</a> <a href="/kochi/ac-repair/panampilly-nagar">AC repair in Panampilly Nagar</a> <a href="/kochi/ac-repair/thripunithura">AC repair in Thripunithura</a> <a href="/kochi/ac-repair/aluva">AC repair in Aluva</a> <a href="/kochi/ac-repair/angamaly">AC repair in Angamaly</a> <a href="/kochi/ac-repair/muvattupuzha">AC repair in Muvattupuzha</a> <a href="/kochi/ac-repair/kothamangalam">AC repair in Kothamangalam</a> <a href="/kochi/ac-repair/north-paravur">AC repair in North Paravur</a> <a href="/kochi/ac-repair/maradu">AC repair in Maradu</a> <a href="/kochi/ac-repair/cheranallur">AC repair in Cheranallur</a> <a href="/kochi/ac-repair/kumbalangi">AC repair in Kumbalangi</a> <a href="/kochi/ac-repair/kalamassery">AC repair in Kalamassery</a> <a href="/kochi/cleaning-services/fort-kochi">Cleaning in Fort Kochi</a> <a href="/kochi/cleaning-services/mattancherry">Cleaning in Mattancherry</a> <a href="/kochi/cleaning-services/ernakulam-south">Cleaning in Ernakulam South</a> <a href="/kochi/cleaning-services/kakkanad">Cleaning in Kakkanad</a> <a href="/kochi/cleaning-services/edappally">Cleaning in Edappally</a> <a href="/kochi/cleaning-services/kaloor">Cleaning in Kaloor</a> <a href="/kochi/cleaning-services/panampilly-nagar">Cleaning in Panampilly Nagar</a> <a href="/kochi/cleaning-services/aluva">Cleaning in Aluva</a> <a href="/kochi/cleaning-services/muvattupuzha">Cleaning in Muvattupuzha</a> <a href="/kochi/cleaning-services/north-paravur">Cleaning in North Paravur</a> <a href="/kochi/cleaning-services/thrikkakara">Cleaning in Thrikkakara</a> <a href="/kochi/cleaning-services/kalamassery">Cleaning in Kalamassery</a> <a href="/kochi/packers-and-movers/fort-kochi">Packers & movers in Fort Kochi</a> <a href="/kochi/packers-and-movers/mattancherry">Packers & movers in Mattancherry</a> <a href="/kochi/packers-and-movers/ernakulam-north">Packers & movers in Ernakulam North</a> <a href="/kochi/packers-and-movers/kakkanad">Packers & movers in Kakkanad</a> <a href="/kochi/packers-and-movers/aluva">Packers & movers in Aluva</a> <a href="/kochi/packers-and-movers/muvattupuzha">Packers & movers in Muvattupuzha</a>
+  </div>
+</section>
 </body>
 </html>

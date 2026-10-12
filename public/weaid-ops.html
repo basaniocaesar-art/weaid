@@ -1,0 +1,321 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>WeAid Ops</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+:root{--orange:#f97316;--ink:#0b0f14;--mut:#5b6573;--line:#e7ebf0;--bg:#f6f8fa;--teal:#0d9488;--teal-d:#0f766e;--amber:#b45309;--red:#b91c1c}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;line-height:1.45}
+.top{background:#fff;border-bottom:1px solid var(--line);position:sticky;top:0;z-index:5}.top div{max-width:900px;margin:0 auto;padding:12px 16px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo{font-weight:800;font-size:20px}.logo b{color:var(--orange)}
+main{max-width:900px;margin:0 auto;padding:14px 16px 80px}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:12px}.tabs button{border:1.5px solid var(--line);background:#fff;border-radius:999px;padding:7px 13px;font:inherit;font-weight:700;font-size:14px;cursor:pointer}.tabs button.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+.job{background:#fff;border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px}
+.pill{display:inline-block;font-size:12px;font-weight:800;padding:3px 9px;border-radius:999px;background:#eef2f6}
+.pill.finding{background:#fef3c7;color:var(--amber)}.pill.unpaid{background:#fee2e2;color:var(--red)}.pill.quoted,.pill.scheduled,.pill.working,.pill.visiting,.pill.on_the_way,.pill.arrived{background:#ccfbf1;color:var(--teal-d)}.pill.done{background:#dcfce7;color:#166534}
+.mut{color:var(--mut);font-size:13.5px}
+.btns{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px}
+.btn{font:inherit;font-weight:700;font-size:14px;padding:9px 12px;border-radius:10px;border:1.5px solid var(--line);background:#fff;cursor:pointer;text-decoration:none;color:var(--ink)}
+.btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.wa{background:#25d366;border-color:#25d366;color:#fff}
+.panel{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
+.pro{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+input{font:inherit;padding:10px;border-radius:10px;border:1.5px solid var(--line);width:100%}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
+#login{max-width:380px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
+</style>
+</head>
+<body>
+<div class="top"><div><span class="logo"><img src="/icon-192.png" alt="" style="width:30px;height:30px;vertical-align:middle;margin-right:6px;border-radius:7px">We<b>Aid</b> Ops</span><span class="mut" id="stamp"></span></div></div>
+<div id="login" hidden>
+  <h2 style="margin:0 0 6px">WeAid Ops</h2>
+  <div class="mut">Enter your ops key (from the WeAid alert emails).</div>
+  <input id="key" type="password" style="margin-top:12px" placeholder="Ops key">
+  <button class="btn dark" style="margin-top:10px;width:100%" id="enter">Open</button>
+</div>
+<main id="app" hidden>
+  <div class="tabs" id="tabs"></div>
+  <div id="list"></div>
+</main>
+<script>
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const when = (iso) => iso ? new Date(iso).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "ASAP";
+let KEY = ""; try { KEY = localStorage.getItem("weaid_ops_key") || ""; } catch {}
+const fromHash = new URLSearchParams(location.hash.slice(1)).get("k"); if (fromHash) { KEY = fromHash; try { localStorage.setItem("weaid_ops_key", KEY); } catch {} history.replaceState(null, "", "/ops"); }
+let jobs = [], tab = "open", openPanel = null;
+const TABS = { open: "Needs action", live: "In progress", done: "Done", all: "All", issues: "Issues", pros: "Pros", jobsportal: "WeAid Jobs", carpool: "Carpool" };
+const inTab = (j) => tab === "all" || (tab === "open" ? ["unpaid", "finding", "awaiting_advance"].includes(j.stage) || (j.quote && j.stage === "done" && j.quote.money.balanceDue) : tab === "live" ? ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"].includes(j.stage) : ["done", "cancelled", "refunded"].includes(j.stage));
+
+async function api(path, body) {
+  const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", "X-Ops-Key": KEY }, body: body ? JSON.stringify(body) : undefined });
+  if (r.status === 401) { showLogin(); throw new Error("key"); }
+  const d = await r.json(); if (!r.ok) throw new Error(d.error || "failed"); return d;
+}
+function showLogin() { document.getElementById("app").hidden = true; document.getElementById("login").hidden = false; }
+document.getElementById("enter").onclick = () => { KEY = document.getElementById("key").value.trim(); try { localStorage.setItem("weaid_ops_key", KEY); } catch {} start(); };
+
+function render() {
+  const GROUP = { open: ["unpaid", "finding", "awaiting_advance"], live: ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"], done: ["done", "cancelled", "refunded"] };
+  const count = (k) => (["pros", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : jobs.filter((j) => GROUP[k].includes(j.stage)).length})`);
+  document.getElementById("tabs").innerHTML = Object.entries(TABS).map(([k, v]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${v}${count(k)}</button>`).join("");
+  document.querySelectorAll("[data-t]").forEach((b) => b.onclick = () => { tab = b.dataset.t; render(); });
+  if (tab === "pros") { renderPros(); return; }
+  if (tab === "issues") { renderIssues(); return; }
+  if (tab === "carpool") { renderCarpool(); return; }
+  if (tab === "jobsportal") { renderJobsPortal(); return; }
+  const shown = jobs.filter(inTab);
+  document.getElementById("list").innerHTML = shown.length ? shown.map(card).join("") : `<div class="mut" style="padding:30px;text-align:center">Nothing here.</div>`;
+  shown.forEach(wire);
+  document.getElementById("stamp").textContent = "Updated " + new Date().toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" });
+}
+function card(j) {
+  return `<div class="job" id="j${j.id}">
+    <div style="display:flex;justify-content:space-between;gap:10px;align-items:start">
+      <div><b style="font-size:16px">${esc((j.service || "").replace(/_/g, " "))}</b> <span class="mut">· ${esc(j.scope || "")} · ₹${Math.round(j.total || j.amount || 0)}</span>
+      <div class="mut">${esc(j.customer_name || "")} · ${esc(j.customer_phone || "")} · ${esc(when(j.scheduled_at))}</div></div>
+      <span class="pill ${j.stage}">${esc(j.words)}</span>
+    </div>
+    ${j.description ? `<div style="margin-top:6px;font-size:14px">${esc(j.description)}</div>` : ""}
+    ${j.address ? `<div class="mut" style="margin-top:4px">📍 ${esc(j.address)}</div>` : ""}
+    ${j.proof && j.proof.metres != null ? `<div class="mut" style="margin-top:4px">${j.proof.far ? `<b style="color:var(--red)">⚠️ Pro checked in ${j.proof.metres} m from the customer's pin</b>` : `📍 Checked in ${j.proof.metres} m from the pin`}</div>` : ""}
+    ${j.proof && j.proof.state !== "not_done" ? `<div style="margin-top:4px;font-size:14px">${{ confirmed: `✅ Customer confirmed · ${"★".repeat(j.proof.rating || 0)}${j.proof.comment ? ` "${esc(j.proof.comment)}"` : ""}`, auto_confirmed: "✅ Auto-confirmed (no complaint in 24 h)", disputed: '<b style="color:var(--red)">⚠️ Customer reported a problem</b>', waiting: "⏳ Waiting for customer to confirm" }[j.proof.state]} · Payout: <b>${{ ready: "ready", on_hold: "on hold", waiting: "waiting" }[j.proof.payout]}</b></div>` : ""}
+    ${j.quote ? `<div style="margin-top:6px;font-size:14px;background:#f0fdfa;border-radius:10px;padding:8px 10px">📐 <b>Quote job</b>${j.quote.q ? ` · quote ₹${j.quote.q.total.toLocaleString("en-IN")} · ${j.quote.q.days} day(s)` : " · site visit"}<br>Paid ₹${j.quote.money.paid.toLocaleString("en-IN")} (visit ₹${j.quote.money.visit}, advance ₹${j.quote.money.advance}, balance ₹${j.quote.money.balance})${j.quote.money.advanceDue && ["awaiting_advance"].includes(j.stage) ? ` · <b style="color:var(--red)">advance due ₹${j.quote.money.advanceDue}</b>` : ""}${j.quote.money.balanceDue && j.stage === "done" ? ` · <b style="color:var(--red)">balance due ₹${j.quote.money.balanceDue}</b>` : ""}</div>` : ""}
+    <div id="ph${j.id}"></div>
+    ${j.refundDue ? `<div style="margin-top:6px;font-size:14px;color:var(--red)"><b>💸 Refund due — send it by UPI, then tap "Refund sent".</b></div>` : j.refunded ? `<div class="mut" style="margin-top:6px">Refunded via Razorpay</div>` : ""}
+    ${j.provider_name ? `<div style="margin-top:6px;font-size:14px">Pro: <b>${esc(j.provider_name)}</b> ${esc(j.provider_phone || "")} · arrival code <b>${j.code}</b></div>` : ""}
+    <div class="btns">
+      ${["unpaid", "finding", "assigned"].includes(j.stage) ? `<button class="btn dark" data-a="assign">${j.provider_name ? "Change pro" : "Assign a pro"}</button>` : ""}
+      ${j.stage === "unpaid" ? `<button class="btn" data-a="paid">Mark paid (cash/UPI)</button>` : ""}
+      <a class="btn" href="${j.links.track}" target="_blank">Customer view</a>
+      ${j.provider_name ? `<a class="btn" href="${j.links.job}" target="_blank">Pro view</a>` : ""}
+      ${j.customer_phone ? `<a class="btn" href="tel:${esc(j.customer_phone)}">Call customer</a>` : ""}
+      ${!["cancelled", "refunded"].includes(j.stage) && j.stage !== "done" ? `<button class="btn" data-a="cancel">Cancel &amp; refund</button>` : ""}
+      ${j.paid_at && !["cancelled", "refunded"].includes(j.stage) ? `<button class="btn" data-a="refund">Part refund</button>` : ""}
+      ${["arrived", "done", "visiting", "quoted", "awaiting_advance", "scheduled", "working"].includes(j.stage) ? `<button class="btn" data-a="photos">📷 Photos</button>` : ""}
+      ${j.quote && j.stage === "awaiting_advance" && j.quote.money.advanceDue ? `<button class="btn dark" data-a="adv">✓ Advance received</button>` : ""}
+      ${j.quote && j.stage === "done" && j.quote.money.balanceDue ? `<button class="btn dark" data-a="bal">✓ Balance received</button>` : ""}
+      ${j.refundDue ? `<button class="btn dark" data-a="refund_sent">✓ Refund sent (UPI)</button>` : ""}
+    </div>
+    <div class="panel" id="p${j.id}" ${openPanel === j.id ? "" : "hidden"}></div>
+  </div>`;
+}
+function areaOf(j) { const p = (j.address || "").split(",").map((s) => s.trim()).filter(Boolean); return p.length > 1 ? p[p.length - 2] : p[0] || ""; }
+function wire(j) {
+  const el = document.getElementById("j" + j.id);
+  el.querySelectorAll("[data-a]").forEach((b) => b.onclick = async () => {
+    const a = b.dataset.a;
+    if (a === "paid") { const how = prompt("How did they pay? (cash / UPI)", "UPI"); if (!how) return; await api("/api/ops", { action: "mark_paid", bookingId: j.id, how }); return refresh(); }
+    if (a === "cancel") {
+      const q = await api("/api/ops", { action: "cancel_quote", bookingId: j.id });
+      if (!q.allowed) return alert(q.reason);
+      const reason = prompt("Reason for cancelling (the customer is told it was cancelled):", "No pro available"); if (reason === null) return;
+      let refund = q.paid;
+      if (q.paid) { const r = prompt(`Paid ₹${q.paid}. How much to refund?`, String(q.paid)); if (r === null) return; refund = Number(r) || 0; }
+      const d = await api("/api/ops", { action: "cancel", bookingId: j.id, reason, refund });
+      alert(d.refundMode === "razorpay" ? `Cancelled. ₹${d.refund} refunded via Razorpay.` : d.refundMode === "manual" ? `Cancelled. Send ₹${d.refund} back by UPI, then tap "Refund sent".` : "Cancelled. Nothing to refund.");
+      return refresh();
+    }
+    if (a === "refund") {
+      const r = prompt(`Part refund for this job (paid ₹${Math.round(j.total || j.amount || 0)}). Amount in ₹:`); if (!r) return;
+      const reason = prompt("Reason (for your records):", "Customer not fully satisfied") || "";
+      const d = await api("/api/ops", { action: "refund", bookingId: j.id, amount: Number(r), reason });
+      alert(d.mode === "razorpay" ? `₹${d.amount} refunded via Razorpay.` : d.mode === "manual" ? `Send ₹${d.amount} back by UPI, then tap "Refund sent".` : "Nothing refunded.");
+      return refresh();
+    }
+    if (a === "adv" || a === "bal") {
+      const due = a === "adv" ? j.quote.money.advanceDue : j.quote.money.balanceDue;
+      const amt = prompt(`${a === "adv" ? "Advance" : "Balance"} received by UPI/cash — amount in ₹:`, String(due)); if (!amt) return;
+      await api("/api/ops", { action: "payment_received", bookingId: j.id, what: a === "adv" ? "advance" : "balance", amount: Number(amt), how: "UPI" });
+      return refresh();
+    }
+    if (a === "photos") {
+      const box = document.getElementById("ph" + j.id);
+      if (box.innerHTML) { box.innerHTML = ""; return; }
+      const { photos } = await api("/api/ops", { action: "photos", bookingId: j.id });
+      box.innerHTML = photos.length ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px;margin-top:10px">${photos.map((x) => `<a href="${x.url}" target="_blank"><img src="${x.url}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px"><div class="mut" style="font-size:12px">${x.type}</div></a>`).join("")}</div>` : '<div class="mut" style="margin-top:8px">No photos yet.</div>';
+      return;
+    }
+    if (a === "refund_sent") { await api("/api/ops", { action: "refund_sent", bookingId: j.id }); return refresh(); }
+    if (a === "assign") { openPanel = openPanel === j.id ? null : j.id; render(); if (openPanel) loadPros(j); }
+  });
+}
+async function loadPros(j) {
+  const p = document.getElementById("p" + j.id);
+  p.innerHTML = `<div class="mut">Finding pros near ${esc(areaOf(j) || "Kochi")}…</div>`;
+  let pros = [];
+  try { pros = (await api(`/api/ops?pros=${encodeURIComponent(j.service)}&area=${encodeURIComponent(areaOf(j))}`)).pros; } catch {}
+  p.innerHTML = `<b>Pick a pro</b> <span class="mut">— call them first to check they can come</span>
+    ${pros.map((x) => `<div class="pro"><div><b>${esc(x.name)}</b> ${x.signedUp ? '<span class="pill done">on WeAid</span>' : ""} ${x.nearby ? '<span class="pill">nearby</span>' : ""}<div class="mut">${esc(x.areas.join(", "))}${x.rating ? ` · ★ ${x.rating} (${x.reviews})` : ""}</div></div>
+      <div style="display:flex;gap:6px"><a class="btn" href="tel:${esc(x.phone)}">Call</a><button class="btn dark" data-pick="${esc(x.id)}" data-n="${esc(x.name)}" data-ph="${esc(x.phone)}">Assign</button></div></div>`).join("") || '<div class="mut">No pros listed for this service.</div>'}
+    <div style="margin-top:12px"><b>Or someone else</b></div>
+    <div class="grid2"><input id="n${j.id}" placeholder="Name"><input id="ph${j.id}" placeholder="Mobile" inputmode="tel"></div>
+    <button class="btn dark" style="margin-top:8px" id="go${j.id}">Assign</button>
+    <div id="out${j.id}"></div>`;
+  const assign = async (name, phone, providerId) => {
+    const out = document.getElementById("out" + j.id);
+    out.innerHTML = '<div class="mut" style="margin-top:8px">Assigning…</div>';
+    try {
+      const d = await api("/api/ops", { action: "assign", bookingId: j.id, name, phone, providerId });
+      out.innerHTML = `<div style="margin-top:12px"><b>Now send both messages:</b></div><div class="btns">
+        ${d.whatsappPro ? `<a class="btn wa" href="${d.whatsappPro}" target="_blank">WhatsApp the pro</a>` : ""}
+        ${d.whatsappCustomer ? `<a class="btn wa" href="${d.whatsappCustomer}" target="_blank">WhatsApp the customer</a>` : ""}</div>`;
+      const k = openPanel; await refresh(); openPanel = k; render();
+      document.getElementById("p" + j.id).hidden = false;
+      document.getElementById("p" + j.id).innerHTML = out.outerHTML;
+    } catch (e) { out.innerHTML = `<div style="color:var(--red);margin-top:8px">${esc(e.message)}</div>`; }
+  };
+  p.querySelectorAll("[data-pick]").forEach((b) => b.onclick = () => assign(b.dataset.n, b.dataset.ph, b.dataset.pick));
+  document.getElementById("go" + j.id).onclick = () => assign(document.getElementById("n" + j.id).value, document.getElementById("ph" + j.id).value, null);
+}
+const KIND = { complaint: "😟 Complaint", callback: "📞 Call back", payment: "💳 Payment to arrange", site_visit: "📐 Site visit + quote", provider: "🔧 Pro" };
+async function renderJobsPortal() {
+  const list = document.getElementById("list");
+  list.innerHTML = '<div class="mut" style="padding:10px">Loading…</div>';
+  let d; try { d = await api("/api/ops?jobs=1"); } catch (e) { list.innerHTML = `<div class="mut" style="padding:20px">${esc(e.message)} — has the WeAid Jobs SQL been run?</div>`; return; }
+  const review = d.jobs.filter((j) => j.status === "review");
+  const live = d.jobs.filter((j) => j.status === "live");
+  const job = (j) => `<div class="job"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(j.title)}</b><span class="pill ${j.status === "live" ? "done" : j.status === "review" ? "finding" : "unpaid"}">${esc(j.status)}</span></div>
+    <div class="mut">${esc(j.jp_employers.business_name)} ${esc(j.jp_employers.phone)} · ${esc(j.area || "")} · ₹${j.salary_min || "?"}${j.salary_max && j.salary_max !== j.salary_min ? "–" + j.salary_max : ""}</div>
+    ${j.description ? `<div style="font-size:14px;margin-top:4px">${esc(j.description).slice(0, 300)}</div>` : ""}
+    ${j.screen ? `<div class="mut" style="margin-top:4px">AI check: <b>${esc(j.screen.verdict)}</b> — ${esc(j.screen.reason || "")}</div>` : ""}
+    <div class="btns">${j.status !== "live" ? `<button class="btn dark" data-jj="${j.id}" data-d="approve">✓ Approve</button>` : `<a class="btn" href="/job/${esc(j.slug)}" target="_blank">View</a>`}${j.status !== "rejected" ? `<button class="btn" data-jj="${j.id}" data-d="reject">Reject</button>` : ""}${j.status === "live" ? `<button class="btn" data-jj="${j.id}" data-d="close">Close</button>` : ""}</div></div>`;
+  const now = Date.now();
+  list.innerHTML = `<div class="job"><b>WeAid Jobs</b> · ${d.candidates} candidates · ${d.applications} applications · ${live.length} live jobs · ${d.employers.length} employers
+    <div class="mut">Public: <a href="/jobs-in-kochi" target="_blank">weaid.in/jobs-in-kochi</a> · candidates <a href="/candidate" target="_blank">/candidate</a> · employers <a href="/hire" target="_blank">/hire</a></div></div>
+    <h3 style="margin:14px 4px 6px">To approve (${review.length})</h3>${review.map(job).join("") || '<div class="mut" style="padding:6px 4px">Nothing waiting.</div>'}
+    <h3 style="margin:14px 4px 6px">Employers</h3>${d.employers.map((e) => { const active = e.plan_until && Date.parse(e.plan_until) > now;
+      return `<div class="job"><b>${esc(e.business_name)}</b> <span class="mut">${esc(e.kind || "")}</span> ${active ? `<span class="pill done">${esc(d.plans[e.plan]?.label || e.plan)} · ${e.unlocks_left} unlocks</span>` : '<span class="pill">free</span>'}
+        <div class="mut">${esc(e.contact_name || "")} ${esc(e.phone)} ${esc(e.email || "")} · ${esc(e.area || "")}</div>
+        <div class="btns">${Object.entries(d.plans).map(([k, p]) => `<button class="btn" data-ep="${e.id}" data-p="${k}">Paid ₹${p.price} → ${esc(p.label)}</button>`).join("")}<a class="btn" href="tel:${esc(e.phone)}">Call</a></div></div>`; }).join("") || '<div class="mut" style="padding:6px 4px">No employers yet.</div>'}
+    <h3 style="margin:14px 4px 6px">Recent jobs</h3>${d.jobs.filter((j) => j.status !== "review").slice(0, 30).map(job).join("")}`;
+  list.querySelectorAll("[data-jj]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: "jp_job", jobId: b.dataset.jj, decision: b.dataset.d }); renderJobsPortal(); });
+  list.querySelectorAll("[data-ep]").forEach((b) => b.onclick = async () => { if (!confirm("Activate this plan? Only after you've received the payment.")) return; await api("/api/ops", { action: "jp_plan", employerId: b.dataset.ep, plan: b.dataset.p }); renderJobsPortal(); });
+}
+
+async function renderCarpool() {
+  const list = document.getElementById("list");
+  list.innerHTML = '<div class="mut" style="padding:10px">Loading…</div>';
+  let rides = [];
+  try { rides = (await api("/api/ops?carpool=1")).rides; } catch (e) { list.innerHTML = `<div class="mut" style="padding:20px">${esc(e.message)}</div>`; return; }
+  const ST = { pending_payment: "⏳ unpaid", confirmed: "✓ paid", boarded: "🚗 boarded", cancelled: "cancelled", refunded: "refunded", no_show: "no-show" };
+  list.innerHTML = `<div class="job"><b>Carpool</b> <span class="pill unpaid">hidden — not public yet</span><div class="mut">Riders: weaid.in/carpool · Drivers post from the WeAid Pro app. WeAid keeps the booking fee; drivers get the seat money for boarded passengers after the trip.</div></div>` +
+    (rides.length ? rides.map((r) => `<div class="job"><div style="display:flex;justify-content:space-between;gap:8px"><b>${esc(r.from_address)} → ${esc(r.to_address)}</b><span class="pill">${esc(r.status)}</span></div>
+      <div class="mut">${new Date(r.depart_at).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })} · ${esc(r.driver_name)} ${esc(r.driver_phone)} · ${esc(r.car_model || "")} ${esc(r.car_number || "")} · ₹${r.price_per_seat}/seat · ${r.distance_km || "?"} km</div>
+      ${r.seats.map((x) => `<div style="display:flex;justify-content:space-between;gap:8px;font-size:14px;margin-top:6px"><span>${esc(x.rider_name)} ${esc(x.rider_phone)} · ${x.seats} seat(s) · ₹${x.amount} · ${ST[x.status] || esc(x.status)}</span>
+        ${x.status === "pending_payment" ? `<button class="btn" data-cpaid="${x.id}">Mark paid</button>` : ""}</div>`).join("") || '<div class="mut">No bookings.</div>'}
+      <div style="margin-top:6px;font-size:14px">WeAid fees: <b>₹${r.fees}</b>${r.status === "done" ? ` · Driver owed: <b>₹${r.owed}</b> ${r.payout_sent_at ? "✓ paid" : `<button class="btn dark" data-cpay="${r.id}">✓ Driver paid</button>`}` : ""}</div></div>`).join("")
+      : '<div class="mut" style="padding:30px;text-align:center">No rides posted yet.</div>');
+  list.querySelectorAll("[data-cpaid]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: "carpool_paid", seatId: b.dataset.cpaid }); renderCarpool(); });
+  list.querySelectorAll("[data-cpay]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: "carpool_payout", rideId: b.dataset.cpay }); renderCarpool(); });
+}
+
+let showDone = false;
+async function renderIssues() {
+  const list = document.getElementById("list");
+  list.innerHTML = '<div class="mut" style="padding:10px">Loading…</div>';
+  let tickets = [];
+  try { tickets = (await api("/api/ops?tickets=1")).tickets; } catch { return; }
+  const shown = tickets.filter((t) => (showDone ? t.status === "done" : t.status !== "done"));
+  list.innerHTML = `<div class="btns" style="margin:0 0 10px"><button class="btn ${showDone ? "" : "dark"}" id="tOpen">Open (${tickets.filter((t) => t.status !== "done").length})</button><button class="btn ${showDone ? "dark" : ""}" id="tDone">Resolved</button></div>` +
+    (shown.length ? shown.map((t) => `<div class="job">
+      <div style="display:flex;justify-content:space-between;gap:8px"><b>${KIND[t.kind] || esc(t.kind)}</b><span class="mut">${esc(t.ref)} · ${new Date(t.created_at).toLocaleString("en-IN", { day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</span></div>
+      <div class="mut">${esc(t.customer_name || "")} ${esc(t.customer_phone || "")} · via ${t.source === "phone" ? "phone (Asha)" : "website"}</div>
+      <div style="margin-top:6px;font-size:14px">${esc(t.summary || "")}</div>
+      ${Object.entries(t.details || {}).filter(([, v]) => v).map(([k, v]) => `<div class="mut">${esc(k.replace(/_/g, " "))}: ${esc(v)}</div>`).join("")}
+      <div class="btns">${t.customer_phone ? `<a class="btn dark" href="tel:${esc(t.customer_phone)}">Call</a>` : ""}
+        <button class="btn" data-t="${t.id}" data-re="${t.status === "done" ? 1 : ""}">${t.status === "done" ? "Reopen" : "✓ Resolved"}</button></div></div>`).join("")
+      : `<div class="mut" style="padding:30px;text-align:center">${showDone ? "Nothing resolved yet." : "No open issues. 🎉"}</div>`);
+  document.getElementById("tOpen").onclick = () => { showDone = false; renderIssues(); };
+  document.getElementById("tDone").onclick = () => { showDone = true; renderIssues(); };
+  list.querySelectorAll("[data-t]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: "ticket_done", ticketId: b.dataset.t, reopen: Boolean(b.dataset.re) }); renderIssues(); });
+}
+
+const SVC = ["electrical", "plumbing", "ac", "cleaning", "painting", "tiling", "flooring", "carpentry", "roofing", "waterproofing", "renovation", "pest_control", "cctv", "movers", "cook", "maid", "babysit", "postnatal", "nursing", "eldercare", "driver", "courier"];
+let team = null, teamQ = "";
+async function renderPros() {
+  const list = document.getElementById("list");
+  list.innerHTML = `<div class="job"><b>➕ Add pros you know</b><div class="mut">One per line: <b>name, mobile, service(s), area</b> — e.g. <i>Ravi Kumar, 9876543210, electrical plumbing, Kakkanad</i>. Services: ${SVC.join(", ")}</div>
+    <textarea id="addTxt" rows="4" style="width:100%;margin-top:8px;font:inherit;padding:10px;border-radius:10px;border:1.5px solid var(--line)" placeholder="Ravi Kumar, 9876543210, roofing, Aluva"></textarea>
+    <button class="btn dark" id="addGo" style="margin-top:8px">Add &amp; get WhatsApp links</button><div id="addOut"></div></div>
+    <div class="job"><b>WeAid Pro app</b><div class="mut">Approve a pro, then send them their app code. Once online in the app, paid jobs near them pop up on their phone.</div>
+    <input id="teamQ" placeholder="Find any pro by name or number" value="${esc(teamQ)}" style="margin-top:10px"></div><div id="teamList" class="mut" style="padding:10px">Loading…</div>`;
+  document.getElementById("addGo").onclick = async () => {
+    const pros = document.getElementById("addTxt").value.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => {
+      const parts = l.split(",").map((x) => x.trim());
+      return { name: parts[0], phone: parts[1], services: (parts[2] || "").split(/[\s/+&]+/).filter(Boolean), area: parts[3] || "" };
+    });
+    if (!pros.length) return;
+    const out = document.getElementById("addOut"); out.innerHTML = '<div class="mut">Adding…</div>';
+    try {
+      const { added } = await api("/api/ops", { action: "add_pros", pros });
+      out.innerHTML = added.map((a) => a.error ? `<div style="color:var(--red);font-size:14px;margin-top:6px">✗ ${esc(a.name || "?")} ${esc(a.phone || "")}: ${esc(a.error)}</div>`
+        : `<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;margin-top:6px;font-size:14px"><span>✓ ${esc(a.name)} ${a.existed ? "(already listed — updated)" : ""} · code ${a.code}</span><a class="btn wa" target="_blank" href="${a.whatsapp}">Send on WhatsApp</a></div>`).join("");
+    } catch (e) { out.innerHTML = `<div style="color:var(--red)">${esc(e.message)}</div>`; }
+  };
+  const q = document.getElementById("teamQ");
+  q.onkeydown = (e) => { if (e.key === "Enter") { teamQ = q.value.trim(); renderPros(); } };
+  try { team = (await api(`/api/ops?team=1${teamQ ? `&q=${encodeURIComponent(teamQ)}` : ""}`)).team; } catch { return; }
+  document.getElementById("teamList").outerHTML = team.length ? team.map((p) => `<div class="job"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+      <div><b>${esc(p.name)}</b> ${p.online ? '<span class="pill on_the_way">online</span>' : ""} ${p.hasApp ? '<span class="pill">has app</span>' : ""}
+      <div class="mut">${esc(p.phone || "")} · ${esc((p.services || []).join(", "))}${p.areas.length ? ` · ${esc(p.areas.join(", "))}` : ""}</div>
+      <div class="mut">App code: <b>${p.appCode}</b></div></div>
+      <span class="pill ${p.approved ? "done" : p.kyc === "submitted" ? "finding" : "unpaid"}">${p.approved ? "Approved" : p.kyc === "submitted" ? "ID to review" : p.kyc === "rejected" ? "Rejected" : "No ID yet"}</span></div>
+    ${p.idType ? `<div class="mut">Verified with: ${esc(p.idType)}</div>` : ""}
+    <div id="kyc${p.id}"></div>
+    <div class="btns">
+      ${p.kyc === "submitted" && !p.approved ? `<button class="btn dark" data-review="${p.id}">Review ID</button>` : `<button class="btn ${p.approved ? "" : "dark"}" data-ap="${p.id}" data-v="${p.approved ? "unapprove" : "approve"}">${p.approved ? "Remove approval" : "Approve without ID"}</button>`}
+      <button class="btn wa" data-code="${p.id}">WhatsApp app code</button>
+      ${p.phone ? `<a class="btn" href="tel:${esc(p.phone)}">Call</a>` : ""}
+    </div></div>`).join("") : `<div class="mut" style="padding:20px;text-align:center">${teamQ ? "Nobody found." : "No pros have signed up yet. Search above to invite one from the directory."}</div>`;
+  list.querySelectorAll("[data-ap]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: b.dataset.v, providerId: b.dataset.ap }); renderPros(); });
+  list.querySelectorAll("[data-review]").forEach((b) => b.onclick = () => reviewId(b.dataset.review));
+  list.querySelectorAll("[data-code]").forEach((b) => b.onclick = async () => { const d = await api("/api/ops", { action: "app_code", providerId: b.dataset.code }); if (d.whatsapp) window.open(d.whatsapp, "_blank"); });
+}
+
+const tick = (v) => v === "yes" || v === "likely_same" || v === "no" && false ? "✅" : v === "partly" || v === "unclear" || v === "cannot_tell" || v === "unreadable" ? "⚠️" : "❌";
+async function reviewId(pid) {
+  const box = document.getElementById("kyc" + pid);
+  box.innerHTML = '<div class="mut" style="margin-top:8px">Loading ID…</div>';
+  const { check } = await api("/api/ops", { action: "kyc_view", providerId: pid });
+  if (!check) { box.innerHTML = '<div class="mut">Nothing uploaded.</div>'; return; }
+  const sec = (k, title) => {
+    const s = check.steps[k]; if (!s) return `<div class="mut" style="margin-top:10px"><b>${title}:</b> not uploaded</div>`;
+    const img = s.url ? (s.url.includes(".pdf") ? `<a class="btn" href="${s.url}" target="_blank">Open PDF</a>` : `<a href="${s.url}" target="_blank"><img src="${s.url}" style="width:100%;max-width:420px;border-radius:12px;border:1px solid var(--line);margin-top:6px"></a>`) : '<div class="mut">(photo deleted)</div>';
+    const facts = k === "id"
+      ? [`${tick(s.nameMatches)} Name on ID: <b>${esc(s.name || "?")}</b>`, `${tick(s.face)} Face vs card photo: ${esc(s.face)} <span class="mut">(rough AI impression)</span>`, `${s.expired === "yes" ? "❌ Expired" : "✅ Not expired"}`, s.edited ? "⚠️ Possible editing" : ""]
+      : [`${tick(s.nameMatches)} Name: <b>${esc(s.name || "?")}</b>`, `Issuer: ${esc(s.issuer || "?")}`, `Issued: ${esc(s.issued || "?")}`, s.remarks === "none" ? "✅ No adverse remarks" : `⚠️ Remarks: ${esc(s.remarks)}`, s.edited ? "⚠️ Possible editing" : ""];
+    return `<div style="margin-top:12px"><b>${title}</b> <span class="pill ${s.verdict === "ok" ? "done" : s.verdict === "redo" ? "unpaid" : "finding"}">AI: ${s.verdict}</span>
+      <div style="font-size:14px;margin-top:4px">${esc(s.summary)}</div>
+      <div style="font-size:14px;margin-top:4px">${facts.filter(Boolean).join("<br>")}</div>
+      ${s.problems.length ? `<div class="mut">Problems: ${esc(s.problems.join("; "))}</div>` : ""}${img}</div>`;
+  };
+  box.innerHTML = `<div class="panel">${sec("id", "ID selfie")}${sec("pcc", "Police certificate")}
+    <div class="btns" style="margin-top:12px">
+      <button class="btn dark" data-k="approve">✅ Approve</button>
+      <button class="btn wa" data-k="call">📹 WhatsApp video call</button>
+      <button class="btn" data-k="reject">Reject</button>
+    </div><div class="mut" style="margin-top:6px">Approve keeps the ID as WeAid's private record. Reject deletes it.</div></div>`;
+  box.querySelectorAll("[data-k]").forEach((b) => b.onclick = async () => {
+    const k = b.dataset.k;
+    let note = "";
+    if (k === "reject") { note = prompt("Reason (the pro will see this):", "We couldn't confirm your identity from the photo. Please call WeAid."); if (note === null) return; }
+    const d = await api("/api/ops", { action: "kyc_" + k, providerId: pid, note });
+    if (k === "call" && d.whatsapp) window.open(d.whatsapp, "_blank");
+    renderPros();
+  });
+}
+
+async function refresh() { try { jobs = (await api("/api/ops")).jobs; if (!openPanel && !["pros", "issues", "carpool", "jobsportal"].includes(tab)) render(); } catch {} }
+async function start() {
+  if (!KEY) return showLogin();
+  document.getElementById("login").hidden = true; document.getElementById("app").hidden = false;
+  await refresh(); render();
+}
+start();
+setInterval(() => { if (!openPanel) refresh(); }, 30000);
+</script>
+</body>
+</html>

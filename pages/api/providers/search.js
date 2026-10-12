@@ -73,8 +73,15 @@ export default async function handler(req, res) {
         verified: p.verified,
         rating: p.rating,
         review_count: p.review_count,
-        phone: p.phone,
-        whatsapp: p.whatsapp || p.phone,
+        /*
+         * No phone numbers out of a public search.
+         *
+         * This handed the number and WhatsApp of all 645 businesses to anyone
+         * who called the endpoint, most of them scraped listings that never
+         * agreed to be a lead list. Nothing needs them any more: the directory
+         * shows pins rather than cards, and the concierge contacts providers
+         * from the server when a job is actually paid for.
+         */
         featured: tier === 3,
         isNew: tier === 2,
       }));

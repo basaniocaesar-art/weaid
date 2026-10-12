@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Track your job — WeAid</title>
+<link rel="icon" href="/favicon.ico">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;600;700;800&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<style>
+:root{--orange:#f97316;--ink:#0b0f14;--mut:#5b6573;--line:#e7ebf0;--bg:#f6f8fa;--teal:#0d9488;--teal-d:#0f766e}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,sans-serif;line-height:1.5}
+.top{background:#fff;border-bottom:1px solid var(--line)}.top div{max-width:560px;margin:0 auto;padding:14px 16px;font-weight:800;font-size:20px}.top b{color:var(--orange)}
+main{max-width:560px;margin:0 auto;padding:16px 16px 60px}
+.card{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin-bottom:12px}
+h1{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}.mut{color:var(--mut);font-size:14px}
+.steps{display:flex;gap:6px;margin-top:14px}.steps span{flex:1;height:6px;border-radius:9px;background:var(--line)}.steps span.on{background:linear-gradient(90deg,var(--teal),var(--orange))}
+.labels{display:flex;justify-content:space-between;font-size:11px;color:var(--mut);margin-top:6px}
+.code{font-size:40px;font-weight:800;letter-spacing:.3em;text-align:center;margin:6px 0 2px;color:var(--teal-d)}
+#map{height:280px;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+.btn{display:block;text-align:center;text-decoration:none;font-weight:700;padding:13px;border-radius:12px;background:var(--ink);color:#fff;margin-top:10px}
+.row{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-bottom:1px solid var(--line);font-size:15px}.row:last-child{border:0}
+.pulse{display:inline-block;width:10px;height:10px;border-radius:50%;background:var(--teal);margin-right:8px;animation:p 1.4s infinite}@keyframes p{50%{opacity:.25}}
+</style>
+</head>
+<body>
+<div class="top"><div><img src="/icon-192.png" alt="" style="width:30px;height:30px;vertical-align:middle;margin-right:6px;border-radius:7px">We<b>Aid</b></div></div>
+<main>
+  <div class="card" id="status"><div class="mut">Loading your job…</div></div>
+  <div class="card" id="codeCard" hidden>
+    <div class="mut" style="text-align:center">Your arrival code — tell this to your pro when they reach you</div>
+    <div class="code" id="code"></div>
+  </div>
+  <div class="card" id="proCard" hidden></div>
+  <div class="card" id="mapCard" hidden><div id="map"></div><div class="mut" id="mapNote" style="margin-top:8px"></div></div>
+  <div class="card" id="details"></div>
+  <div class="card" id="courierCard" hidden></div>
+  <div class="card" id="quoteCard" hidden></div>
+  <div class="card" id="proofCard" hidden></div>
+  <div class="card" id="helpCard"></div>
+  <div class="card mut" style="text-align:center">Something wrong? Call WeAid on <a href="tel:+918064267771">080 6426 7771</a><br><a href="/refunds" style="font-size:13px">Cancellation &amp; refund policy</a></div>
+</main>
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script>
+const q = new URLSearchParams(location.search);
+const B = q.get("b"), K = q.get("k");
+const ORDER = ["unpaid", "finding", "assigned", "on_the_way", "arrived", "done"];
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const when = (iso) => iso ? new Date(iso).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" }) : "As soon as possible";
+const svc = (s) => ({ ac: "AC service", electrical: "Electrician", plumbing: "Plumber", cleaning: "Cleaning", movers: "Packers & movers", pest_control: "Pest control" }[s] || (s || "").replace(/_/g, " ").replace(/^./, (c) => c.toUpperCase()));
+let map, homeM, proM;
+
+function ensureMap(d) {
+  const centre = d.location || d.home || { lat: 9.98, lng: 76.29 };
+  if (!map) {
+    map = L.map("map", { zoomControl: false }).setView([centre.lat, centre.lng], 14);
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", { maxZoom: 19, attribution: "© OpenStreetMap" }).addTo(map);
+  }
+  if (d.home && !homeM) homeM = L.marker([d.home.lat, d.home.lng]).addTo(map).bindPopup("You");
+  if (d.location) {
+    const ll = [d.location.lat, d.location.lng];
+    if (!proM) proM = L.circleMarker(ll, { radius: 10, color: "#0d9488", fillColor: "#14b8a6", fillOpacity: 0.9 }).addTo(map).bindPopup(d.pro ? d.pro.name : "Your pro");
+    else proM.setLatLng(ll);
+    const pts = [ll]; if (d.home) pts.push([d.home.lat, d.home.lng]);
+    map.fitBounds(pts, { padding: [40, 40], maxZoom: 16 });
+  }
+}
+
+function renderReceiver(d) {
+  document.getElementById("status").innerHTML = `<div class="mut">${d.service === "courier" ? "Delivery for you" : "Ride"}${d.sender ? ` from ${esc(d.sender)}` : ""}</div><h1>${d.stage === "in_transit" ? '<span class="pulse"></span>' : ""}${esc(d.words)}</h1><div class="mut">${esc(d.from)} → ${esc(d.to)}${d.item ? ` · ${esc(d.item)}` : ""}</div>`;
+  document.getElementById("codeCard").hidden = !d.code;
+  if (d.code) { document.getElementById("code").textContent = d.code; document.querySelector("#codeCard .mut").textContent = "Your code — give it to the rider when they hand it over"; }
+  const pc = document.getElementById("proCard"); pc.hidden = !d.pro;
+  if (d.pro) pc.innerHTML = `<div class="mut">Your rider</div><div style="display:flex;gap:12px;align-items:center;margin-top:6px">${d.pro.trust && d.pro.trust.photo ? `<img src="${esc(d.pro.trust.photo)}" style="width:64px;height:64px;border-radius:50%;object-fit:cover">` : ""}<div><b style="font-size:18px">${esc(d.pro.name)}</b>${d.pro.trust && d.pro.trust.idChecked ? '<div style="color:#0f766e;font-weight:700;font-size:14px">✓ ID checked by WeAid</div>' : ""}</div></div>${d.pro.phone ? `<a class="btn" href="tel:${esc(d.pro.phone)}">📞 Call rider</a>` : ""}`;
+  const mc = document.getElementById("mapCard"); mc.hidden = d.stage !== "in_transit";
+  if (!mc.hidden) { ensureMap(d); document.getElementById("mapNote").textContent = d.location ? "Live" : "Waiting for the rider's location…"; setTimeout(() => map.invalidateSize(), 50); }
+  ["details", "helpCard", "quoteCard", "proofCard", "courierCard"].forEach((id) => { const e = document.getElementById(id); if (e) e.hidden = true; });
+}
+
+async function load() {
+  if (!B || !K) { document.getElementById("status").innerHTML = "<h1>Link not found</h1><div class='mut'>Please use the link WeAid sent you.</div>"; return; }
+  let d;
+  try { const r = await fetch(`/api/track?b=${encodeURIComponent(B)}&k=${encodeURIComponent(K)}`); d = await r.json(); if (!r.ok) throw 0; }
+  catch { document.getElementById("status").innerHTML = "<h1>Link not found</h1><div class='mut'>Please use the link WeAid sent you.</div>"; return; }
+
+  if (d.receiver) { renderReceiver(d); return; }
+  const QORDER = ["unpaid", "finding", "assigned", "on_the_way", "visiting", "quoted", "awaiting_advance", "scheduled", "working", "done"];
+  const qj = Boolean(d.quoteJob);
+  const CORDER = ["unpaid", "finding", "assigned", "to_pickup", "in_transit", "done"];
+  const ci = d.courier ? CORDER.indexOf(d.stage) : -1;
+  const i = qj || d.courier ? -1 : ORDER.indexOf(d.stage);
+  const qi = qj ? QORDER.indexOf(d.stage) : -1;
+  const live = d.stage === "on_the_way" ? '<span class="pulse"></span>' : "";
+  document.getElementById("status").innerHTML =
+    `<div class="mut">${esc(svc(d.service))}</div><h1>${live}${esc(d.words)}</h1>` +
+    (d.stage === "on_the_way" && d.eta ? `<div class="mut">About ${d.eta} minutes away when they set off</div>` : "") +
+    (ci >= 0 ? `<div class="steps">${[1, 2, 3, 4, 5].map((n) => `<span class="${ci >= n ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>Paid</span><span>Rider</span><span>To pickup</span><span>On the way</span><span>Delivered</span></div>` : "") +
+    (qi >= 0 ? `<div class="steps">${[4, 5, 7, 8, 9].map((n) => `<span class="${qi >= n ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>Site visit</span><span>Quote</span><span>Advance</span><span>Work</span><span>Done</span></div>` : "") +
+    (i >= 0 ? `<div class="steps">${ORDER.slice(1).map((s, n) => `<span class="${n + 1 <= i ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>Paid</span><span>Assigned</span><span>On the way</span><span>Arrived</span><span>Done</span></div>` : "");
+
+  document.getElementById("codeCard").hidden = !d.code;
+  if (d.code) document.getElementById("code").textContent = d.code;
+
+  const pc = document.getElementById("proCard");
+  pc.hidden = !d.pro;
+  if (d.pro) {
+    const t = d.pro.trust;
+    pc.innerHTML = `<div class="mut">Your pro</div>
+      <div style="display:flex;gap:14px;align-items:center;margin-top:6px">
+        ${t && t.photo ? `<img src="${esc(t.photo)}" alt="" style="width:76px;height:76px;border-radius:50%;object-fit:cover;border:3px solid #ccfbf1">` : ""}
+        <div><div style="font-size:20px;font-weight:800">${esc(d.pro.name)}</div>
+        ${t ? `<div style="font-size:14px;color:#0f766e;font-weight:700">${t.idChecked ? "✓ ID checked by WeAid" : ""}${t.police ? "<br>✓ Police-verified" : ""}${t.years ? `<br><span style="color:#5b6573;font-weight:600">${t.years} years' experience</span>` : ""}</div>` : ""}</div>
+      </div>
+      ${t && t.photo && ["assigned", "on_the_way", "arrived"].includes(d.stage) ? `<div class="mut" style="margin-top:10px">🔒 Check this is the person at your door. They'll ask you for your arrival code.</div>` : ""}
+      ${d.pro.phone ? `<a class="btn" href="tel:${esc(d.pro.phone)}">📞 Call ${esc(d.pro.name.split(" ")[0])}</a>` : ""}`;
+  }
+
+  const showMap = ["on_the_way", "to_pickup", "in_transit"].includes(d.stage) || (d.home && ["assigned", "arrived"].includes(d.stage));
+  document.getElementById("mapCard").hidden = !showMap;
+  if (showMap) {
+    ensureMap(d);
+    document.getElementById("mapNote").textContent = ["on_the_way", "to_pickup", "in_transit"].includes(d.stage)
+      ? (d.location ? `Last updated ${new Date(d.location.at).toLocaleTimeString("en-IN", { hour: "numeric", minute: "2-digit" })}` : "Waiting for your pro's location…")
+      : "Your location";
+    setTimeout(() => map.invalidateSize(), 50);
+  }
+
+  document.getElementById("details").innerHTML =
+    `<div class="row"><span class="mut">When</span><span>${esc(when(d.when))}</span></div>` +
+    (d.address ? `<div class="row"><span class="mut">Address</span><span style="text-align:right">${esc(d.address)}</span></div>` : "") +
+    (d.quoteJob && d.quoteJob.money.total
+      ? `<div class="row"><span class="mut">Quote</span><span><b>₹${d.quoteJob.money.total.toLocaleString("en-IN")}</b></span></div><div class="row"><span class="mut">Paid so far</span><span>₹${d.quoteJob.money.paid.toLocaleString("en-IN")}</span></div>`
+      : `<div class="row"><span class="mut">${d.quoteJob ? "Site visit" : "Price"}</span><span><b>₹${d.total}</b></span></div>`);
+  renderCourier(d);
+  renderQuote(d);
+  renderProof(d);
+  if (!helpOpen) renderHelp(d);
+}
+function renderCourier(d) {
+  const el = document.getElementById("courierCard"), C = d.courier;
+  if (!C) { el.hidden = true; return; }
+  el.hidden = false;
+  el.innerHTML = `<div class="row"><span class="mut">From</span><span style="text-align:right">${esc(C.pickup.name)}</span></div>
+    <div class="row"><span class="mut">To</span><span style="text-align:right">${esc(C.drop.name)} · ${C.km} km</span></div>
+    ${C.item ? `<div class="row"><span class="mut">Item</span><span>${esc(C.item)}</span></div>` : ""}
+    ${C.pickupCode ? `<div style="margin-top:12px;text-align:center"><div class="mut">Pickup code — give it to the rider when they collect</div><div class="code">${C.pickupCode}</div></div>` : ""}
+    ${C.receiver && d.stage !== "done" ? `<div class="mut" style="margin-top:10px">The receiver (${esc(C.receiver.name)}) needs their own code to receive it: <b>${C.dropCode}</b>. Send them their tracking link:</div>
+      <a class="btn" style="width:100%;border:0;font:inherit;font-weight:700;background:#25d366" target="_blank" href="https://wa.me/91${esc(String(C.receiver.phone).replace(/\D/g, "").slice(-10))}?text=${encodeURIComponent(`Hi ${C.receiver.name}, a WeAid courier is bringing you ${C.item || "a parcel"}. Your code to receive it is ${C.dropCode}. Track it here: ${C.receiverLink}`)}">Send to receiver on WhatsApp</a>` : ""}`;
+}
+
+let qBusy = false;
+async function qPost(body) {
+  const r = await fetch(`/api/track?b=${encodeURIComponent(B)}&k=${encodeURIComponent(K)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  const x = await r.json().catch(() => ({})); if (!r.ok) throw new Error(x.error || "Something went wrong."); return x;
+}
+async function pay(what) {
+  qBusy = true;
+  try {
+    const x = await qPost({ action: "pay", what });
+    if (x.payUrl) { location.href = x.payUrl; return; }
+    document.getElementById("qMsg").textContent = x.teamWillCall ? `WeAid will call you shortly to collect ₹${x.amount} by UPI.` : "Paid — thank you!";
+  } catch (e) { document.getElementById("qMsg").textContent = e.message; }
+  qBusy = false;
+}
+const inr = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
+function renderQuote(d) {
+  const el = document.getElementById("quoteCard");
+  const q = d.quoteJob;
+  if (!q || qBusy) { if (!q) el.hidden = true; return; }
+  const m = q.money, Q = q.quote;
+  let html = "";
+  if (!Q) {
+    if (["unpaid", "finding", "assigned", "on_the_way", "visiting"].includes(d.stage)) html = `<b>How this works</b><div class="mut" style="margin-top:6px">1. A pro visits and measures (₹${q.visitFee}, taken off your bill if you go ahead).<br>2. You get a written quote here, materials included.<br>3. Accept it and pay ${Math.round(q.advancePct * 100)}% advance (refundable until work starts).<br>4. Pay the rest only after you've checked the finished work.</div>`;
+  } else {
+    const items = Q.items.map((it) => `<div class="row"><span>${esc(it.text)}</span><span>${inr(it.amount)}</span></div>`).join("");
+    const pics = (q.photos || []).filter((p) => p.type !== "after").map((p) => `<a href="${esc(p.url)}" target="_blank"><img src="${esc(p.url)}" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:10px"></a>`).join("");
+    html = `<b>Your quote</b>${Q.version > 1 ? ` <span class="mut">(updated)</span>` : ""}<div style="margin-top:8px">${items}<div class="row"><b>Total (materials included)</b><b>${inr(Q.total)}</b></div></div>
+      <div class="mut" style="margin-top:6px">About ${Q.days} day${Q.days > 1 ? "s" : ""} of work${Q.start ? ` · can start ${esc(new Date(Q.start).toLocaleDateString("en-IN", { day: "numeric", month: "short" }))}` : ""}${Q.note ? `<br>${esc(Q.note)}` : ""}</div>
+      ${pics ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:6px;margin-top:10px">${pics}</div>` : ""}`;
+    if (d.stage === "quoted") html += `
+      <div class="mut" style="margin-top:12px">To go ahead: pay ${inr(m.advanceDue)} now (${Math.round(q.advancePct * 100)}% of the total, less the ₹${q.visitFee} visit fee). Refundable until work starts. The rest, ${inr(m.total - m.paid - m.advanceDue)}, only after you've checked the finished work.</div>
+      <button class="btn" id="qAccept" style="width:100%;border:0;font:inherit;font-weight:800;background:linear-gradient(90deg,#0d9488,#f97316)">Accept quote & pay ${inr(m.advanceDue)}</button>
+      <button class="btn" id="qAsk" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:var(--ink)">Ask a question</button>
+      <button class="btn" id="qNo" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:#b91c1c">No thanks</button>`;
+    if (d.stage === "awaiting_advance") html += `<button class="btn" id="qPayAdv" style="width:100%;border:0;font:inherit;font-weight:800">Pay advance ${inr(m.advanceDue)}</button>`;
+    if (d.stage === "scheduled") html += `<div style="margin-top:10px">✅ Advance received. Work ${Q.start ? `starts ${esc(new Date(Q.start).toLocaleDateString("en-IN", { day: "numeric", month: "short" }))}` : "will be scheduled with you"}.</div>`;
+    if (d.stage === "working") html += `<div style="margin-top:10px">🔨 Work in progress — progress photos appear here as the pro adds them.</div>`;
+    if (d.stage === "done" && m.balanceDue > 0) html += d.proof && ["confirmed", "auto_confirmed"].includes(d.proof.state)
+      ? `<button class="btn" id="qPayBal" style="width:100%;border:0;font:inherit;font-weight:800">Pay balance ${inr(m.balanceDue)}</button>`
+      : `<div class="mut" style="margin-top:10px">Balance ${inr(m.balanceDue)} — due once you've checked the work and confirmed below.</div>`;
+    if (d.stage === "done" && m.balanceDue <= 0) html += `<div style="margin-top:10px">✅ Fully paid. Thank you!</div>`;
+    if (d.stage === "quote_declined") html += `<div class="mut" style="margin-top:10px">You declined this quote.</div>`;
+  }
+  el.innerHTML = html + `<div id="qMsg" class="mut" style="margin-top:8px"></div>`;
+  el.hidden = !html;
+  const on = (id, f) => { const b = document.getElementById(id); if (b) b.onclick = f; };
+  on("qAccept", async () => { qBusy = true; try { const x = await qPost({ action: "accept_quote" }); if (x.payUrl) { location.href = x.payUrl; return; } qBusy = false; await load(); document.getElementById("qMsg").textContent = x.teamWillCall ? `Accepted! WeAid will call you shortly to collect the ${inr(x.amount)} advance.` : "Accepted!"; } catch (e) { qBusy = false; document.getElementById("qMsg").textContent = e.message; } });
+  on("qPayAdv", () => pay("advance"));
+  on("qPayBal", () => pay("balance"));
+  on("qAsk", async () => { const t = prompt("Your question about the quote:"); if (!t) return; try { const x = await qPost({ action: "question", text: t }); document.getElementById("qMsg").textContent = `Sent (ref ${x.ref}). WeAid will call you.`; } catch (e) { document.getElementById("qMsg").textContent = e.message; } });
+  on("qNo", async () => { const r = prompt("Mind telling us why? (optional)", ""); if (r === null) return; await qPost({ action: "decline_quote", reason: r }); load(); });
+}
+
+let stars = 0, proofBusy = false;
+function renderProof(d) {
+  const el = document.getElementById("proofCard");
+  const p = d.proof;
+  if (!p) { el.hidden = true; return; }
+  el.hidden = false;
+  if (proofBusy) return;
+  const pics = (p.photos || []).map((x) => `<a href="${esc(x.url)}" target="_blank" style="display:block"><img src="${esc(x.url)}" alt="" style="width:100%;aspect-ratio:1;object-fit:cover;border-radius:12px;border:1px solid var(--line)"><div class="mut" style="font-size:12px;text-align:center">${x.type === "before" ? "Before" : x.type === "progress" ? "Progress" : "After"}</div></a>`).join("");
+  const done = p.state === "confirmed" || p.state === "auto_confirmed";
+  el.innerHTML = `<b>The finished work</b>
+    ${pics ? `<div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:8px;margin-top:10px">${pics}</div>` : ""}
+    ${p.state === "confirmed" ? `<div style="margin-top:12px">You rated this job <b style="color:#f97316">${"★".repeat(p.rating)}${"☆".repeat(5 - p.rating)}</b>. Thank you!</div>
+      <div class="mut" style="margin-top:10px">WeAid is a small Kochi business — would you share your experience on Google too? It helps other families find trusted help.</div>
+      <a class="btn" href="/review" target="_blank" rel="noopener" style="width:100%;border:0;font:inherit;font-weight:700;background:#fff;color:var(--ink);border:1.5px solid var(--line)">⭐ Review WeAid on Google</a>`
+      : p.state === "disputed" ? `<div class="mut" style="margin-top:12px">You've reported a problem — WeAid will call you.</div>`
+      : p.state === "auto_confirmed" ? "" : `
+      <div style="margin-top:14px"><b>Is the job done properly?</b> Rate ${esc((d.pro && d.pro.name || "your pro").split(" ")[0])}:</div>
+      <div id="stars" style="font-size:36px;letter-spacing:4px;cursor:pointer;color:#f97316;margin-top:4px">${[1, 2, 3, 4, 5].map((n) => `<span data-s="${n}">${n <= stars ? "★" : "☆"}</span>`).join("")}</div>
+      <textarea id="rText" rows="2" placeholder="Anything to add? (optional)" style="width:100%;margin-top:6px;font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"></textarea>
+      <button class="btn" id="rSend" style="width:100%;border:0;font:inherit;font-weight:700">Confirm job done</button>
+      <div class="mut" style="margin-top:6px">Something wrong? Use "Report a problem" below instead.</div><div id="rErr" style="color:#b91c1c;font-size:14px"></div>`}`;
+  el.querySelectorAll("[data-s]").forEach((x) => (x.onclick = () => { stars = +x.dataset.s; el.querySelectorAll("[data-s]").forEach((y) => (y.textContent = +y.dataset.s <= stars ? "★" : "☆")); }));
+  const btn = document.getElementById("rSend");
+  if (btn) btn.onclick = async () => {
+    if (!stars) { document.getElementById("rErr").textContent = "Tap the stars to rate."; return; }
+    proofBusy = true; btn.disabled = true;
+    const r = await fetch(`/api/track?b=${encodeURIComponent(B)}&k=${encodeURIComponent(K)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "confirm", rating: stars, comment: document.getElementById("rText").value }) });
+    const x = await r.json().catch(() => ({}));
+    proofBusy = false;
+    if (!r.ok) { document.getElementById("rErr").textContent = x.error || "Couldn't send."; btn.disabled = false; return; }
+    load();
+  };
+}
+
+let helpOpen = "";
+function renderHelp(d) {
+  const h = document.getElementById("helpCard");
+  const c = d.cancel || {};
+  const canReport = ["assigned", "on_the_way", "arrived", "done"].includes(d.stage);
+  if (!c.allowed && !canReport) { h.hidden = true; return; }
+  h.hidden = false;
+  if (helpOpen === "cancel") {
+    h.innerHTML = `<b>Cancel this booking?</b><div class="mut" style="margin-top:6px">${esc(c.words || "")}</div>
+      <textarea id="cReason" rows="2" placeholder="Reason (optional)" style="width:100%;margin-top:10px;font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"></textarea>
+      <button class="btn" id="cYes" style="width:100%;border:0;font:inherit;font-weight:700;background:#b91c1c">Yes, cancel</button>
+      <button class="btn" id="cNo" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:var(--ink)">Keep my booking</button><div id="cErr" style="color:#b91c1c;font-size:14px;margin-top:6px"></div>`;
+    document.getElementById("cNo").onclick = () => { helpOpen = ""; renderHelp(d); };
+    document.getElementById("cYes").onclick = async (e) => {
+      e.target.disabled = true;
+      const r = await fetch(`/api/track?b=${encodeURIComponent(B)}&k=${encodeURIComponent(K)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "cancel", reason: document.getElementById("cReason").value }) });
+      const x = await r.json().catch(() => ({}));
+      if (!r.ok) { document.getElementById("cErr").textContent = x.error || "Couldn't cancel. Please call WeAid."; e.target.disabled = false; return; }
+      helpOpen = ""; h.innerHTML = `<b>Booking cancelled.</b><div class="mut" style="margin-top:6px">${x.refund ? (x.refundMode === "razorpay" ? `₹${x.refund} is on its way back to you — banks usually take 5–7 working days.` : `WeAid will send ₹${x.refund} back to you by UPI shortly.`) : "Nothing was charged."}</div>`;
+      load();
+    };
+    return;
+  }
+  if (helpOpen === "issue") {
+    h.innerHTML = `<b>Report a problem</b><div class="mut" style="margin-top:4px">Tell us what happened — WeAid will call you within the hour.</div>
+      <textarea id="iText" rows="3" placeholder="e.g. the fan still isn't working" style="width:100%;margin-top:10px;font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"></textarea>
+      <div class="mut" style="margin-top:8px">What would you like?</div>
+      <select id="iWant" style="width:100%;margin-top:4px;font:inherit;padding:10px;border-radius:12px;border:1.5px solid var(--line)"><option>Send someone to fix it</option><option>A refund</option><option>Just call me</option></select>
+      <button class="btn" id="iSend" style="width:100%;border:0;font:inherit;font-weight:700">Send to WeAid</button>
+      <button class="btn" id="iNo" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:var(--ink)">Back</button><div id="iErr" style="color:#b91c1c;font-size:14px;margin-top:6px"></div>`;
+    document.getElementById("iNo").onclick = () => { helpOpen = ""; renderHelp(d); };
+    document.getElementById("iSend").onclick = async (e) => {
+      e.target.disabled = true;
+      const r = await fetch(`/api/track?b=${encodeURIComponent(B)}&k=${encodeURIComponent(K)}`, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ action: "issue", text: document.getElementById("iText").value, wants: document.getElementById("iWant").value }) });
+      const x = await r.json().catch(() => ({}));
+      if (!r.ok) { document.getElementById("iErr").textContent = x.error || "Couldn't send. Please call WeAid."; e.target.disabled = false; return; }
+      helpOpen = "sent"; h.innerHTML = `<b>Thanks — we've got it.</b><div class="mut" style="margin-top:6px">Reference ${esc(x.ref)}. Someone from WeAid will call you within the hour.</div>`;
+    };
+    return;
+  }
+  if (helpOpen === "sent") return;
+  h.innerHTML = `<b>Need help with this booking?</b>
+    ${canReport ? `<button class="btn" id="hIssue" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:var(--ink)">Report a problem</button>` : ""}
+    ${c.allowed ? `<button class="btn" id="hCancel" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:#b91c1c">Cancel booking</button>` : ""}`;
+  if (canReport) document.getElementById("hIssue").onclick = () => { helpOpen = "issue"; renderHelp(d); };
+  if (c.allowed) document.getElementById("hCancel").onclick = () => { helpOpen = "cancel"; renderHelp(d); };
+}
+load();
+setInterval(() => { if (!helpOpen && !stars) load(); }, 10000);
+</script>
+</body>
+</html>

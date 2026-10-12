@@ -1,5 +1,7 @@
 import crypto from "crypto";
 import { confirmPayment } from "../../../lib/orchestrator.js";
+import { recordPayment } from "../../../lib/quotes.js";
+import { confirmSeat } from "../../../lib/carpool.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -44,12 +46,31 @@ export default async function handler(req, res) {
       const orderId = payment.order_id;
       const bookingId = payment.notes?.booking_id;
 
-      if (bookingId) {
+      if (payment.notes?.carpool_seat_id) await confirmSeat(payment.notes.carpool_seat_id, { paymentId: payment.id });
+      // Advance/balance payments are recorded by payment_link.paid below.
+      if (bookingId && !payment.notes?.what) {
         await confirmPayment({
           bookingId,
           razorpayOrderId: orderId,
           razorpayPaymentId: payment.id,
           razorpaySignature: signature,
+        });
+      }
+    }
+
+    // Bookings taken on the phone line are paid through a payment link.
+    if (eventType === "payment_link.paid") {
+      const link = payload.payment_link?.entity;
+      const payment = payload.payment?.entity;
+      const bookingId = link?.notes?.booking_id;
+      const what = link?.notes?.what;
+      if (bookingId && (what === "advance" || what === "balance")) {
+        await recordPayment(bookingId, what, (payment?.amount || link?.amount_paid || 0) / 100, "razorpay", payment?.id);
+      } else if (bookingId) {
+        await confirmPayment({
+          bookingId,
+          razorpayOrderId: payment?.order_id || link?.order_id || null,
+          razorpayPaymentId: payment?.id || null,
         });
       }
     }
