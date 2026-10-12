@@ -222,13 +222,18 @@ export default async function handler(req, res) {
               what: e.what,
               wanted: e.wanted_window,
               rung_so_far: (e.tried || []).length,
-              ...(e.status === "arranged" && {
+              ...((e.status === "arranged" || e.status === "confirmed") && {
                 provider: e.provider_name,
                 coming: e.agreed_time,
                 price: e.agreed_price,
                 summary: e.summary,
                 customer_told: Boolean(e.customer_told_at),
+                // Arranged is a shop saying yes. Confirmed is the job being on.
+                booked: Boolean(e.confirmed_at),
               }),
+              ...(e.status === "ringing" && (e.declined_phones || []).length
+                ? { note: "The customer turned down an earlier time, so we are still looking." }
+                : {}),
               ...(e.status === "nobody" && { note: "Nobody could take it. The customer has been told." }),
             },
           });

@@ -18,6 +18,7 @@
 import { supabase } from "../../../lib/supabase.js";
 import {
   openErrands, ringRound, settle, tellCustomer, askedEnough, releaseOthers,
+  confirmProvider, readCustomerAnswer, reopen,
   ROUND_SECONDS, GIVE_UP_MINUTES, withinCallingHours,
 } from "../../../lib/errands.js";
 
@@ -31,16 +32,34 @@ export default async function handler(req, res) {
 
   const now = Date.now();
   const open = await openErrands(30);
-  const out = { settled: [], told: [], released: [], widened: [], gaveUp: [], skipped: 0 };
+  const out = { settled: [], told: [], confirmed: [], reopened: [], released: [], widened: [], gaveUp: [], skipped: 0 };
 
   for (const e of open) {
     try {
-      // Already arranged and just waiting to be passed on.
+      /*
+       * Arranged means a shop said yes, NOT that it is booked. The shop was
+       * told we would ring back to confirm, so the loop is only closed once
+       * the customer has said the time suits and the shop has been told.
+       */
       if (e.status === "arranged") {
         if (!e.customer_told_at) {
           const t = await tellCustomer(e);
           if (t.calling) out.told.push({ id: e.id, to: t.calling });
+          continue;
         }
+
+        const answer = await readCustomerAnswer(e);
+        if (answer.pending) continue;          // still on the phone to them
+
+        if (answer.said === "agreed") {
+          const c = await confirmProvider(e);
+          if (c.confirming) out.confirmed.push({ id: e.id, to: c.confirming });
+          continue;
+        }
+
+        // They did not want that time. Back out it goes, minus that shop.
+        const again = await reopen(e);
+        if (again) out.reopened.push({ id: e.id, without: e.provider_name });
         continue;
       }
 
