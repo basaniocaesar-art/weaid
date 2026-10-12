@@ -21,6 +21,38 @@
 import crypto from "crypto";
 import { TOOLS, runTool } from "../../lib/concierge-tools";
 
+/*
+ * Where WeAid actually operates.
+ *
+ * This matters here and nowhere else. WeAid's own site is a Kochi site, so
+ * its concierge never had to ask; this endpoint can be reached from anywhere,
+ * and find_providers answers an out-of-area request by telling the caller to
+ * "carry on: quote it, take the details and book it", because in Kochi the
+ * team really does arrange it by hand when nobody is listed.
+ *
+ * Followed outside Kochi, that would have us taking money for a job in a city
+ * with no providers, no team and no way to do it. So the boundary is stated
+ * once, here, at the surface that created the problem.
+ *
+ * WEAID_SERVED_CITIES widens it the day that changes.
+ */
+const SERVED = new Set(
+  (process.env.WEAID_SERVED_CITIES || "kochi,ernakulam")
+    .split(",").map((c) => c.trim().toLowerCase()).filter(Boolean),
+);
+
+/** Kochi's own localities, so "Kakkanad" is not mistaken for another city. */
+const KOCHI_WORDS = /kochi|cochin|ernakulam|kakkanad|edappally|vyttila|kaloor|aluva|thrippunithura|thripunithura|fort kochi|mattancherry|palarivattom|thevara|maradu|kalamassery|thrikkakara|panampilly|angamaly|perumbavoor|muvattupuzha|kothamangalam|piravom|paravur|cheranallur|vypin|kumbalangi|chottanikkara|nedumbassery/i;
+
+function outOfArea(input) {
+  const city = String(input?.city || "").trim().toLowerCase();
+  const area = String(input?.area || "").trim();
+  if (!city) return false;                       // not stated: let the tool ask
+  if (SERVED.has(city)) return false;
+  if (KOCHI_WORDS.test(city) || KOCHI_WORDS.test(area)) return false;
+  return city;
+}
+
 /** Constant-time, and length-safe: timingSafeEqual throws on a length mismatch. */
 function keyOk(req) {
   const expected = process.env.WEAID_AGENT_KEY;
@@ -68,6 +100,18 @@ export default async function handler(req, res) {
       lng: Number.isFinite(Number(c.lng)) ? Number(c.lng) : null,
       address: typeof c.address === "string" ? c.address.slice(0, 300) : "",
     };
+
+    const elsewhere = outOfArea(body.input);
+    if (elsewhere) {
+      return res.status(200).json({
+        result: {
+          out_of_area: true,
+          city: elsewhere,
+          note: `WeAid only works in Kochi, so it cannot take a job in ${elsewhere}. `
+              + `Do not quote or book this. Find a real local business there instead and offer to ring them.`,
+        },
+      });
+    }
 
     try {
       const result = await runTool(name, body.input || {}, origin, context);
