@@ -48,7 +48,8 @@ let KEY = ""; try { KEY = localStorage.getItem("weaid_ops_key") || ""; } catch {
 const fromHash = new URLSearchParams(location.hash.slice(1)).get("k"); if (fromHash) { KEY = fromHash; try { localStorage.setItem("weaid_ops_key", KEY); } catch {} history.replaceState(null, "", "/ops"); }
 let jobs = [], tab = "open", openPanel = null;
 const TABS = { open: "Needs action", live: "In progress", done: "Done", all: "All", issues: "Issues", pros: "Pros", calls: "Call list", jobsportal: "WeAid Jobs", carpool: "Carpool" };
-const inTab = (j) => tab === "all" || (tab === "open" ? ["unpaid", "finding", "awaiting_advance"].includes(j.stage) || (j.quote && j.stage === "done" && j.quote.money.balanceDue) : tab === "live" ? ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"].includes(j.stage) : ["done", "cancelled", "refunded"].includes(j.stage));
+const dueAfter = (j) => Boolean(j.payment && j.payment.mode === "pay_after" && j.stage === "done" && j.payment.due > 0);
+const inTab = (j) => tab === "all" || (tab === "open" ? ["unpaid", "finding", "awaiting_advance"].includes(j.stage) || (j.quote && j.stage === "done" && j.quote.money.balanceDue) || dueAfter(j) : tab === "live" ? ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"].includes(j.stage) : ["done", "cancelled", "refunded"].includes(j.stage));
 
 async function api(path, body) {
   const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", "X-Ops-Key": KEY }, body: body ? JSON.stringify(body) : undefined });
@@ -60,7 +61,7 @@ document.getElementById("enter").onclick = () => { KEY = document.getElementById
 
 function render() {
   const GROUP = { open: ["unpaid", "finding", "awaiting_advance"], live: ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"], done: ["done", "cancelled", "refunded"] };
-  const count = (k) => (["pros", "calls", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : jobs.filter((j) => GROUP[k].includes(j.stage)).length})`);
+  const count = (k) => (["pros", "calls", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : jobs.filter((j) => GROUP[k].includes(j.stage) || (k === "open" && dueAfter(j))).length})`);
   document.getElementById("tabs").innerHTML = Object.entries(TABS).map(([k, v]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${v}${count(k)}</button>`).join("");
   document.querySelectorAll("[data-t]").forEach((b) => b.onclick = () => { tab = b.dataset.t; render(); });
   if (tab === "pros") { renderPros(); return; }
@@ -86,11 +87,13 @@ function card(j) {
     ${j.proof && j.proof.state !== "not_done" ? `<div style="margin-top:4px;font-size:14px">${{ confirmed: `✅ Customer confirmed · ${"★".repeat(j.proof.rating || 0)}${j.proof.comment ? ` "${esc(j.proof.comment)}"` : ""}`, auto_confirmed: "✅ Auto-confirmed (no complaint in 24 h)", disputed: '<b style="color:var(--red)">⚠️ Customer reported a problem</b>', waiting: "⏳ Waiting for customer to confirm" }[j.proof.state]} · Payout: <b>${{ ready: "ready", on_hold: "on hold", waiting: "waiting" }[j.proof.payout]}</b></div>` : ""}
     ${j.quote ? `<div style="margin-top:6px;font-size:14px;background:#f0fdfa;border-radius:10px;padding:8px 10px">📐 <b>Quote job</b>${j.quote.q ? ` · quote ₹${j.quote.q.total.toLocaleString("en-IN")} · ${j.quote.q.days} day(s)` : " · site visit"}<br>Paid ₹${j.quote.money.paid.toLocaleString("en-IN")} (visit ₹${j.quote.money.visit}, advance ₹${j.quote.money.advance}, balance ₹${j.quote.money.balance})${j.quote.money.advanceDue && ["awaiting_advance"].includes(j.stage) ? ` · <b style="color:var(--red)">advance due ₹${j.quote.money.advanceDue}</b>` : ""}${j.quote.money.balanceDue && j.stage === "done" ? ` · <b style="color:var(--red)">balance due ₹${j.quote.money.balanceDue}</b>` : ""}</div>` : ""}
     <div id="ph${j.id}"></div>
+    ${j.payment && j.payment.mode === "pay_after" && !["cancelled", "refunded"].includes(j.stage) ? `<div style="margin-top:6px;font-size:14px">💵 <b>Pay after the job</b> · ${j.paid_at ? "paid" : j.stage === "done" ? `<b style="color:var(--red)">₹${j.payment.due} due from the customer</b>${j.payment.payUrl ? ` · <a href="${esc(j.payment.payUrl)}" target="_blank">link sent</a>` : ""}` : `₹${j.payment.due} to collect when done`}</div>` : ""}
     ${j.refundDue ? `<div style="margin-top:6px;font-size:14px;color:var(--red)"><b>💸 Refund due — send it by UPI, then tap "Refund sent".</b></div>` : j.refunded ? `<div class="mut" style="margin-top:6px">Refunded via Razorpay</div>` : ""}
     ${j.provider_name ? `<div style="margin-top:6px;font-size:14px">Pro: <b>${esc(j.provider_name)}</b> ${esc(j.provider_phone || "")} · arrival code <b>${j.code}</b></div>` : ""}
     <div class="btns">
       ${["unpaid", "finding", "assigned"].includes(j.stage) ? `<button class="btn dark" data-a="assign">${j.provider_name ? "Change pro" : "Assign a pro"}</button>` : ""}
-      ${j.stage === "unpaid" ? `<button class="btn" data-a="paid">Mark paid (cash/UPI)</button>` : ""}
+      ${j.stage === "unpaid" ? `<button class="btn dark" data-a="dispatch_unpaid">Find a pro now (pay after)</button><button class="btn" data-a="paid">Mark paid (cash/UPI)</button>` : ""}
+      ${dueAfter(j) ? `<button class="btn dark" data-a="job_paid">✓ Payment received</button>` : ""}
       <a class="btn" href="${j.links.track}" target="_blank">Customer view</a>
       ${j.provider_name ? `<a class="btn" href="${j.links.job}" target="_blank">Pro view</a>` : ""}
       ${j.customer_phone ? `<a class="btn" href="tel:${esc(j.customer_phone)}">Call customer</a>` : ""}
@@ -110,6 +113,18 @@ function wire(j) {
   el.querySelectorAll("[data-a]").forEach((b) => b.onclick = async () => {
     const a = b.dataset.a;
     if (a === "paid") { const how = prompt("How did they pay? (cash / UPI)", "UPI"); if (!how) return; await api("/api/ops", { action: "mark_paid", bookingId: j.id, how }); return refresh(); }
+    if (a === "dispatch_unpaid") {
+      if (!confirm("Start finding a pro now, with the customer paying after the job? Nothing is charged up front.")) return;
+      await api("/api/ops", { action: "dispatch_unpaid", bookingId: j.id }); return refresh();
+    }
+    if (a === "job_paid") {
+      const who = prompt(`₹${j.payment.due} received — who has the money? Type "pro" (${j.provider_name || "the pro"} took cash/UPI; WeAid's share goes on their ledger) or "weaid" (paid to WeAid).`, "pro"); if (!who) return;
+      const how = prompt("How? (cash / UPI)", "cash"); if (!how) return;
+      const amt = prompt("Amount received in ₹:", String(j.payment.due)); if (!amt) return;
+      const d = await api("/api/ops", { action: "job_payment_received", bookingId: j.id, amount: Number(amt), how, receivedBy: who.trim().toLowerCase() === "weaid" ? "weaid" : "pro" });
+      if (d.due > 0) alert(`Recorded. ₹${d.due} still due.`);
+      return refresh();
+    }
     if (a === "cancel") {
       const q = await api("/api/ops", { action: "cancel_quote", bookingId: j.id });
       if (!q.allowed) return alert(q.reason);
@@ -389,18 +404,25 @@ async function renderPros() {
   document.getElementById("teamList").outerHTML = team.length ? team.map((p) => `<div class="job"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
       <div><b>${esc(p.name)}</b> ${p.online ? '<span class="pill on_the_way">online</span>' : ""} ${p.hasApp ? '<span class="pill">has app</span>' : ""}
       <div class="mut">${esc(p.phone || "")} · ${esc((p.services || []).join(", "))}${p.areas.length ? ` · ${esc(p.areas.join(", "))}` : ""}</div>
-      <div class="mut">App code: <b>${p.appCode}</b></div></div>
+      <div class="mut">App code: <b>${p.appCode}</b></div>
+      ${p.owed > 0 ? `<div style="font-size:14px;margin-top:4px;color:${p.blocked ? "var(--red)" : "var(--amber)"}">💵 Holding <b>₹${p.owed}</b> of WeAid's share from cash jobs${p.blocked ? ` — over ₹${p.owedLimit}, no new offers until settled` : " (comes off next payout)"}</div>` : ""}</div>
       <span class="pill ${p.approved ? "done" : p.kyc === "submitted" ? "finding" : "unpaid"}">${p.approved ? "Approved" : p.kyc === "submitted" ? "ID to review" : p.kyc === "rejected" ? "Rejected" : "No ID yet"}</span></div>
     ${p.idType ? `<div class="mut">Verified with: ${esc(p.idType)}</div>` : ""}
     <div id="kyc${p.id}"></div>
     <div class="btns">
       ${p.kyc === "submitted" && !p.approved ? `<button class="btn dark" data-review="${p.id}">Review ID</button>` : `<button class="btn ${p.approved ? "" : "dark"}" data-ap="${p.id}" data-v="${p.approved ? "unapprove" : "approve"}">${p.approved ? "Remove approval" : "Approve without ID"}</button>`}
       <button class="btn wa" data-code="${p.id}">WhatsApp app code</button>
+      ${p.owed > 0 ? `<button class="btn dark" data-settle="${p.id}" data-owed="${p.owed}">✓ Paid WeAid back</button>` : ""}
       ${p.phone ? `<a class="btn" href="tel:${esc(p.phone)}">Call</a>` : ""}
     </div></div>`).join("") : `<div class="mut" style="padding:20px;text-align:center">${teamQ ? "Nobody found." : "No pros have signed up yet. Search above to invite one from the directory."}</div>`;
   list.querySelectorAll("[data-ap]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: b.dataset.v, providerId: b.dataset.ap }); renderPros(); });
   list.querySelectorAll("[data-review]").forEach((b) => b.onclick = () => reviewId(b.dataset.review));
   list.querySelectorAll("[data-code]").forEach((b) => b.onclick = async () => { const d = await api("/api/ops", { action: "app_code", providerId: b.dataset.code }); if (d.whatsapp) window.open(d.whatsapp, "_blank"); });
+  list.querySelectorAll("[data-settle]").forEach((b) => b.onclick = async () => {
+    const amt = prompt(`How much did they pay WeAid? (owes ₹${b.dataset.owed})`, b.dataset.owed); if (!amt) return;
+    const how = prompt("How? (UPI / cash)", "UPI"); if (!how) return;
+    await api("/api/ops", { action: "owed_settled", providerId: b.dataset.settle, amount: Number(amt), how }); renderPros();
+  });
 }
 
 const tick = (v) => v === "yes" || v === "likely_same" || v === "no" && false ? "✅" : v === "partly" || v === "unclear" || v === "cannot_tell" || v === "unreadable" ? "⚠️" : "❌";

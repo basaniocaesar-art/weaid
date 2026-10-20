@@ -10,6 +10,7 @@ import { openTicket } from "../../lib/followup.js";
 import { photoLinks, confirmation, confirmJob } from "../../lib/proof.js";
 import { isQuoteJob, money, acceptQuote, declineQuote, payInfo, ADVANCE_PCT, VISIT_FEE } from "../../lib/quotes.js";
 import { isCourierJob, courierInfo, pickupCode, dropCode, receiverLink } from "../../lib/courier.js";
+import { amountDue, jobPayInfo } from "../../lib/payafter.js";
 
 export default async function handler(req, res) {
   const { b, k } = req.query;
@@ -41,6 +42,11 @@ export default async function handler(req, res) {
         const m = money(booking, ev);
         const what = body.what === "balance" ? "balance" : "advance";
         return res.status(200).json(await payInfo(booking, what, what === "balance" ? m.balanceDue : m.advanceDue));
+      }
+      if (body.action === "pay_job") {
+        // Pay-after job: a Razorpay link for what is still due (or "pay the pro").
+        if (booking.payment_mode !== "pay_after") return res.status(400).json({ error: "Not a pay-after job." });
+        return res.status(200).json(await jobPayInfo(booking, await eventsFor(b)));
       }
       if (body.action === "confirm") {
         try { return res.status(200).json(await confirmJob(booking, await eventsFor(b), body.rating, body.comment)); }
@@ -98,6 +104,15 @@ export default async function handler(req, res) {
         photos: ["quoted", "awaiting_advance", "scheduled", "working"].includes(stage) ? await photoLinks(b) : [],
       } : null,
       reported: events.some((e) => e.event === "issue_reported"),
+      // Pay-after: nothing taken up front; what is still owed, and the link once the job is done.
+      payment: {
+        mode: booking.payment_mode || "prepaid",
+        due: amountDue(booking, events),
+        paid: Boolean(booking.paid_at),
+        payUrl: events.filter((e) => e.event === "payment_due").pop()?.data?.payUrl || null,
+      },
+      // Why it was cancelled, when WeAid cancelled it (nobody free), so the page can say so.
+      cancelReason: ["cancelled", "refunded"].includes(stage) ? events.filter((e) => e.event === "cancelled").pop()?.data?.reason || null : null,
       times: { paid: booking.paid_at, assigned: at("assigned") || booking.accepted_at, on_the_way: at("on_the_way"), arrived: at("arrived"), done: booking.completed_at || at("done") },
     });
   } catch (e) {

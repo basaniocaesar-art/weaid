@@ -2,6 +2,7 @@ import crypto from "crypto";
 import { confirmPayment } from "../../../lib/orchestrator.js";
 import { recordPayment } from "../../../lib/quotes.js";
 import { confirmSeat } from "../../../lib/carpool.js";
+import { recordJobPayment } from "../../../lib/payafter.js";
 
 export const config = { api: { bodyParser: false } };
 
@@ -55,6 +56,10 @@ export default async function handler(req, res) {
           razorpayPaymentId: payment.id,
           razorpaySignature: signature,
         });
+      } else if (bookingId && payment.notes?.what === "job") {
+        // "Pay now instead" on a pay-after job (/api/booking/pay-now): an order, not a link.
+        await recordJobPayment(bookingId, { amount: payment.amount / 100, mode: "razorpay", ref: payment.id, receivedBy: "weaid", by: "customer",
+          patch: { razorpay_order_id: orderId, razorpay_payment_id: payment.id } });
       }
     }
 
@@ -66,6 +71,10 @@ export default async function handler(req, res) {
       const what = link?.notes?.what;
       if (bookingId && (what === "advance" || what === "balance")) {
         await recordPayment(bookingId, what, (payment?.amount || link?.amount_paid || 0) / 100, "razorpay", payment?.id);
+      } else if (bookingId && what === "job") {
+        // The link sent when the pro tapped Done on a pay-after job.
+        await recordJobPayment(bookingId, { amount: (payment?.amount || link?.amount_paid || 0) / 100, mode: "razorpay", ref: payment?.id || link?.id, receivedBy: "weaid", by: "customer",
+          patch: { razorpay_payment_id: payment?.id || null } });
       } else if (bookingId) {
         await confirmPayment({
           bookingId,

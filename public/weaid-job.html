@@ -82,7 +82,9 @@ function render() {
   const d = job;
   document.getElementById("head").innerHTML =
     `<div class="mut">${esc((d.service || "").replace(/_/g, " "))} · ${esc(d.scope || "")} job</div><h1>${esc(d.words)}</h1>` +
-    (d.earnings != null ? `<div class="mut">You earn <b style="color:var(--ink)">₹${d.earnings}</b>${d.paid ? " · customer has paid WeAid" : " · payment to be confirmed"}</div>` : "");
+    (d.earnings != null ? `<div class="mut">You earn <b style="color:var(--ink)">₹${d.earnings}</b>${d.payment && d.payment.mode === "pay_after"
+      ? (d.paid ? " · customer has paid" : ` · customer pays <b style="color:var(--ink)">₹${d.payment.total}</b> after the job (cash to you, or a link)`)
+      : d.paid ? " · customer has paid WeAid" : " · payment to be confirmed"}</div>` : "");
 
   const C = d.courier;
   const tgt = C && d.stage === "in_transit" ? C.drop : null;
@@ -216,9 +218,26 @@ function render() {
       try { job = { ...job, ...(await post({ action: "done", note: document.getElementById("note").value })) }; render(); }
       catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
     };
+  } else if (d.stage === "done" && d.payment && d.payment.mode === "pay_after" && d.payment.due > 0) {
+    /* Pay-after: the job is done and the money is still with the customer.
+     * Either they pay the link WeAid sent them, or they hand the pro cash and
+     * the pro says so here — which puts WeAid's share in the pro's ledger. */
+    stopSharing();
+    const P = d.payment;
+    act.innerHTML = `<h1>🎉 Job done</h1><b>Collect ₹${P.due} from ${esc(d.customer.name.split(" ")[0] || "the customer")}</b>
+      <div class="mut" style="margin-top:6px">They've been sent ${P.payUrl ? "a payment link" : "the amount"} by WeAid. If they pay you by cash or UPI instead, tap below so WeAid knows.</div>
+      ${P.payUrl ? `<a class="btn light" href="${esc(P.payUrl)}" target="_blank" rel="noopener">Show them the payment link</a>` : ""}
+      <button class="btn teal" id="cash">💵 Received ₹${P.due} in cash / UPI</button>
+      <div class="mut" style="margin-top:8px">Your share is ₹${d.earnings}. WeAid's ₹${P.commission} comes off your next payout.</div><div class="err" id="err"></div>`;
+    act.querySelector("#cash").onclick = async (e) => {
+      if (!confirm(`The customer has paid you ₹${P.due} in cash or UPI?`)) return;
+      e.target.disabled = true;
+      try { job = { ...job, ...(await post({ action: "cash_received", amount: P.due })) }; render(); }
+      catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
+    };
   } else {
     stopSharing();
-    act.innerHTML = d.stage === "done" ? `<h1>🎉 Thank you!</h1><div class="mut">This job is complete. WeAid will settle your payment.</div>
+    act.innerHTML = d.stage === "done" ? `<h1>🎉 Thank you!</h1><div class="mut">This job is complete. ${d.payment && d.payment.mode === "pay_after" ? "The customer has paid." : "WeAid will settle your payment."}</div>
       <div style="margin-top:14px;text-align:center"><b>Ask the customer for a Google review</b><div class="mut">Show them this — they scan it with their phone camera. Every customer, happy or not: it's how new families find WeAid.</div>
       <img alt="QR code" style="margin-top:10px;width:200px;height:200px" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent("https://weaid.in/review")}"><div class="mut">weaid.in/review</div></div>` : `<div class="mut">This job is ${esc(d.words.toLowerCase())}.</div>`;
   }

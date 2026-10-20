@@ -1,6 +1,7 @@
 import { getCompletedPayouts, updateBooking, getAffiliatesForPayout, getEarnedReferrals, markReferralsPaid, insertAffiliatePayout, resetAffiliatePendingPayout } from "../../../lib/supabase.js";
 import { notifyProviderPayout, notifyAffiliatePayout } from "../../../lib/whatsapp.js";
 import { sendPayoutNotification, sendAffiliatePayoutNotification } from "../../../lib/email.js";
+import { owedBalances, addLedger } from "../../../lib/payafter.js";
 
 export default async function handler(req, res) {
   if (req.method !== "GET") {
@@ -14,7 +15,13 @@ export default async function handler(req, res) {
 
   try {
     const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString();
-    const bookings = await getCompletedPayouts(oneWeekAgo);
+    /*
+     * Only money WeAid is actually holding goes out. A pay-after job the
+     * customer has not paid yet is not ours to pay from; one the pro took in
+     * cash is already marked provider_paid when it was recorded (lib/payafter.js)
+     * and never reaches here.
+     */
+    const bookings = (await getCompletedPayouts(oneWeekAgo)).filter((b) => b.payment_mode !== "pay_after" || b.paid_at);
 
     // Group by provider
     const byProvider = {};
@@ -28,6 +35,8 @@ export default async function handler(req, res) {
     }
 
     let payoutsProcessed = 0;
+    let netted = 0;
+    const owed = await owedBalances(Object.keys(byProvider));
 
     for (const [providerId, data] of Object.entries(byProvider)) {
       // Mark bookings as paid
@@ -35,12 +44,24 @@ export default async function handler(req, res) {
         await updateBooking(bid, { provider_paid: true, paid_out_at: new Date().toISOString() });
       }
 
-      // Notify provider
-      if (data.provider?.phone) {
-        await notifyProviderPayout(data.provider.phone, data.total);
+      /*
+       * Cash commissions the pro is holding come off the top. The ledger row
+       * is written before anybody is told a number, so the balance they see in
+       * the app and the amount in the message agree.
+       */
+      const deduct = Math.min(Math.max(0, owed[providerId] || 0), Math.round(data.total));
+      if (deduct > 0) {
+        await addLedger(providerId, "netted", -deduct, { note: `Taken off the weekly payout of ₹${Math.round(data.total)}` });
+        netted += deduct;
       }
-      if (data.provider?.email) {
-        await sendPayoutNotification(data.provider.email, data.provider, data.total);
+      const net = Math.round(data.total) - deduct;
+
+      // Notify provider
+      if (net > 0 && data.provider?.phone) {
+        await notifyProviderPayout(data.provider.phone, net);
+      }
+      if (net > 0 && data.provider?.email) {
+        await sendPayoutNotification(data.provider.email, data.provider, net);
       }
 
       payoutsProcessed++;
@@ -77,6 +98,7 @@ export default async function handler(req, res) {
     return res.status(200).json({
       providers: payoutsProcessed,
       totalBookings: bookings.length,
+      nettedAgainstOwed: netted,
       affiliatePayouts: affiliatePayoutsProcessed,
     });
   } catch (err) {

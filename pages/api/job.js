@@ -6,6 +6,7 @@
  *                        { action: "location", lat, lng }      every ~20 s while on the way
  *                        { action: "arrived", code }           the customer's 4-digit code
  *                        { action: "done", note }
+ *                        { action: "cash_received", amount }   pay-after job: the customer paid the pro
  *
  * Every step is logged in booking_events and emailed to the owner.
  */
@@ -14,6 +15,7 @@ import { checkToken, eventsFor, stageOf, STAGE_WORDS, arrivalCode, logEvent, sav
 import { savePhoto, photoCounts, arrivalDistance, FAR_METRES } from "../../lib/proof.js";
 import { isQuoteJob, submitQuote, money, ADVANCE_PCT, VISIT_FEE } from "../../lib/quotes.js";
 import { isCourierJob, courierInfo, pickupCode, dropCode } from "../../lib/courier.js";
+import { amountDue, collectAfterJob, recordJobPayment, jobPaid } from "../../lib/payafter.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "4.5mb" } } };
 
@@ -33,7 +35,13 @@ export default async function handler(req, res) {
       const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
       const lat = num(body.lat), lng = num(body.lng);
 
-      if (["cancelled", "refunded", "done"].includes(stage)) {
+      if (body.action === "cash_received") {
+        // The one thing a pro can still do after Done: say the customer paid them.
+        if (amountDue(booking, events) <= 0) return res.status(400).json({ error: "This job is already paid." });
+        try { await recordJobPayment(b, { amount: Number(body.amount) || undefined, mode: "cash", receivedBy: "pro", by: "pro" }); }
+        catch (e) { return res.status(400).json({ error: e.message }); }
+        booking = await getBooking(b);
+      } else if (["cancelled", "refunded", "done"].includes(stage)) {
         return res.status(409).json({ error: "This job is closed.", stage });
       }
       if (body.action === "location") {
@@ -79,6 +87,7 @@ export default async function handler(req, res) {
         await logEvent(b, "delivered", Number.isFinite(lat) ? { lat, lng } : {});
         await logEvent(b, "done", { note: "Delivered — receiver's code checked, photo taken." });
         await alertStep(booking, "done", "Delivered — receiver's code checked, photo taken.");
+        await collectAfterJob(booking).catch((e) => console.error("[job] collect", e.message));
       } else if (body.action === "photo") {
         if (!["arrived", "visiting", "working", "to_pickup", "in_transit"].includes(stage)) return res.status(400).json({ error: "Enter the customer's arrival code first." });
         try { await savePhoto(booking, body.kind, body.mime, body.data); } catch (e) { return res.status(400).json({ error: e.message }); }
@@ -88,7 +97,9 @@ export default async function handler(req, res) {
         booking = await updateBooking(b, { status: "completed", completed_at: new Date().toISOString() });
         await logEvent(b, "done", { note: String(body.note || "").slice(0, 500) });
         await alertStep(booking, "done", body.note ? `Pro's note: ${String(body.note).slice(0, 300)}` : "");
-      } else {
+        // Pay-after: the customer is now sent the amount and a link; the pro sees it below.
+        await collectAfterJob(booking).catch((e) => console.error("[job] collect", e.message));
+      } else if (body.action !== "cash_received") {
         return res.status(400).json({ error: "unknown action" });
       }
       events = await eventsFor(b);
@@ -108,6 +119,12 @@ export default async function handler(req, res) {
       pro: booking.provider_name || "",
       earnings: booking.provider_earnings != null ? Math.round(booking.provider_earnings) : null,
       paid: Boolean(booking.paid_at),
+      // How the money works on this job, in the pro's terms.
+      payment: booking.payment_mode === "pay_after"
+        ? { mode: "pay_after", total: Math.round(booking.total || booking.amount || 0), due: amountDue(booking, events), received: jobPaid(events),
+            payUrl: events.filter((e) => e.event === "payment_due").pop()?.data?.payUrl || null,
+            commission: Math.max(0, Math.round((booking.total || booking.amount || 0) - (booking.provider_earnings || 0))) }
+        : { mode: booking.payment_mode || "prepaid", due: 0 },
       photos: await photoCounts(b),
       courier: isCourierJob(events) ? courierInfo(events) : null,
       quoteJob: isQuoteJob(events) ? { money: money(booking, events), quote: events.filter((e) => e.event === "quote").pop()?.data || null, advancePct: ADVANCE_PCT, visitFee: VISIT_FEE } : null,

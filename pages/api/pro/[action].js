@@ -16,6 +16,7 @@ import { SERVICE_SLUGS, canonicalArea } from "../../../lib/concierge-tools.js";
 import { sendAdminNotification } from "../../../lib/email.js";
 import { opsLink } from "../../../lib/followup.js";
 import { submitUpload, readCheck, statusFor, trustCard } from "../../../lib/verify.js";
+import { owedBalance, PRO_OWED_LIMIT } from "../../../lib/payafter.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "4.5mb" } } };
 
@@ -136,15 +137,20 @@ export default async function handler(req, res) {
       }
       const offers = pro.verified && pro.available ? await offersFor(pro.id) : [];
       const { data: jobs } = await supabase.from("bookings")
-        .select("id,service,scope,status,address,scheduled_at,description,provider_earnings,provider_id,provider_name,paid_at,completed_at,created_at")
+        .select("id,service,scope,status,address,scheduled_at,description,provider_earnings,provider_id,provider_name,paid_at,payment_mode,total,amount,completed_at,created_at")
         .eq("provider_id", pro.id).order("created_at", { ascending: false }).limit(30);
       const mine = [];
       for (const j of jobs || []) {
         const stage = stageOf(j, await eventsFor(j.id));
-        mine.push({ bookingId: j.id, jobToken: linkToken("pro", j.id), stage, words: STAGE_WORDS[stage], service: niceService(j.service), area: areaOf(j.address), when: j.scheduled_at, earnings: j.provider_earnings != null ? Math.round(j.provider_earnings) : null, completedAt: j.completed_at });
+        const payAfter = j.payment_mode === "pay_after";
+        mine.push({ bookingId: j.id, jobToken: linkToken("pro", j.id), stage, words: STAGE_WORDS[stage], service: niceService(j.service), area: areaOf(j.address), when: j.scheduled_at, earnings: j.provider_earnings != null ? Math.round(j.provider_earnings) : null, completedAt: j.completed_at,
+          // Pay-after: the pro collects from the customer; "unpaid" until the customer has paid (link or cash).
+          payAfter, collect: payAfter ? Math.round(j.total || j.amount || 0) : 0, customerPaid: Boolean(j.paid_at) });
       }
       const done = mine.filter((j) => j.stage === "done");
       const today = new Date(Date.now() + 5.5 * 3600e3).toISOString().slice(0, 10);
+      // Cash commissions held for WeAid; past the limit, no new offers until it is settled.
+      const owed = await owedBalance(pro.id);
       return res.status(200).json({
         verification: statusFor(pro, await readCheck(pro.id)),
         canCarpool: (pro.services || []).some((x) => x === "driver" || x === "carpool"),
@@ -156,6 +162,8 @@ export default async function handler(req, res) {
           today: done.filter((j) => (j.completedAt || "").slice(0, 10) === today).reduce((n, j) => n + (j.earnings || 0), 0),
           total: done.reduce((n, j) => n + (j.earnings || 0), 0),
           jobs: done.length,
+          owed, owedLimit: PRO_OWED_LIMIT, blocked: owed > PRO_OWED_LIMIT,
+          owedWords: owed > 0 ? `You're holding ₹${owed} of WeAid's share from cash jobs. It comes off your next payout${owed > PRO_OWED_LIMIT ? ", and new jobs are paused until it's under ₹" + PRO_OWED_LIMIT : ""}.` : "",
         },
       });
     }

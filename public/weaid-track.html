@@ -38,6 +38,7 @@ h1{font-size:24px;margin:0 0 4px;letter-spacing:-.01em}.mut{color:var(--mut);fon
   <div class="card" id="courierCard" hidden></div>
   <div class="card" id="quoteCard" hidden></div>
   <div class="card" id="proofCard" hidden></div>
+  <div class="card" id="payCard" hidden></div>
   <div class="card" id="helpCard"></div>
   <div class="card mut" style="text-align:center">Something wrong? Call WeAid on <a href="tel:+918064267771">080 6426 7771</a><br><a href="/refunds" style="font-size:13px">Cancellation &amp; refund policy</a></div>
 </main>
@@ -92,12 +93,15 @@ async function load() {
   const i = qj || d.courier ? -1 : ORDER.indexOf(d.stage);
   const qi = qj ? QORDER.indexOf(d.stage) : -1;
   const live = d.stage === "on_the_way" ? '<span class="pulse"></span>' : "";
+  const payAfter = d.payment && d.payment.mode === "pay_after";
   document.getElementById("status").innerHTML =
     `<div class="mut">${esc(svc(d.service))}</div><h1>${live}${esc(d.words)}</h1>` +
     (d.stage === "on_the_way" && d.eta ? `<div class="mut">About ${d.eta} minutes away when they set off</div>` : "") +
+    // WeAid cancelled it (nobody free): say why, and that nothing was charged.
+    (d.stage === "cancelled" && d.cancelReason ? `<div class="mut">${esc(d.cancelReason)}.${payAfter ? " Nothing has been charged." : ""} Reply to our message with another time, or call us, and we'll try again.</div>` : "") +
     (ci >= 0 ? `<div class="steps">${[1, 2, 3, 4, 5].map((n) => `<span class="${ci >= n ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>Paid</span><span>Rider</span><span>To pickup</span><span>On the way</span><span>Delivered</span></div>` : "") +
     (qi >= 0 ? `<div class="steps">${[4, 5, 7, 8, 9].map((n) => `<span class="${qi >= n ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>Site visit</span><span>Quote</span><span>Advance</span><span>Work</span><span>Done</span></div>` : "") +
-    (i >= 0 ? `<div class="steps">${ORDER.slice(1).map((s, n) => `<span class="${n + 1 <= i ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>Paid</span><span>Assigned</span><span>On the way</span><span>Arrived</span><span>Done</span></div>` : "");
+    (i >= 0 ? `<div class="steps">${ORDER.slice(1).map((s, n) => `<span class="${n + 1 <= i ? "on" : ""}"></span>`).join("")}</div><div class="labels"><span>${payAfter ? "Booked" : "Paid"}</span><span>Assigned</span><span>On the way</span><span>Arrived</span><span>Done</span></div>` : "");
 
   document.getElementById("codeCard").hidden = !d.code;
   if (d.code) document.getElementById("code").textContent = d.code;
@@ -131,10 +135,11 @@ async function load() {
     (d.address ? `<div class="row"><span class="mut">Address</span><span style="text-align:right">${esc(d.address)}</span></div>` : "") +
     (d.quoteJob && d.quoteJob.money.total
       ? `<div class="row"><span class="mut">Quote</span><span><b>₹${d.quoteJob.money.total.toLocaleString("en-IN")}</b></span></div><div class="row"><span class="mut">Paid so far</span><span>₹${d.quoteJob.money.paid.toLocaleString("en-IN")}</span></div>`
-      : `<div class="row"><span class="mut">${d.quoteJob ? "Site visit" : "Price"}</span><span><b>₹${d.total}</b></span></div>`);
+      : `<div class="row"><span class="mut">${d.quoteJob ? "Site visit" : "Price"}</span><span><b>₹${d.total}</b>${payAfter ? ` <span class="mut">· ${d.payment.paid ? "paid" : "pay after the job"}</span>` : ""}</span></div>`);
   renderCourier(d);
   renderQuote(d);
   renderProof(d);
+  renderPay(d);
   if (!helpOpen) renderHelp(d);
 }
 function renderCourier(d) {
@@ -200,6 +205,31 @@ function renderQuote(d) {
   on("qPayBal", () => pay("balance"));
   on("qAsk", async () => { const t = prompt("Your question about the quote:"); if (!t) return; try { const x = await qPost({ action: "question", text: t }); document.getElementById("qMsg").textContent = `Sent (ref ${x.ref}). WeAid will call you.`; } catch (e) { document.getElementById("qMsg").textContent = e.message; } });
   on("qNo", async () => { const r = prompt("Mind telling us why? (optional)", ""); if (r === null) return; await qPost({ action: "decline_quote", reason: r }); load(); });
+}
+
+/* Pay-after: nothing was taken when they booked. Before the job this just says
+ * so; after it, what is owed and the two ways to pay it. */
+let payBusy = false;
+function renderPay(d) {
+  const el = document.getElementById("payCard");
+  const p = d.payment;
+  if (!p || p.mode !== "pay_after" || ["cancelled", "refunded"].includes(d.stage) || payBusy) { if (!p || p.mode !== "pay_after") el.hidden = true; return; }
+  el.hidden = false;
+  const pro = (d.pro && d.pro.name || "your pro").split(" ")[0];
+  if (p.paid || p.due <= 0) { el.innerHTML = `<b>✅ Paid — thank you.</b>`; return; }
+  if (d.stage !== "done") { el.innerHTML = `<b>Nothing to pay now.</b><div class="mut" style="margin-top:4px">You pay ₹${d.total} after the job — cash or UPI to ${pro}, or online with a link we'll send you.</div>`; return; }
+  el.innerHTML = `<b>₹${p.due} to pay for this job</b><div class="mut" style="margin-top:4px">Pay ${pro} by cash or UPI and they'll mark it received — or pay online now.</div>
+    <button class="btn" id="payNow" style="width:100%;border:0;font:inherit;font-weight:800;background:linear-gradient(90deg,#0d9488,#f97316)">Pay ₹${p.due} online</button><div id="payMsg" class="mut" style="margin-top:6px"></div>`;
+  document.getElementById("payNow").onclick = async (e) => {
+    e.target.disabled = true; payBusy = true;
+    try {
+      if (p.payUrl) { location.href = p.payUrl; return; }
+      const x = await qPost({ action: "pay_job" });
+      if (x.payUrl) { location.href = x.payUrl; return; }
+      document.getElementById("payMsg").textContent = x.paid ? "Already paid — thank you!" : `Online payment isn't available right now — please pay ${pro} by cash or UPI.`;
+    } catch (err) { document.getElementById("payMsg").textContent = err.message; }
+    payBusy = false; e.target.disabled = false;
+  };
 }
 
 let stars = 0, proofBusy = false;

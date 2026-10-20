@@ -4,7 +4,10 @@
  *   GET  /api/ops                         recent bookings with their stage
  *   GET  /api/ops?pros=<service>&area=..  pros to choose from, nearest area first
  *   POST /api/ops { action: "assign", bookingId, name, phone, providerId? }
- *        { action: "mark_paid", bookingId, how }    cash / UPI taken outside Razorpay
+ *        { action: "mark_paid", bookingId, how }    cash / UPI taken outside Razorpay, before the job
+ *        { action: "dispatch_unpaid", bookingId }   a booking stuck waiting for payment: make it pay-after and find a pro now
+ *        { action: "job_payment_received", bookingId, amount, how, receivedBy }   pay-after job: money collected
+ *        { action: "owed_settled", providerId, amount, how }   a pro paid WeAid the commission they were holding
  *        { action: "cancel", bookingId, reason }
  *
  * "assign" hands back ready-to-send WhatsApp links: the job link for the pro,
@@ -22,6 +25,8 @@ import { confirmation, photoLinks } from "../../lib/proof.js";
 import { isQuoteJob, money, recordPayment } from "../../lib/quotes.js";
 import { confirmSeat, seatLink } from "../../lib/carpool.js";
 import { activatePlan, PLANS as JP_PLANS } from "../../lib/jobportal.js";
+import { startDispatch, confirmBooking } from "../../lib/orchestrator.js";
+import { amountDue, recordJobPayment, owedBalances, addLedger, PRO_OWED_LIMIT } from "../../lib/payafter.js";
 
 const ten = (p) => String(p || "").replace(/\D/g, "").slice(-10);
 const wa = (phone, text) => (ten(phone).length === 10 ? `https://wa.me/91${ten(phone)}?text=${encodeURIComponent(text)}` : null);
@@ -31,7 +36,7 @@ const whenWords = (iso) => (iso ? new Date(iso).toLocaleString("en-IN", { timeZo
 
 async function listJobs() {
   const { data, error } = await supabase.from("bookings")
-    .select("id,created_at,service,scope,status,total,amount,customer_name,customer_phone,address,description,scheduled_at,paid_at,provider_id,provider_name,provider_phone,provider_earnings,completed_at")
+    .select("id,created_at,service,scope,status,total,amount,customer_name,customer_phone,address,description,scheduled_at,paid_at,confirmed_at,payment_mode,provider_id,provider_name,provider_phone,provider_earnings,completed_at")
     .order("created_at", { ascending: false }).limit(60);
   if (error) throw error;
   const ids = (data || []).map((b) => b.id);
@@ -43,7 +48,11 @@ async function listJobs() {
     const stage = stageOf(b, events);
     const refunded = (ev || []).filter((e) => e.booking_id === b.id && e.event === "refunded").length;
     const refundDue = (ev || []).filter((e) => e.booking_id === b.id && e.event === "refund_due").length - (ev || []).filter((e) => e.booking_id === b.id && e.event === "refund_sent").length;
-    return { ...b, stage, words: STAGE_WORDS[stage], links: jobLinks(b.id), code: arrivalCode(b.id), refunded: refunded > 0, refundDue: refundDue > 0, proof: confirmation(b, events), quote: isQuoteJob(events) ? { money: money(b, events), q: events.filter((e) => e.event === "quote").pop()?.data || null } : null };
+    // Pay-after money: what is still owed and the link the customer was sent.
+    const payment = b.payment_mode === "pay_after"
+      ? { mode: "pay_after", due: amountDue(b, events), payUrl: events.filter((e) => e.event === "payment_due").pop()?.data?.payUrl || null }
+      : { mode: b.payment_mode || "prepaid", due: 0 };
+    return { ...b, stage, words: STAGE_WORDS[stage], links: jobLinks(b.id), code: arrivalCode(b.id), refunded: refunded > 0, refundDue: refundDue > 0, payment, proof: confirmation(b, events), quote: isQuoteJob(events) ? { money: money(b, events), q: events.filter((e) => e.event === "quote").pop()?.data || null } : null };
   });
 }
 
@@ -73,9 +82,12 @@ async function team(q) {
   const { data } = await query;
   const { data: dev } = await supabase.from("provider_devices").select("provider_id");
   const hasApp = new Set((dev || []).map((d) => d.provider_id));
+  // Cash commissions held by each pro (lib/payafter.js); over the limit means no new offers.
+  const owed = await owedBalances((data || []).map((p) => p.id));
   return (data || []).map((p) => ({
     id: p.id, name: p.name, phone: p.phone, services: p.services || [], areas: p.areas || [],
     approved: Boolean(p.verified), hasApp: hasApp.has(p.id),
+    owed: owed[p.id] || 0, owedLimit: PRO_OWED_LIMIT, blocked: (owed[p.id] || 0) > PRO_OWED_LIMIT,
     online: Boolean(p.available) && Date.now() - Date.parse(p.last_seen_at || 0) < 10 * 60e3,
     appCode: loginCode(p.id),
     kyc: p.kyc_status, idType: p.kyc_id_type || null,
@@ -117,8 +129,9 @@ export default async function handler(req, res) {
     }
     if (req.method !== "POST") return res.status(405).json({ error: "method" });
     const body = typeof req.body === "string" ? JSON.parse(req.body || "{}") : req.body || {};
-    const booking = ["approve", "unapprove", "app_code", "kyc_view", "kyc_approve", "kyc_reject", "kyc_call", "ticket_done", "carpool_paid", "carpool_payout", "add_pros", "jp_job", "jp_plan"].includes(body.action) ? null : await getBooking(body.bookingId);
-    if (!booking && !["approve", "unapprove", "app_code", "kyc_view", "kyc_approve", "kyc_reject", "kyc_call", "ticket_done", "carpool_paid", "carpool_payout", "add_pros", "jp_job", "jp_plan"].includes(body.action)) return res.status(404).json({ error: "no such booking" });
+    const NO_BOOKING = ["approve", "unapprove", "app_code", "kyc_view", "kyc_approve", "kyc_reject", "kyc_call", "ticket_done", "carpool_paid", "carpool_payout", "add_pros", "jp_job", "jp_plan", "owed_settled"];
+    const booking = NO_BOOKING.includes(body.action) ? null : await getBooking(body.bookingId);
+    if (!booking && !NO_BOOKING.includes(body.action)) return res.status(404).json({ error: "no such booking" });
 
     if (body.action === "assign") {
       const name = String(body.name || "").trim();
@@ -140,10 +153,42 @@ export default async function handler(req, res) {
       return res.status(200).json({ ok: true, links, whatsappPro: wa(phone, proText), whatsappCustomer: wa(booking.customer_phone, custText), proText, custText });
     }
     if (body.action === "mark_paid") {
-      const updated = await updateBooking(booking.id, { paid_at: booking.paid_at || new Date().toISOString(), status: booking.status === "pending_payment" ? "pending" : booking.status, payment_gateway: String(body.how || "cash").slice(0, 20) });
+      // Money taken before the job, outside Razorpay. A pay-after job that is paid this way is simply paid.
+      if (booking.payment_mode === "pay_after" && amountDue(booking, await eventsFor(booking.id)) > 0) {
+        const r = await recordJobPayment(booking.id, { mode: String(body.how || "cash").slice(0, 20), receivedBy: "weaid", by: "WeAid" });
+        return res.status(200).json({ ok: true, status: booking.status, due: r.due });
+      }
+      const now = new Date().toISOString();
+      const updated = await updateBooking(booking.id, { paid_at: booking.paid_at || now, confirmed_at: booking.confirmed_at || now, status: booking.status === "pending_payment" ? "pending" : booking.status, payment_gateway: String(body.how || "cash").slice(0, 20) });
       await logEvent(booking.id, "paid_offline", { how: body.how || "cash" });
-      await startOffers(updated).catch((e) => console.error("[ops] offers", e.message));
+      // The same outreach a Razorpay payment starts; a no-op if it already ran.
+      const d = await startDispatch(updated).catch((e) => ({ skipped: e.message }));
+      if (d.skipped) await startOffers(updated).catch((e) => console.error("[ops] offers", e.message));
       return res.status(200).json({ ok: true, status: updated.status });
+    }
+    if (body.action === "dispatch_unpaid") {
+      /*
+       * The two October bookings that sat in "waiting for payment" while nobody
+       * was rung: this is the button for them. The job becomes pay-after and
+       * outreach starts now; the customer pays when it is done.
+       */
+      if (booking.status !== "pending_payment") return res.status(409).json({ error: `This job is ${booking.status}, not waiting for payment.` });
+      const updated = await confirmBooking(booking.id);
+      return res.status(200).json({ ok: true, status: updated.status, paymentMode: updated.payment_mode });
+    }
+    if (body.action === "job_payment_received") {
+      // A pay-after job's money arrived by cash/UPI: to the pro (commission goes in their ledger) or to WeAid.
+      try {
+        const r = await recordJobPayment(booking.id, { amount: Number(body.amount) || undefined, mode: String(body.how || "cash").slice(0, 20), receivedBy: body.receivedBy === "weaid" ? "weaid" : "pro", by: "WeAid" });
+        return res.status(200).json(r);
+      } catch (e) { return res.status(400).json({ error: e.message }); }
+    }
+    if (body.action === "owed_settled") {
+      const amt = Math.round(Number(body.amount) || 0);
+      if (!body.providerId || amt <= 0) return res.status(400).json({ error: "Need the pro and an amount." });
+      await addLedger(body.providerId, "settled", -amt, { note: `Paid to WeAid by ${String(body.how || "UPI").slice(0, 20)}` });
+      const owed = (await owedBalances([body.providerId]))[body.providerId] || 0;
+      return res.status(200).json({ ok: true, owed });
     }
     if (body.action === "approve" || body.action === "unapprove") {
       const { error } = await supabase.from("providers").update({ verified: body.action === "approve" }).eq("id", body.providerId);
