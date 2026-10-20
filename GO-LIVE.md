@@ -29,7 +29,8 @@ copy all the text, paste it into a new query, and click **Run**. Do them in this
 7. `supabase-jobs-migration.sql`
 8. `supabase-reviews-migration.sql`
 9. `supabase-affiliate-migration.sql`
-10. `supabase-payouts-migration.sql`  ← **new: earnings, payouts & verification**
+10. `supabase-payouts-migration.sql`  ← earnings, payouts & verification
+11. `supabase-pay-after-migration.sql`  ← **new: book first, pay after the job** (payment_mode, confirmed_at, provider_ledger)
 
 Each is safe to re-run (they use "IF NOT EXISTS"). If one says "already exists," that's fine.
 
@@ -75,6 +76,7 @@ You collect the full amount; providers are paid their net later. Use Razorpay fo
 | WhatsApp notifications | `WHATSAPP_API_URL`, `WHATSAPP_TOKEN`, `WHATSAPP_FROM_NUMBER` |
 | AI voice caller | `SARVAM_*`, `VOICE_*` |
 | Admin/cron protection | `ADMIN_SECRET`, `CRON_SECRET` (set to any long random strings) |
+| Pay-after limits | `PRO_OWED_LIMIT` (default 1000 — a pro holding more cash commission than this gets no new jobs), `PAY_AFTER_OPEN_LIMIT` (default 2 — pay-after bookings one phone number can have open or unpaid) |
 
 ## Step 5 — Test the money flow end to end
 

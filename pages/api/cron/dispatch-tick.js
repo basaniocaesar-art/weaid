@@ -1,5 +1,5 @@
 /**
- * The minute hand on every paid job nobody has taken yet.
+ * The minute hand on every confirmed job nobody has taken yet.
  *
  * Four things happen here, all of which need a clock and so cannot live in a
  * request:
@@ -11,18 +11,21 @@
  *           few, a bit further out
  *   give up nobody at all has taken it after GIVE_UP_MINUTES, or there is
  *           nobody left to ring: hand it to the owner (FORWARD_TO_OWNER, on
- *           unless "false"), else give the money back rather than sit on it
+ *           unless "false"); otherwise a prepaid job gets its money back and
+ *           a pay-after job is cancelled and the customer told honestly, with
+ *           an offer of another time (lib/payafter.js)
  *
- * The refund matters more than the dispatch. We now take payment the moment the
- * price is agreed, before any provider has said they will come — which is fine,
- * and is how every ride app works, but ONLY because an unfilled job returns the
- * money by itself. Without this a customer who nobody could serve has simply
- * paid us for nothing.
+ * The give-up matters more than the dispatch. A prepaid job takes payment the
+ * moment the price is agreed, before any provider has said they will come —
+ * which is fine, and is how every ride app works, but ONLY because an unfilled
+ * job returns the money by itself. A pay-after job has taken nothing, so the
+ * honest thing is to say so rather than leave "finding a pro" on their screen.
  */
 import { supabase, updateBooking } from "../../../lib/supabase.js";
-import { dispatchRound, dispatchEnabled, settleDispatch, ROUND_SECONDS, GIVE_UP_MINUTES } from "../../../lib/dispatch.js";
+import { dispatchRound, dispatchEnabled, settleDispatch, confirmedAt, ROUND_SECONDS, GIVE_UP_MINUTES } from "../../../lib/dispatch.js";
 import { refundBooking } from "../../../lib/orchestrator.js";
 import { advanceOffers, noPros } from "../../../lib/offers.js";
+import { giveUpUnpaid } from "../../../lib/payafter.js";
 
 export default async function handler(req, res) {
   // Vercel signs its cron calls; anything else needs the secret.
@@ -41,15 +44,18 @@ export default async function handler(req, res) {
     .eq("status", "pending")
     .is("provider_id", null)
     .is("provider_name", null)
-    .not("paid_at", "is", null)
-    .order("paid_at", { ascending: true })
+    // confirmed_at, not paid_at, is what makes a job open for outreach
+    // (backfilled from paid_at for rows older than the migration).
+    .not("confirmed_at", "is", null)
+    .order("confirmed_at", { ascending: true })
     .limit(50);
   if (error) return res.status(500).json({ error: error.message });
 
-  const widened = [], awarded = [], forwarded = [], refunded = [], failed = [];
+  const widened = [], awarded = [], forwarded = [], refunded = [], cancelled = [], failed = [];
 
   // Nobody could take it: the owner first, while WeAid is small enough that he
-  // can; the money back only when he has switched that off.
+  // can; the money back (or, with nothing taken, the plain truth) only when he
+  // has switched that off.
   async function giveUp(b) {
     if (process.env.FORWARD_TO_OWNER !== "false") {
       await noPros(b, { afterCalls: true });
@@ -57,6 +63,13 @@ export default async function handler(req, res) {
       return;
     }
     try {
+      if (!b.paid_at) {
+        // Pay-after: nothing was taken, so there is nothing to give back — just the truth.
+        const r = await giveUpUnpaid(b.id);
+        if (r.cancelled) cancelled.push(b.id);
+        else failed.push({ id: b.id, error: r.skipped || "could not cancel" });
+        return;
+      }
       await refundBooking(b.id, "Nobody was available to take this job");
       refunded.push(b.id);
     } catch (e) {
@@ -72,8 +85,8 @@ export default async function handler(req, res) {
     if (s.awarded) { awarded.push({ id: b.id, to: s.awarded }); continue; }
     if (s.alreadyTaken) continue;
 
-    const paidFor = (now - new Date(b.paid_at).getTime()) / 60000;
-    if (paidFor >= GIVE_UP_MINUTES) { await giveUp(b); continue; }
+    const openFor = (now - new Date(confirmedAt(b)).getTime()) / 60000;
+    if (openFor >= GIVE_UP_MINUTES) { await giveUp(b); continue; }
 
     // Only jobs already being rung round are widened; the first round is
     // started by offers.js once the app has had its chance.
@@ -94,6 +107,7 @@ export default async function handler(req, res) {
     widened,
     forwarded,
     refunded,
+    cancelled,
     failed,
   });
 }

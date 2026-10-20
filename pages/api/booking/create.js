@@ -4,6 +4,8 @@ import { createOrder, razorpayKeyId } from "../../../lib/razorpay.js";
 import { createCheckoutSession } from "../../../lib/stripe.js";
 import { lookupAffiliateByRefCode } from "../../../lib/affiliate.js";
 import { alertTeamBooking } from "../../../lib/followup.js";
+import { startDispatch } from "../../../lib/orchestrator.js";
+import { paymentModeFor, paymentChoice, openUnpaidCount, PAY_AFTER_OPEN_LIMIT } from "../../../lib/payafter.js";
 
 export default async function handler(req, res) {
   if (req.method !== "POST") {
@@ -11,7 +13,7 @@ export default async function handler(req, res) {
   }
 
   try {
-    const { service, city, scope, slot, customer, gateway = "razorpay", refCode, scheduledAt, timingMode, lat, lng, description, address, workers, sqft, days, hours, months } = req.body;
+    const { service, city, scope, slot, customer, gateway = "razorpay", refCode, scheduledAt, timingMode, lat, lng, description, address, workers, sqft, days, hours, months, paymentMode } = req.body;
 
     if (!service || !city || !scope || !customer) {
       return res.status(400).json({ error: "Missing required fields: service, city, scope, customer" });
@@ -31,7 +33,25 @@ export default async function handler(req, res) {
       if (affiliate) affiliateId = affiliate.id;
     }
 
-    // 3. Store booking
+    /*
+     * 3. Pay now, or pay after the job?
+     *
+     * Repairs are always pay-after; fixed-price services are the customer's
+     * choice, defaulting to pay-after (lib/payafter.js). The one guard: a
+     * number that already has PAY_AFTER_OPEN_LIMIT pay-after jobs open or
+     * unpaid gets this one as pay-now instead, and is told why, rather than a
+     * flat refusal that would lose a real customer with a real leak.
+     */
+    let mode = paymentModeFor(service, paymentMode);
+    let payAfterRefused = null;
+    if (mode === "pay_after" && (await openUnpaidCount(customer.phone)) >= PAY_AFTER_OPEN_LIMIT) {
+      mode = "prepaid";
+      payAfterRefused = "open_limit";
+    }
+    const payAfter = mode === "pay_after";
+    const now = new Date().toISOString();
+
+    // 4. Store booking
     const booking = await insertBooking({
       service,
       city,
@@ -67,11 +87,28 @@ export default async function handler(req, res) {
       description: description || null,
       address: address || null,
       workers: nWorkers,
-      status: "pending_payment",
+      payment_mode: mode,
+      // A pay-after job is confirmed by being booked: open for outreach at once.
+      status: payAfter ? "pending" : "pending_payment",
+      confirmed_at: payAfter ? now : null,
     });
 
+    if (payAfter) {
+      // The team hears about it inside startDispatch ("pay_after" alert), and
+      // the pros hear about it now. Nothing to pay, so nothing to open.
+      await startDispatch(booking).catch((e) => console.error("[booking/create] dispatch failed", booking.id, e.message));
+      return res.status(201).json({
+        bookingId: booking.id,
+        amount: price.total,
+        breakdown: price,
+        payment: null,
+        paymentMode: "pay_after",
+        payChoice: paymentChoice(service),
+      });
+    }
+
     /*
-     * 4. Open a payment session — but never at the cost of the booking.
+     * 5. Open a payment session — but never at the cost of the booking.
      *
      * The row above is already written. This used to throw straight out of the
      * handler when a gateway key was missing or the gateway was down, so the
@@ -107,6 +144,9 @@ export default async function handler(req, res) {
       amount: price.total,
       breakdown: price,
       payment,
+      paymentMode: "prepaid",
+      payChoice: paymentChoice(service),
+      ...(payAfterRefused && { payAfterRefused }),
       ...(paymentError && { paymentError }),
     });
   } catch (err) {
