@@ -13,9 +13,10 @@
  * Every reply carries `say`: one or two plain English sentences the agent
  * speaks (translating to Malayalam itself). Prices come from lib/pricing.js,
  * the same numbers the website and the chat assistant use. Nothing here takes
- * card details on the call: bookings get a Razorpay payment link that Razorpay
- * texts to the caller, and anything a person must do becomes a ticket emailed
- * to the team (lib/followup.js).
+ * card details on the call: a repair is booked pay-after and dispatched at once
+ * (lib/payafter.js); anything prepaid gets a Razorpay payment link that
+ * Razorpay texts to the caller; and anything a person must do becomes a ticket
+ * emailed to the team (lib/followup.js).
  */
 import { supabase, insertBooking } from "../../lib/supabase.js";
 import { calculatePrice, SERVICES } from "../../lib/pricing.js";
@@ -27,6 +28,8 @@ import { createVisitBooking, VISIT_FEE, needsVisit, ADVANCE_PCT } from "../../li
 import { quoteTrip, createTrip, receiverLink, dropCode, pickupCode } from "../../lib/courier.js";
 import { loginCode } from "../../lib/jobs.js";
 import { sendAdminNotification } from "../../lib/email.js";
+import { startDispatch } from "../../lib/orchestrator.js";
+import { paymentModeFor, openUnpaidCount, PAY_AFTER_OPEN_LIMIT } from "../../lib/payafter.js";
 import crypto from "crypto";
 
 const ten = (p) => {
@@ -49,7 +52,7 @@ const who = (s) => SERVICE_WORDS[s] || "professional";
 
 const STATUS_WORDS = {
   pending_payment: "booked but not paid yet",
-  pending: "paid, and we are finding the nearest available pro",
+  pending: "booked, and we are finding the nearest available pro",
   accepted: "confirmed — a pro has taken the job",
   in_progress: "in progress",
   completed: "completed",
@@ -175,12 +178,18 @@ async function book(b) {
   if (needsVisit(a.service, a)) return siteVisit(b);
   if (!SERVICE_SLUGS.includes(a.service)) return { ok: false, say: "I can't book that one directly. Let me take your details for a callback instead." };
   const phone = ten(b.phone) || ten(b.caller);
-  if (!phone) return { ok: false, say: "What's the best mobile number to send the payment link to?" };
+  if (!phone) return { ok: false, say: "What's the best mobile number for the booking?" };
   const address = str(b.address) || (str(b.area) ? `${str(b.area)}, Kochi` : "");
   if (!address) return { ok: false, say: "Which area are you in, and what's the address?" };
   const name = str(b.name) || "Customer";
   const when = parseWhen(b.when);
   const price = calculatePrice(a);
+
+  // Repairs are pay-after and go out to pros at once; the same open-jobs guard as the website.
+  let mode = paymentModeFor(a.service);
+  if (mode === "pay_after" && (await openUnpaidCount(phone)) >= PAY_AFTER_OPEN_LIMIT) mode = "prepaid";
+  const payAfter = mode === "pay_after";
+  const now = new Date().toISOString();
 
   const booking = await insertBooking({
     service: a.service, city: "kochi", scope: a.scope, slot: a.slot,
@@ -192,8 +201,21 @@ async function book(b) {
     payment_gateway: "razorpay",
     timing_mode: when.mode, scheduled_at: when.at,
     description: [str(b.description), when.text && `Preferred time: ${when.text}`, "Booked on the phone line"].filter(Boolean).join(" — "),
-    address, workers: a.workers, status: "pending_payment",
+    address, workers: a.workers,
+    payment_mode: mode, status: payAfter ? "pending" : "pending_payment", confirmed_at: payAfter ? now : null,
   });
+
+  if (payAfter) {
+    await startDispatch(booking).catch((e) => console.error("[phone-line] dispatch failed:", e.message));
+    if (when.text) {
+      await openTicket({ kind: "callback", phone: `+91${phone}`, name, bookingId: booking.id, source: "phone",
+        summary: `Booked ${a.service} (pay after); confirm the time with them: "${when.text}"` });
+    }
+    return {
+      ok: true, booking_ref: String(booking.id).slice(0, 8), total: Math.round(price.total),
+      say: `Done. Your ${who(a.service)} is booked for ${rupees(price.total)}, and there's nothing to pay now — you pay after the work is done, by cash or a link we send. We're finding the nearest ${who(a.service)} now and you'll get a call to confirm.`,
+    };
+  }
 
   await alertTeamBooking(booking, "new");
   let link = null;

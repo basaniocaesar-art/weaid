@@ -387,7 +387,7 @@ async function confirmBook(){
       rzp.open();
       return;
     }
-    alert('Booking created!');closeSheet();
+    alert(data.paymentMode==='pay_after'?'Booked! Nothing to pay now — you pay after the job, cash or online. We’re finding a pro for you.':'Booking created!');closeSheet();showScreen('bookings');
   }catch(e){alert('Booking failed. '+(e.message||'Please try again.'));}
   cta.disabled=false;updatePrice();
 }
