@@ -9,6 +9,9 @@
  *   ?step=site_visit  { caller, name, phone, service, area, address, description, when }
  *   ?step=complaint   { caller, name, booking_ref, issue, wants }
  *   ?step=callback    { caller, name, reason, when }
+ *   ?step=bill        { caller, booking_ref, what_done, labour, parts, total, confirm }
+ *                     a PRO ringing in the final bill on their job (lib/bill.js);
+ *                     without confirm "yes" it only reads the figures back
  *
  * Every reply carries `say`: one or two plain English sentences the agent
  * speaks (translating to Malayalam itself). Prices come from lib/pricing.js,
@@ -29,7 +32,8 @@ import { quoteTrip, createTrip, receiverLink, dropCode, pickupCode } from "../..
 import { loginCode } from "../../lib/jobs.js";
 import { sendAdminNotification } from "../../lib/email.js";
 import { startDispatch } from "../../lib/orchestrator.js";
-import { paymentModeFor, openUnpaidCount, PAY_AFTER_OPEN_LIMIT } from "../../lib/payafter.js";
+import { paymentModeFor, openUnpaidCount, PAY_AFTER_OPEN_LIMIT, amountDue } from "../../lib/payafter.js";
+import { reportFinalBill, cleanBill } from "../../lib/bill.js";
 import crypto from "crypto";
 
 const ten = (p) => {
@@ -99,15 +103,13 @@ async function start({ caller }) {
 
   const pro = pros?.[0];
   if (pro) {
-    const { data: theirs } = await supabase.from("bookings").select("service,status,scheduled_at")
-      .eq("provider_id", pro.id).in("status", ["accepted", "in_progress"]).order("scheduled_at", { ascending: true }).limit(5);
+    const theirs = await proJobs(pro.id);
     return {
       ...base,
       caller_type: "provider",
       provider_name: pro.name,
-      provider_jobs: theirs?.length
-        ? theirs.map((j) => `${j.service}${j.scheduled_at ? ` at ${new Date(j.scheduled_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", hour: "numeric", minute: "2-digit" })}` : " (as soon as possible)"}`).join("; ")
-        : "no open jobs",
+      // Each job with its reference, so the agent can take a bill against the right one.
+      provider_jobs: theirs.length ? theirs.map(jobWords).join("; ") : "no open jobs",
     };
   }
 
@@ -122,6 +124,80 @@ async function start({ caller }) {
     };
   }
   return { ...base, caller_type: "new" };
+}
+
+/**
+ * A pro's jobs a bill could be about: the ones they are on, and pay-after
+ * ones finished but not yet paid (the bill can still be corrected until the
+ * money is in). Soonest first.
+ */
+async function proJobs(providerId) {
+  const { data } = await supabase.from("bookings")
+    .select("id,service,status,scheduled_at,customer_name,payment_mode,paid_at,total,amount,provider_earnings,completed_at")
+    .eq("provider_id", providerId).in("status", ["accepted", "in_progress", "completed"]).is("paid_at", null)
+    .order("completed_at", { ascending: false, nullsFirst: true }).order("scheduled_at", { ascending: true }).limit(8);
+  return (data || []).filter((j) => j.status !== "completed" || j.payment_mode === "pay_after");
+}
+const jobWords = (j) => `${j.service} for ${(j.customer_name || "a customer").split(" ")[0]}, ref ${String(j.id).slice(0, 4)}` +
+  (j.status === "completed" ? " (done, unpaid)" : j.scheduled_at ? ` at ${new Date(j.scheduled_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", weekday: "short", hour: "numeric", minute: "2-digit" })}` : " (as soon as possible)");
+
+/*
+ * A pro rings in the final bill. The agent has the caller's number, so the
+ * pro is found from it and the job from the reference (or by itself when
+ * there is only one). Without confirm "yes" the figures are only read back;
+ * nothing is written until the pro has heard the total and agreed. Then
+ * lib/bill.js stores it, re-splits the money, and sends the customer the bill
+ * with a QR — or asks the customer to approve it, over three times the quote.
+ */
+async function bill(b) {
+  const phone = ten(b.caller) || ten(b.phone);
+  if (!phone) return { ok: false, say: "I can't see which number you're calling from. What's your WeAid mobile number?" };
+  const { data: pros } = await supabase.from("providers").select("id,name").or(`phone.eq.+91${phone},whatsapp.eq.+91${phone},phone.eq.${phone}`).is("removed_at", null).limit(1);
+  const pro = pros?.[0];
+  if (!pro) return { ok: false, say: "That number isn't a WeAid pro's. If you've just joined, the team will set you up — shall I have them call you?" };
+  const jobs = await proJobs(pro.id);
+  if (!jobs.length) return { ok: false, say: "I can't see an open job for you on WeAid just now. Which customer was it for? I'll have the team call you." };
+
+  // Which job: by reference, by customer name, by service word; one job needs no asking.
+  const ref = str(b.booking_ref).toLowerCase().replace(/[^a-z0-9]/g, "");
+  const hint = `${str(b.customer)} ${str(b.service)} ${str(b.what_done)}`.toLowerCase();
+  let job = jobs.length === 1 ? jobs[0]
+    : (ref && jobs.find((j) => String(j.id).toLowerCase().replace(/-/g, "").startsWith(ref)))
+    || jobs.find((j) => hint.includes((j.customer_name || "").split(" ")[0].toLowerCase()) && (j.customer_name || "").length > 2)
+    || (jobs.filter((j) => hint.includes(j.service) || hint.includes(who(j.service))).length === 1 ? jobs.find((j) => hint.includes(j.service) || hint.includes(who(j.service))) : null);
+  if (!job) return { ok: false, jobs: jobs.map((j) => ({ ref: String(j.id).slice(0, 4), customer: j.customer_name, service: j.service })), say: `Which job is this for? You have: ${jobs.map(jobWords).join("; ")}.` };
+  if (job.payment_mode !== "pay_after") return { ok: false, say: `The ${who(job.service)} job for ${(job.customer_name || "that customer").split(" ")[0]} was paid when it was booked, so there's no bill to take — the team will sort any extra. Shall I have them call you?` };
+
+  let clean;
+  try { clean = cleanBill({ labour: b.labour, parts: b.parts, total: b.total }); }
+  catch (e) { return { ok: false, say: `${e.message.replace(/₹/g, "").replace(/(\d[\d,]*)/g, "$1 rupees")}` }; }
+  const first = (job.customer_name || "the customer").split(" ")[0];
+  const parts = clean.items.map((i) => `${i.text.toLowerCase()} ${rupees(i.amount)}`).join(" and ");
+  const quoted = Math.round(job.total || job.amount || 0);
+
+  if (!/^y/i.test(str(b.confirm))) {
+    return {
+      ok: true, confirmed: false, booking_ref: String(job.id).slice(0, 4), customer: first, total: clean.total, quoted,
+      say: `So that's ${rupees(clean.total)} in total for the ${who(job.service)} job for ${first}${parts ? ` — ${parts}` : ""}${clean.total !== quoted ? `, against ${rupees(quoted)} quoted` : ""}. Shall I send ${first} the bill for ${rupees(clean.total)}?`,
+    };
+  }
+
+  const events = await eventsFor(job.id);
+  if (amountDue(job, events) <= 0 && job.status === "completed") return { ok: false, say: `${first} has already paid for that job, so the bill can't be changed. Anything else?` };
+  let r;
+  try { r = await reportFinalBill(job.id, { items: clean.items, total: clean.total, note: str(b.what_done), by: "phone", source: "phone" }); }
+  catch (e) { return { ok: false, say: `I couldn't save that: ${e.message} Shall I have the team call you?` }; }
+  const share = rupees(r.providerEarnings);
+  if (r.needsApproval) {
+    return { ok: true, confirmed: true, needs_approval: true, total: clean.total, booking_ref: String(job.id).slice(0, 4),
+      say: `Noted. ${rupees(clean.total)} is a lot more than the ${rupees(quoted)} quoted, so We Aid has sent ${first} the bill to approve first and told the team. Once they approve it they get a QR to pay We Aid, and you'll get a message. Your share will be ${share}.` };
+  }
+  if (r.qr || r.payUrl) {
+    return { ok: true, confirmed: true, total: clean.total, booking_ref: String(job.id).slice(0, 4),
+      say: `Done. ${first} has been sent the bill for ${rupees(clean.total)}${r.qr ? " with a QR code to pay We Aid — it's also on your job page in the app, so they can scan it off your phone" : " with a link to pay We Aid"}. You'll get a message the moment they pay, and your share, ${share}, comes in your weekly payout. If they pay you cash instead, tap Received in the app.` };
+  }
+  return { ok: true, confirmed: true, total: clean.total, booking_ref: String(job.id).slice(0, 4), cash_only: true,
+    say: `Done. The bill for ${rupees(clean.total)} is saved and sent to ${first}. Online payment isn't switched on just now, so please collect ${rupees(clean.total)} by cash or UPI and tap Received in the app. Your share is ${share}.` };
 }
 
 function priceArgs(b) {
@@ -390,7 +466,7 @@ async function recruit(b) {
   return { ok: true, say: "Wonderful! You'll get a WhatsApp from We Aid today with the app link and your login code. Install it, verify your ID, and jobs near you will start coming. Thank you!" };
 }
 
-const STEPS = { start, quote, book, site_visit: siteVisit, complaint, callback, delivery, recruit };
+const STEPS = { start, quote, book, site_visit: siteVisit, complaint, callback, delivery, recruit, bill };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).json({ error: "POST only" });

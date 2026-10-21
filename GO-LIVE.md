@@ -58,7 +58,7 @@ You collect the full amount; providers are paid their net later. Use Razorpay fo
 |-----|-----------------|
 | `RAZORPAY_KEY_ID` | Razorpay Dashboard → API Keys |
 | `RAZORPAY_KEY_SECRET` | Razorpay Dashboard → API Keys |
-| `RAZORPAY_WEBHOOK_SECRET` | Razorpay → Webhooks (point it at `https://weaid.in/api/webhook/razorpay`) |
+| `RAZORPAY_WEBHOOK_SECRET` | Razorpay → Webhooks (point it at `https://weaid.in/api/webhook/razorpay`). Tick these events: **payment.captured**, **payment_link.paid**, **qr_code.credited** (the UPI QR on pay-after bills), payment.authorized |
 | `STRIPE_SECRET_KEY` | *(optional — only if you also take international cards)* |
 | `STRIPE_WEBHOOK_SECRET` | *(optional)* Stripe → Webhooks → `https://weaid.in/api/webhook/stripe` |
 
@@ -76,7 +76,24 @@ You collect the full amount; providers are paid their net later. Use Razorpay fo
 | WhatsApp notifications | `WHATSAPP_API_URL`, `WHATSAPP_TOKEN`, `WHATSAPP_FROM_NUMBER` |
 | AI voice caller | `SARVAM_*`, `VOICE_*` |
 | Admin/cron protection | `ADMIN_SECRET`, `CRON_SECRET` (set to any long random strings) |
-| Pay-after limits | `PRO_OWED_LIMIT` (default 1000 — a pro holding more cash commission than this gets no new jobs), `PAY_AFTER_OPEN_LIMIT` (default 2 — pay-after bookings one phone number can have open or unpaid) |
+| Pay-after limits | `PRO_OWED_LIMIT` (default 1000 — a pro holding more cash commission than this gets no new jobs), `PAY_AFTER_OPEN_LIMIT` (default 2 — pay-after bookings one phone number can have open or unpaid), `BILL_GUARD_MULTIPLE` (default 3 — a final bill more than this many times the quote waits for the customer's OK) |
+| Bill page details | `WEAID_LEGAL_NAME`, `WEAID_ADDRESS`, `WEAID_GSTIN` — printed on the customer's bill (`/bill`) when set. Leave unset until registered: no tax lines are shown or calculated either way |
+
+## The final bill and the QR (pay-after jobs)
+
+No new tables: the bill lives in `booking_events` (`final_bill`, `payment_qr`, `bill_approved`, `bill_shared`…).
+When the pro finishes a pay-after job they enter the final bill (on the `/job` page, by ringing the
+WeAid line, or through the concierge). WeAid updates the booking's total and the pro's share at the
+same commission rate, makes a **Razorpay UPI QR** for exactly that amount, and sends the customer the
+bill (`/bill?b=…`) with the QR and a payment link. The money comes to WeAid; the pro is paid in the
+weekly payout. Cash to the pro remains the fallback (it goes on their ledger as before).
+
+- Without `RAZORPAY_KEY_ID`/`SECRET` there is no QR or link: the bill still goes out, the pro's page
+  says "QR not available — collect cash/UPI and tap Received", and a ticket is opened for the team.
+- WhatsApp to the customer goes out from the pro's (or your) own phone: the `/job` page and Ops have a
+  "Send bill on WhatsApp" button (click-to-chat). The Ops tab **Bill not sent** lists finished jobs
+  whose bill nobody has sent yet.
+- The phone line needs the new `bill` tool and prompt text in Sarvam: see `PHONE-LINE-BILL-SCRIPT.md`.
 
 ## Step 5 — Test the money flow end to end
 
