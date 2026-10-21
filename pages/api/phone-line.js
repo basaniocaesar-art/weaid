@@ -18,7 +18,7 @@
  * to the team (lib/followup.js).
  */
 import { supabase, insertBooking } from "../../lib/supabase.js";
-import { calculatePrice } from "../../lib/pricing.js";
+import { calculatePrice, SERVICES } from "../../lib/pricing.js";
 import { runTool, SERVICE_SLUGS, SCOPES, SLOTS, canonicalArea } from "../../lib/concierge-tools.js";
 import { createPaymentLink, razorpayConfigured } from "../../lib/razorpay.js";
 import { openTicket, alertTeamBooking } from "../../lib/followup.js";
@@ -145,6 +145,7 @@ async function quote(b) {
   const a = priceArgs(b);
   if (needsVisit(a.service, a)) return { ok: true, site_visit: true, say: VISIT_SAY };
   if (a.service === "event_cook") return { ok: true, callback: true, say: "For a party or function, our team will call you to plan the menu and numbers and give you a quote. Shall I have them call you?" };
+  if (SERVICES[a.service]?.callback) return { ok: true, callback: true, say: "Our team arranges this one on a call and gives you a price. Shall I have them call you?" };
   if (!SERVICE_SLUGS.includes(a.service)) {
     return { ok: false, say: "I'll need to check that one with the team. Can I take your name and have someone call you back?" };
   }
@@ -326,7 +327,12 @@ const TRADE_WORDS = [
   ["cleaning", /clean|housekeep/i], ["painting", /paint/i], ["tiling", /tile|tiling/i], ["flooring", /floor/i],
   ["carpentry", /carpent|wood|furniture/i], ["roofing", /roof|sheet/i], ["waterproofing", /waterproof|leak|damp/i],
   ["renovation", /renovat|mason|construction|civil/i], ["pest_control", /pest|termite/i], ["cctv", /cctv|camera/i],
-  ["movers", /mover|packer|shifting/i], ["cook", /cook|chef|catering|kitchen/i], ["maid", /maid|domestic|house ?help|servant/i],
+  ["movers", /mover|packer|shifting/i], ["appliance", /washing machine|fridge|refrigerator|\btv\b|microwave|appliance/i], ["ro_service", /\bro\b|purifier/i],
+  ["inverter", /inverter|\bups\b|battery/i], ["gas_stove", /gas stove|burner/i], ["motor_repair", /motor|rewind|pump/i], ["locksmith", /lock ?smith|duplicate key/i],
+  ["computer_repair", /computer|laptop/i], ["mobile_repair", /mobile repair|phone repair|mobile service/i], ["solar", /solar/i], ["tank_cleaning", /tank|septic/i], ["well_cleaning", /well clean|borewell|\bwells\b/i],
+  ["welding", /weld|fabricat|gate|grill/i], ["aluminium", /alumin|glass|mosquito/i], ["gardening", /garden|landscap|coconut|tree climb/i], ["sofa_cleaning", /sofa|carpet/i],
+  ["interior", /interior|modular/i], ["vehicle_service", /mechanic|car wash|bike service|car service/i], ["tailoring", /tailor|stitch/i], ["photography", /photo|video ?graph/i], ["event_decor", /decorat/i],
+  ["tutor", /tuition|tutor|teacher/i], ["makeup", /makeup|beautician|bridal/i], ["mehendi", /mehe?ndi|henna/i], ["physio", /physio/i], ["laundry", /laundry|ironing|dry ?clean/i], ["pet_grooming", /\bpets?\b|groom|\bvet/i], ["cook", /cook|chef|catering|kitchen/i], ["maid", /maid|domestic|house ?help|servant/i],
   ["babysit", /baby ?sit|nanny|child ?care|day ?care/i], ["postnatal", /post.?natal|delivery care|after delivery|mother.*baby|prasava/i],
   ["nursing", /nurs|patient care|bystander|home ?care/i], ["eldercare", /elder|old age|senior/i], ["driver", /driver|driving/i], ["courier", /courier|delivery boy|delivery rider|parcel/i],
 ];

@@ -23,6 +23,7 @@ main{max-width:900px;margin:0 auto;padding:14px 16px 80px}
 .btn.dark{background:var(--ink);color:#fff;border-color:var(--ink)}.btn.wa{background:#25d366;border-color:#25d366;color:#fff}
 .panel{margin-top:12px;border-top:1px dashed var(--line);padding-top:12px}
 .pro{display:flex;justify-content:space-between;align-items:center;gap:10px;padding:8px 0;border-bottom:1px solid var(--line);font-size:14px}
+.sel{font:inherit;padding:10px;border-radius:10px;border:1.5px solid var(--line);width:100%;background:#fff}
 input{font:inherit;padding:10px;border-radius:10px;border:1.5px solid var(--line);width:100%}
 .grid2{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:8px}
 #login{max-width:380px;margin:60px auto;background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px}
@@ -46,7 +47,7 @@ const when = (iso) => iso ? new Date(iso).toLocaleString("en-IN", { weekday: "sh
 let KEY = ""; try { KEY = localStorage.getItem("weaid_ops_key") || ""; } catch {}
 const fromHash = new URLSearchParams(location.hash.slice(1)).get("k"); if (fromHash) { KEY = fromHash; try { localStorage.setItem("weaid_ops_key", KEY); } catch {} history.replaceState(null, "", "/ops"); }
 let jobs = [], tab = "open", openPanel = null;
-const TABS = { open: "Needs action", live: "In progress", done: "Done", all: "All", issues: "Issues", pros: "Pros", jobsportal: "WeAid Jobs", carpool: "Carpool" };
+const TABS = { open: "Needs action", live: "In progress", done: "Done", all: "All", issues: "Issues", pros: "Pros", calls: "Call list", jobsportal: "WeAid Jobs", carpool: "Carpool" };
 const inTab = (j) => tab === "all" || (tab === "open" ? ["unpaid", "finding", "awaiting_advance"].includes(j.stage) || (j.quote && j.stage === "done" && j.quote.money.balanceDue) : tab === "live" ? ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"].includes(j.stage) : ["done", "cancelled", "refunded"].includes(j.stage));
 
 async function api(path, body) {
@@ -59,10 +60,11 @@ document.getElementById("enter").onclick = () => { KEY = document.getElementById
 
 function render() {
   const GROUP = { open: ["unpaid", "finding", "awaiting_advance"], live: ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"], done: ["done", "cancelled", "refunded"] };
-  const count = (k) => (["pros", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : jobs.filter((j) => GROUP[k].includes(j.stage)).length})`);
+  const count = (k) => (["pros", "calls", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : jobs.filter((j) => GROUP[k].includes(j.stage)).length})`);
   document.getElementById("tabs").innerHTML = Object.entries(TABS).map(([k, v]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${v}${count(k)}</button>`).join("");
   document.querySelectorAll("[data-t]").forEach((b) => b.onclick = () => { tab = b.dataset.t; render(); });
   if (tab === "pros") { renderPros(); return; }
+  if (tab === "calls") { renderLeads(); return; }
   if (tab === "issues") { renderIssues(); return; }
   if (tab === "carpool") { renderCarpool(); return; }
   if (tab === "jobsportal") { renderJobsPortal(); return; }
@@ -233,8 +235,134 @@ async function renderIssues() {
   list.querySelectorAll("[data-t]").forEach((b) => b.onclick = async () => { await api("/api/ops", { action: "ticket_done", ticketId: b.dataset.t, reopen: Boolean(b.dataset.re) }); renderIssues(); });
 }
 
-const SVC = ["electrical", "plumbing", "ac", "cleaning", "painting", "tiling", "flooring", "carpentry", "roofing", "waterproofing", "renovation", "pest_control", "cctv", "movers", "cook", "maid", "babysit", "postnatal", "nursing", "eldercare", "driver", "courier"];
+const SVC = ["electrical", "plumbing", "ac", "cleaning", "painting", "tiling", "flooring", "carpentry", "roofing", "waterproofing", "renovation", "pest_control", "cctv", "movers", "cook", "maid", "babysit", "postnatal", "nursing", "eldercare", "driver", "courier", "appliance", "ro_service", "inverter", "gas_stove", "motor_repair", "locksmith", "computer_repair", "mobile_repair", "solar", "tank_cleaning", "well_cleaning", "welding", "aluminium", "gardening", "sofa_cleaning", "interior", "vehicle_service", "tailoring", "photography", "event_decor", "tutor", "makeup", "mehendi", "physio", "laundry", "pet_grooming"];
 let team = null, teamQ = "";
+/*
+ * Call list: businesses off Google Maps for the owner to ring himself.
+ * Filtering is done here, on the whole list, so it's instant on a phone.
+ */
+let LEADS = null, LSTATUS = {}, lf = { svc: "", area: "", st: "todo", q: "", shown: 40 };
+const LEAD_NAME = { appliance_repair: "Appliance repair", water_purifier: "Water purifier", cctv_security: "CCTV", inverter_battery: "Inverter & battery", solar: "Solar", tank_cleaning: "Tank & septic cleaning", well_borewell: "Well & borewell", welding_fab: "Welding & gates", aluminium_glass: "Aluminium & glass", gardening: "Gardening", sofa_carpet: "Sofa & carpet cleaning", interior_kitchen: "Interior & kitchen", computer_repair: "Computer repair", mobile_repair: "Mobile repair", vehicle_service: "Car & bike service", locksmith: "Locksmith", gas_stove: "Gas stove repair", physio_home: "Physio at home", home_tutor: "Home tuition", beauty_home: "Beauty & makeup", pet_care: "Pet care", events: "Events & photography", laundry: "Laundry", tailoring: "Tailoring", civil_mason: "Building & masonry", electrical_motor: "Motor & pump repair", babysitting: "Babysitting", carpentry: "Carpentry", cook_catering: "Cook & catering", courier: "Courier", drivers: "Drivers", elder_postnatal: "Elder & postnatal care", home_nursing: "Home nursing", maid_manpower: "Maids", painting_tiling: "Painting & tiling", pest_control: "Pest control", roofing: "Roofing", electrician: "Electrician", ac_repair: "AC repair", cleaning: "Cleaning", plumbing: "Plumbing", packers_and_movers: "Packers & movers" };
+// Which WeAid service a lead becomes when they join (Pros → add).
+const LEAD_SVC = { appliance_repair: "appliance", water_purifier: "ro_service", cctv_security: "cctv", inverter_battery: "inverter", solar: "solar", tank_cleaning: "tank_cleaning", well_borewell: "well_cleaning", welding_fab: "welding", aluminium_glass: "aluminium", gardening: "gardening", sofa_carpet: "sofa_cleaning", interior_kitchen: "interior", computer_repair: "computer_repair", mobile_repair: "mobile_repair", vehicle_service: "vehicle_service", locksmith: "locksmith", gas_stove: "gas_stove", physio_home: "physio", home_tutor: "tutor", beauty_home: "makeup", pet_care: "pet_grooming", events: "photography", laundry: "laundry", tailoring: "tailoring", civil_mason: "renovation", electrical_motor: "motor_repair", babysitting: "babysit", carpentry: "carpentry", cook_catering: "cook", courier: "courier", drivers: "driver", elder_postnatal: "eldercare", home_nursing: "nursing", maid_manpower: "maid", painting_tiling: "painting", pest_control: "pest_control", roofing: "roofing", electrician: "electrical", ac_repair: "ac", cleaning: "cleaning", plumbing: "plumbing", packers_and_movers: "movers" };
+const LST = { no_answer: ["No answer", ""], call_back: ["Call back", "finding"], interested: ["Interested", "on_the_way"], joined: ["Joined", "done"], not_interested: ["Not interested", "unpaid"], wrong_number: ["Wrong number", "unpaid"] };
+const leadName = (c) => LEAD_NAME[c] || c.replace(/_/g, " ");
+
+function parseCsv(text) {
+  const rows = []; let row = [], cell = "", q = false;
+  for (let i = 0; i < text.length; i++) {
+    const ch = text[i];
+    if (q) { if (ch === '"' && text[i + 1] === '"') { cell += '"'; i++; } else if (ch === '"') q = false; else cell += ch; }
+    else if (ch === '"') q = true; else if (ch === ",") { row.push(cell); cell = ""; }
+    else if (ch === "\n" || ch === "\r") { if (ch === "\r" && text[i + 1] === "\n") i++; row.push(cell); rows.push(row); row = []; cell = ""; }
+    else cell += ch;
+  }
+  if (cell || row.length) { row.push(cell); rows.push(row); }
+  const [head, ...body] = rows.filter((r) => r.some((x) => x.trim()));
+  const h = head.map((x) => x.trim().toLowerCase());
+  const col = (...names) => names.map((n) => h.indexOf(n)).find((i) => i >= 0);
+  const I = { phone: col("phone"), name: col("name", "business_name"), category: col("category"), address: col("address"), area: col("area"), rating: col("rating"), reviews: col("reviews"), website: col("website") };
+  return body.map((r) => Object.fromEntries(Object.entries(I).map(([k, i]) => [k, i === undefined ? "" : r[i] || ""])));
+}
+
+function leadMatches(l) {
+  const st = LSTATUS[l.p]?.s || "";
+  if (lf.st === "todo" ? st && st !== "call_back" && st !== "no_answer" : lf.st && lf.st !== "all" && st !== lf.st) return false;
+  if (lf.svc && !l.c.includes(lf.svc)) return false;
+  if (lf.area && l.a !== lf.area) return false;
+  if (lf.q) { const q = lf.q.toLowerCase(); if (!l.n.toLowerCase().includes(q) && !l.p.includes(q.replace(/\D/g, "") || "~")) return false; }
+  return true;
+}
+
+async function renderLeads() {
+  const list = document.getElementById("list");
+  if (!LEADS) {
+    list.innerHTML = '<div class="mut" style="padding:20px">Loading call list…</div>';
+    try { const d = await api("/api/leads"); LEADS = d.leads; LSTATUS = d.status || {}; } catch (e) { list.innerHTML = `<div style="color:var(--red)">${esc(e.message)}</div>`; return; }
+  }
+  const importBox = `<div class="job"><b>📥 Add a list</b><div class="mut">Pick CSV files from <b>~/weaid-leads</b>: <b>new-services/all-new.csv</b>, <b>all.csv</b> and <b>directory-businesses.csv</b> (you can pick all three at once). Numbers already here aren't added twice.</div>
+    <input type="file" id="leadFile" accept=".csv" multiple style="margin-top:8px"><div id="leadImp" class="mut"></div></div>`;
+  if (!LEADS.length) { list.innerHTML = importBox; wireImport(); return; }
+  const svcCount = {}, areaCount = {};
+  LEADS.forEach((l) => { l.c.forEach((c) => svcCount[c] = (svcCount[c] || 0) + 1); if (l.a) areaCount[l.a] = (areaCount[l.a] || 0) + 1; });
+  const called = Object.values(LSTATUS).filter((x) => x.s).length, joined = Object.values(LSTATUS).filter((x) => x.s === "joined").length;
+  const hits = LEADS.filter(leadMatches).sort((a, b) => (b.v || 0) - (a.v || 0));
+  const opt = (obj, cur, label) => `<option value="">${label}</option>` + Object.entries(obj).sort((a, b) => b[1] - a[1]).map(([k, n]) => `<option value="${esc(k)}" ${k === cur ? "selected" : ""}>${esc(label === "All services" ? leadName(k) : k)} (${n})</option>`).join("");
+  list.innerHTML = `<div class="job"><div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap"><b>📞 Call list</b><span class="mut">${LEADS.length} businesses · ${called} called · ${joined} joined</span></div>
+    <div class="grid2"><select id="lfSvc" class="sel">${opt(svcCount, lf.svc, "All services")}</select><select id="lfArea" class="sel">${opt(areaCount, lf.area, "All areas")}</select>
+    <select id="lfSt" class="sel">${[["todo", "To call"], ["all", "Everyone"], ...Object.entries(LST).map(([k, v]) => [k, v[0]])].map(([k, v]) => `<option value="${k}" ${k === lf.st ? "selected" : ""}>${v}</option>`).join("")}</select>
+    <input id="lfQ" placeholder="Name or number" value="${esc(lf.q)}"></div>
+    <div class="btns"><span class="mut" style="align-self:center">${hits.length} match</span><button class="btn" id="lfCsv">Download these (CSV)</button></div></div>
+    ${hits.slice(0, lf.shown).map(leadCard).join("")}
+    ${hits.length > lf.shown ? `<button class="btn" id="lfMore" style="width:100%">Show more (${hits.length - lf.shown} left)</button>` : ""}
+    <details class="job" style="margin-top:14px"><summary style="cursor:pointer;font-weight:700">📥 Add another list</summary>${importBox.replace(/^<div class="job"><b>[^<]*<\/b>/, "<div>")}</details>`;
+  const set = (k, v) => { lf[k] = v; lf.shown = 40; renderLeads(); };
+  document.getElementById("lfSvc").onchange = (e) => set("svc", e.target.value);
+  document.getElementById("lfArea").onchange = (e) => set("area", e.target.value);
+  document.getElementById("lfSt").onchange = (e) => set("st", e.target.value);
+  document.getElementById("lfQ").onkeydown = (e) => { if (e.key === "Enter") set("q", e.target.value.trim()); };
+  const more = document.getElementById("lfMore"); if (more) more.onclick = () => { lf.shown += 40; renderLeads(); };
+  document.getElementById("lfCsv").onclick = () => {
+    const cell = (x) => `"${String(x ?? "").replace(/"/g, '""')}"`;
+    const csv = ["phone,name,services,area,rating,reviews,status,note", ...hits.map((l) => [l.p, l.n, l.c.map(leadName).join(" / "), l.a, l.r, l.v, LST[LSTATUS[l.p]?.s]?.[0] || "", LSTATUS[l.p]?.note || ""].map(cell).join(","))].join("\n");
+    const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([csv], { type: "text/csv" })); a.download = `weaid-call-list${lf.svc ? "-" + lf.svc : ""}${lf.area ? "-" + lf.area.replace(/\s+/g, "-") : ""}.csv`; a.click();
+  };
+  list.querySelectorAll("[data-ls]").forEach((b) => b.onclick = () => leadSet(b.dataset.p, b.dataset.ls));
+  list.querySelectorAll("[data-note]").forEach((b) => b.onclick = () => { const cur = LSTATUS[b.dataset.note]?.note || ""; const n = prompt("Note (when to call back, what they said):", cur); if (n !== null) leadSet(b.dataset.note, LSTATUS[b.dataset.note]?.s || "", n); });
+  list.querySelectorAll("[data-addpro]").forEach((b) => b.onclick = () => leadAddPro(b.dataset.addpro, b));
+  wireImport();
+}
+
+function leadCard(l) {
+  const st = LSTATUS[l.p] || {};
+  const first = (l.n || "").split(/[\s,-]/)[0];
+  const svc = l.c.map(leadName).join(", ");
+  const waText = `Hi ${first}, this is WeAid (weaid.in) in Kochi. We get customers asking for ${svc.toLowerCase()} and pass the paid jobs to local pros. Joining is free. Can I tell you how it works?`;
+  return `<div class="job"><div style="display:flex;justify-content:space-between;gap:8px;align-items:start">
+    <div><b>${esc(l.n)}</b>${l.r ? ` <span class="mut">★ ${l.r} (${l.v})</span>` : ""}
+    <div class="mut">${esc(svc)}${l.a ? ` · ${esc(l.a)}` : ""}</div><div class="mut">${esc(l.p)}${l.w ? ` · <a href="${esc(l.w)}" target="_blank" rel="noopener">website</a>` : ""}</div>
+    ${st.note ? `<div style="font-size:13.5px;margin-top:4px">📝 ${esc(st.note)}</div>` : ""}</div>
+    ${st.s ? `<span class="pill ${LST[st.s][1]}">${LST[st.s][0]}</span>` : ""}</div>
+    <div class="btns"><a class="btn dark" href="tel:+91${l.p}">Call</a><a class="btn wa" target="_blank" href="https://wa.me/91${l.p}?text=${encodeURIComponent(waText)}">WhatsApp</a>
+    ${Object.entries(LST).map(([k, v]) => `<button class="btn" style="${st.s === k ? "background:#eef2f6" : ""}" data-p="${l.p}" data-ls="${k}">${v[0]}</button>`).join("")}
+    <button class="btn" data-note="${l.p}">Note</button>
+    ${st.s === "interested" || st.s === "joined" ? `<button class="btn dark" data-addpro="${l.p}">Add as WeAid pro</button>` : ""}</div></div>`;
+}
+
+async function leadSet(phone, s, note) {
+  try { const d = await api("/api/leads", { action: "status", phone, status: s, note }); if (d.status) LSTATUS[phone] = d.status; else delete LSTATUS[phone]; } catch (e) { alert(e.message); }
+  renderLeads();
+}
+
+async function leadAddPro(phone, btn) {
+  const l = LEADS.find((x) => x.p === phone);
+  const services = [...new Set(l.c.map((c) => LEAD_SVC[c]).filter(Boolean))];
+  btn.textContent = "Adding…";
+  try {
+    const { added } = await api("/api/ops", { action: "add_pros", pros: [{ name: l.n, phone, services, area: l.a }] });
+    const a = added[0];
+    if (a.error) { btn.textContent = a.error; return; }
+    await api("/api/leads", { action: "status", phone, status: "joined" }); LSTATUS[phone] = { ...(LSTATUS[phone] || {}), s: "joined" };
+    btn.outerHTML = `<a class="btn wa" target="_blank" href="${a.whatsapp}">Send app code on WhatsApp</a>`;
+  } catch (e) { btn.textContent = e.message; }
+}
+
+function wireImport() {
+  const f = document.getElementById("leadFile"); if (!f) return;
+  f.onchange = async () => {
+    const out = document.getElementById("leadImp");
+    let rows = [];
+    for (const file of f.files) rows = rows.concat(parseCsv(await file.text()));
+    let total = 0, added = 0;
+    for (let i = 0; i < rows.length; i += 1500) {   // under Vercel's 4.5 MB request limit
+      out.textContent = `Uploading ${Math.min(i + 1500, rows.length)} of ${rows.length}…`;
+      try { const d = await api("/api/leads", { action: "import", rows: rows.slice(i, i + 1500) }); added += d.added; total = d.total; } catch (e) { out.textContent = e.message; return; }
+    }
+    out.textContent = `Added ${added} new · ${total} on the list.`;
+    LEADS = null; setTimeout(renderLeads, 800);
+  };
+}
+
 async function renderPros() {
   const list = document.getElementById("list");
   list.innerHTML = `<div class="job"><b>➕ Add pros you know</b><div class="mut">One per line: <b>name, mobile, service(s), area</b> — e.g. <i>Ravi Kumar, 9876543210, electrical plumbing, Kakkanad</i>. Services: ${SVC.join(", ")}</div>
@@ -308,7 +436,7 @@ async function reviewId(pid) {
   });
 }
 
-async function refresh() { try { jobs = (await api("/api/ops")).jobs; if (!openPanel && !["pros", "issues", "carpool", "jobsportal"].includes(tab)) render(); } catch {} }
+async function refresh() { try { jobs = (await api("/api/ops")).jobs; if (!openPanel && !["pros", "calls", "issues", "carpool", "jobsportal"].includes(tab)) render(); } catch {} }
 async function start() {
   if (!KEY) return showLogin();
   document.getElementById("login").hidden = true; document.getElementById("app").hidden = false;

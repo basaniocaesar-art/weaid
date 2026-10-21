@@ -4,6 +4,7 @@
  * browser's own voice whenever this fails (e.g. Sarvam out of credits).
  */
 const SPEAKER = process.env.SARVAM_SPEAKER || "kavitha";
+const V4_VOICES = { "hi-IN": "ritu_hi_customer", "en-IN": "ritu_en_medical", "ml-IN": "ritu_en_medical" };
 
 export default async function handler(req, res) {
   if (req.method !== "POST") return res.status(405).end();
@@ -22,11 +23,20 @@ export default async function handler(req, res) {
   const lang = SPOKEN.has(body.lang) ? body.lang : "en-IN";
   if (!text) return res.status(400).json({ error: "no text" });
   try {
-    const r = await fetch("https://api.sarvam.ai/text-to-speech", {
+    const tts = (model, speaker) => fetch("https://api.sarvam.ai/text-to-speech", {
       method: "POST",
       headers: { "api-subscription-key": key, "Content-Type": "application/json" },
-      body: JSON.stringify({ text, target_language_code: lang, speaker: SPEAKER, model: "bulbul:v3", pace: 1.05 }),
+      body: JSON.stringify({ text, target_language_code: lang, speaker, model, pace: 1.05 }),
     });
+    // Hindi uses bulbul:v4-flash "Ritu (customer)", picked by ear on 16 Oct 2026.
+    // v4-flash has no Malayalam voices, so the rest stay on v3. If v4 fails,
+    // fall back to v3 rather than going silent.
+    const v4 = V4_VOICES[lang];
+    let r = await tts(v4 ? "bulbul:v4-flash" : "bulbul:v3", v4 || SPEAKER);
+    if (v4 && !r.ok) {
+      console.warn("[voice-speak] v4", r.status);
+      r = await tts("bulbul:v3", SPEAKER);
+    }
     const data = await r.json().catch(() => ({}));
     if (!r.ok || !data.audios?.[0]) {
       console.warn("[voice-speak]", r.status, JSON.stringify(data).slice(0, 160));

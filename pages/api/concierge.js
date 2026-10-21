@@ -96,6 +96,9 @@ CARE & HOUSEHOLD — cook, maid (housemaid), babysit, postnatal (mother & baby c
 
 BIG JOBS — roofing, waterproofing, tiling, flooring, renovation, painting a whole home — are never priced in chat. quote_job will tell you so; offer a site visit and use book_site_visit.
 
+REPAIRS & INSTALLS — appliance (washing machine, fridge, TV, microwave), ro_service (water purifier), inverter (inverter, UPS, battery), gas_stove, motor_repair (motor rewinding, water pump), locksmith, computer_repair (laptop, desktop), solar, tank_cleaning (water tank or septic), well_cleaning (well or borewell), welding (gates, grills, fabrication), aluminium (aluminium, glass, mosquito nets), gardening (garden, landscaping, coconut tree climbing), sofa_cleaning (sofa or carpet), interior (interiors, modular kitchen). These are not priced in chat either: call quote_job, then offer the site visit it describes and use book_site_visit.
+ARRANGED ON A CALL — vehicle_service (car or bike service, car wash), mobile_repair, tailoring, photography (weddings, events), event_decor. quote_job says so; take their details and use raise_issue kind "callback". Also already offered at a fixed price: tutor (home tuition), laundry, makeup, mehendi, physio (physiotherapy at home), pet_grooming, cctv — quote them normally.
+
 Some people are tradespeople, not customers: "I am an electrician", "I want to work with WeAid", "how do I join", "I do house cleaning, can I get jobs". That is a sign-up, not a booking. Welcome them, explain in one line that WeAid sends paid jobs near them to the WeAid Pro app and the first to accept gets it, then collect name, mobile, the work they do, their area and years of experience, and use register_provider. Pass on exactly what it returns: the app link, their login code, and that the WeAid team will call to approve them before jobs start. Free to join; never promise a number of jobs or earnings.
 
 WHAT NOT TO DO
@@ -158,8 +161,16 @@ export default async function handler(req, res) {
 
   // The browser holds the thread. No session store yet: this is the first
   // version, and a half-built one would be a thing to migrate later.
-  const history = Array.isArray(body.messages) ? body.messages.slice(-20) : [];
-  const messages = [...history, { role: "user", content: message }];
+  const history = Array.isArray(body.messages) ? tidyHistory(body.messages) : [];
+  const messages = [...history];
+  // A thread that ended on tool results (a round cap) is already a user turn:
+  // add to it rather than send two user turns in a row.
+  const last = messages[messages.length - 1];
+  if (last && last.role === "user" && Array.isArray(last.content)) {
+    messages[messages.length - 1] = { role: "user", content: [...last.content, { type: "text", text: message }] };
+  } else {
+    messages.push({ role: "user", content: message });
+  }
 
   res.writeHead(200, {
     "Content-Type": "text/event-stream; charset=utf-8",
@@ -262,11 +273,27 @@ export default async function handler(req, res) {
       messages.push({ role: "user", content: results });
     }
 
-    emit("done", { reply: reply.trim(), messages: messages.slice(-20) });
+    emit("done", { reply: reply.trim(), messages: tidyHistory(messages) });
   } catch (e) {
     console.error("[concierge]", e);
     emit("error", { error: "Something went wrong. Please try again." });
   } finally {
     res.end();
   }
+}
+
+/*
+ * The last 20 turns, starting where a conversation can start.
+ *
+ * Cutting at a fixed 20 could land between a tool call and its result, so the
+ * thread began with a tool_result whose tool_use had been cut off. The API
+ * refuses that outright — every message after it failed, and the customer saw
+ * "Nothing came back" until they cleared the page. Drop from the front until
+ * the first turn is the customer actually speaking.
+ */
+function tidyHistory(list) {
+  const out = list.filter((m) => m && (m.role === "user" || m.role === "assistant")).slice(-20);
+  const isResult = (m) => Array.isArray(m.content) && m.content.some((b) => b && b.type === "tool_result");
+  while (out.length && (out[0].role !== "user" || isResult(out[0]))) out.shift();
+  return out;
 }

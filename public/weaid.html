@@ -1071,7 +1071,7 @@ function chatSend(text){
   heardLang=langOf(text,heardLang);
   say('me',text);
   const her=say('her','…');
-  const state={buf:''};let shown='',cards=[];
+  const state={buf:''};let shown='',cards=[],failed=false;
   return fetch('/api/concierge',{method:'POST',headers:{'Content-Type':'application/json'},
       body:JSON.stringify({message:text,messages:chatHistory,location:pickedLocation||undefined,known:{...known,lastSeen:lastSeenAt}})})
     .then(r=>{
@@ -1090,7 +1090,7 @@ function chatSend(text){
             else if(ev==='remember'&&d){known={...known,...d};}
             else if(ev==='card'&&(d.kind==='pay'||d.kind==='map'||d.kind==='location'))cards.push(d);
             else if(ev==='done'){if(d.reply){her.textContent=d.reply;shown=d.reply;}if(d.messages)chatHistory=d.messages;}
-            else if(ev==='error'){her.textContent=d.error;her.className='msg err';}
+            else if(ev==='error'){her.textContent=d.error;her.className='msg err';shown=d.error;failed=true;}
           });
           return pump();
         });
