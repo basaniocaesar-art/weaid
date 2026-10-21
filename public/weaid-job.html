@@ -78,12 +78,39 @@ async function photo(kind, file) {
   } catch (x) { if (busy) busy.textContent = ""; const e = document.getElementById("err"); if (e) e.textContent = x.message || "Couldn't upload. Try again."; }
 }
 
+/* The final bill, entered when the job is finished (pay-after jobs only).
+ * Lines are optional — labour, parts, anything — the total is not. If lines
+ * are filled in, the total follows them until the pro types their own. */
+let editBill = false;
+const billRow = (text, amount) => `<div class="bl" style="display:flex;gap:6px;margin-top:6px"><input class="bt" placeholder="e.g. Labour, Parts" value="${esc(text)}" style="flex:2;font-size:15px;letter-spacing:0;text-align:left;padding:10px;margin:0"><input class="ba" inputmode="numeric" placeholder="₹" value="${amount || ""}" style="flex:1;font-size:15px;letter-spacing:0;text-align:right;padding:10px;margin:0"></div>`;
+function billForm(d, withExisting = true) {
+  const B = (withExisting && d.bill && d.bill.version) ? d.bill : null;
+  const rows = B && B.items.length && !(B.items.length === 1 && /as quoted/.test(B.items[0].text)) ? B.items : [{ text: "Labour", amount: "" }, { text: "Parts / materials", amount: "" }];
+  const total = B ? B.total : (d.payment ? d.payment.total : "");
+  return `<div style="margin-top:14px"><b>The final bill</b> <span class="mut">— what the customer pays WeAid</span></div>
+    <div class="mut">Quoted ₹${d.payment ? d.payment.total : ""}. Put the real figures: WeAid sends the customer this bill with a QR to pay.</div>
+    <div id="bRows">${rows.map((r) => billRow(r.text, r.amount)).join("")}</div>
+    <button class="btn light" id="bAdd" style="font-size:14px;padding:10px">+ Add a line</button>
+    <div style="display:flex;align-items:center;gap:10px;margin-top:8px"><b style="flex:1">Total ₹</b><input id="bTotal" inputmode="numeric" value="${total}" style="flex:1;font-size:22px;letter-spacing:0;text-align:right;padding:10px;margin:0"></div>`;
+}
+function wireBillForm(act) {
+  let typedTotal = false;
+  const sum = () => [...act.querySelectorAll(".ba")].reduce((n, x) => n + (Number(x.value) || 0), 0);
+  act.querySelector("#bAdd").onclick = () => act.querySelector("#bRows").insertAdjacentHTML("beforeend", billRow("", ""));
+  act.querySelector("#bTotal").addEventListener("input", () => { typedTotal = true; });
+  act.addEventListener("input", (e) => { if (e.target.classList.contains("ba") && !typedTotal && sum() > 0) act.querySelector("#bTotal").value = sum(); });
+}
+function readBillForm(act) {
+  const items = [...act.querySelectorAll("#bRows .bl")].map((r) => ({ text: r.querySelector(".bt").value, amount: Number(r.querySelector(".ba").value) || 0 })).filter((i) => i.amount > 0);
+  return { items, total: Number(act.querySelector("#bTotal").value) || 0 };
+}
+
 function render() {
   const d = job;
   document.getElementById("head").innerHTML =
     `<div class="mut">${esc((d.service || "").replace(/_/g, " "))} · ${esc(d.scope || "")} job</div><h1>${esc(d.words)}</h1>` +
     (d.earnings != null ? `<div class="mut">You earn <b style="color:var(--ink)">₹${d.earnings}</b>${d.payment && d.payment.mode === "pay_after"
-      ? (d.paid ? " · customer has paid" : ` · customer pays <b style="color:var(--ink)">₹${d.payment.total}</b> after the job (cash to you, or a link)`)
+      ? (d.paid ? " · customer has paid" : ` · customer pays <b style="color:var(--ink)">₹${d.payment.total}</b> after the job — WeAid gives them a QR; you enter the final bill when you finish`)
       : d.paid ? " · customer has paid WeAid" : " · payment to be confirmed"}</div>` : "");
 
   const C = d.courier;
@@ -192,14 +219,17 @@ function render() {
   } else if (d.stage === "arrived") {
     stopSharing();
     const ph = d.photos || { before: 0, after: 0 };
+    const payAfter = d.payment && d.payment.mode === "pay_after";
     act.innerHTML = `<b>Photos of the work</b><div class="mut">Customers see these. Take one before you start and one when you finish.</div>
       <label style="display:block"><input type="file" accept="image/*" capture="environment" id="pBefore" style="display:none"><span class="btn light" role="button">📷 Before photo ${ph.before ? `✓ (${ph.before})` : "(optional)"}</span></label>
       <label style="display:block"><input type="file" accept="image/*" capture="environment" id="pAfter" style="display:none"><span class="btn light" role="button">📷 After photo ${ph.after ? `✓ (${ph.after})` : "— required"}</span></label>
       <div class="mut" id="pBusy" style="margin-top:6px"></div>
+      ${payAfter ? billForm(d) : ""}
       <div style="margin-top:14px"><b>When the work is finished</b></div><div class="mut">Anything WeAid should know? (optional)</div>
       <textarea id="note" rows="3" placeholder="e.g. replaced the tap washer, customer happy"></textarea>
-      <button class="btn" id="done" ${ph.after ? "" : "disabled"}>🏁 Job done</button>
+      <button class="btn" id="done" ${ph.after ? "" : "disabled"}>🏁 Job done${payAfter ? " — send the bill" : ""}</button>
       ${ph.after ? "" : `<div class="mut" style="margin-top:6px">Add an after photo to finish.</div>`}<div class="err" id="err"></div>`;
+    if (payAfter) wireBillForm(act);
     const send = async (kind, file) => {
       if (!file) return;
       document.getElementById("pBusy").textContent = "Uploading…";
@@ -214,21 +244,58 @@ function render() {
     act.querySelector("#pBefore").onchange = (e) => send("before", e.target.files[0]);
     act.querySelector("#pAfter").onchange = (e) => send("after", e.target.files[0]);
     act.querySelector("#done").onclick = async (e) => {
+      const body = { action: "done", note: document.getElementById("note").value };
+      if (payAfter) { body.bill = readBillForm(act); if (!body.bill.total) { document.getElementById("err").textContent = "Enter the total the customer should pay."; return; } }
       e.target.disabled = true;
-      try { job = { ...job, ...(await post({ action: "done", note: document.getElementById("note").value })) }; render(); }
+      try { job = { ...job, ...(await post(body)) }; render(); }
       catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
     };
   } else if (d.stage === "done" && d.payment && d.payment.mode === "pay_after" && d.payment.due > 0) {
     /* Pay-after: the job is done and the money is still with the customer.
-     * Either they pay the link WeAid sent them, or they hand the pro cash and
-     * the pro says so here — which puts WeAid's share in the pro's ledger. */
+     * WeAid has sent them the bill with a UPI QR for the exact amount (shown
+     * big here so they can scan it off the pro's phone) and a payment link;
+     * the pro sends the bill on their own WhatsApp. Cash is the fallback:
+     * the pro says so here, which puts WeAid's share in the pro's ledger. */
     stopSharing();
-    const P = d.payment;
-    act.innerHTML = `<h1>🎉 Job done</h1><b>Collect ₹${P.due} from ${esc(d.customer.name.split(" ")[0] || "the customer")}</b>
-      <div class="mut" style="margin-top:6px">They've been sent ${P.payUrl ? "a payment link" : "the amount"} by WeAid. If they pay you by cash or UPI instead, tap below so WeAid knows.</div>
+    const P = d.payment, B = d.bill || {};
+    const first = esc(d.customer.name.split(" ")[0] || "the customer");
+    if (editBill || P.billState === "awaiting_approval" || P.billState === "disputed") {
+      const waiting = P.billState === "awaiting_approval";
+      act.innerHTML = (editBill ? `<b>Change the bill</b><div class="mut">The customer gets a fresh bill, QR and link for the new amount.</div>`
+        : waiting ? `<h1>⏳ Bill sent for approval</h1><div class="mut">Your bill of <b>₹${B.total}</b> is more than three times the quoted ₹${B.original}, so WeAid has asked ${first} to approve it on their phone before collecting. Nothing to do until they answer — WeAid has been told too.</div>`
+        : `<h1>⚠️ Bill questioned</h1><div class="mut">${first} has questioned the ₹${B.total} bill. WeAid will ring you both and sort it out. If the figure was wrong, correct it below.</div>`) +
+        billForm(d, editBill || !waiting) +
+        `<button class="btn teal" id="reBill">${waiting ? "Send a corrected bill" : "Send the corrected bill"}</button>
+        ${editBill ? `<button class="btn light" id="noBill">Keep the bill as it is</button>` : ""}<div class="err" id="err"></div>`;
+      wireBillForm(act);
+      act.querySelector("#reBill").onclick = async (e) => {
+        const bill = readBillForm(act); if (!bill.total) { document.getElementById("err").textContent = "Enter the total."; return; }
+        e.target.disabled = true;
+        try { job = { ...job, ...(await post({ action: "final_bill", ...bill })) }; editBill = false; render(); }
+        catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
+      };
+      const nb = act.querySelector("#noBill"); if (nb) nb.onclick = () => { editBill = false; render(); };
+      return;
+    }
+    const items = (B.items || []).map((i) => `<div class="row"><span>${esc(i.text)}</span><span>₹${Number(i.amount).toLocaleString("en-IN")}</span></div>`).join("");
+    act.innerHTML = `<h1>🎉 Job done</h1><b>${first} pays ₹${P.due} to WeAid</b>
+      <div style="margin-top:8px">${items}<div class="row"><b>Total</b><b>₹${P.due}</b></div></div>
+      ${P.qr ? `<div style="text-align:center;margin-top:14px"><img alt="UPI QR" src="${esc(P.qr.imageUrl)}" style="width:min(100%,300px);aspect-ratio:1;border:1px solid var(--line);border-radius:14px"><div style="font-weight:800;font-size:18px;margin-top:6px">Scan to pay ₹${P.due} to WeAid</div><div class="mut">Any UPI app — GPay, PhonePe, Paytm. You'll get a message the moment it's paid.</div></div>`
+        : P.payUrl ? `<div class="live" style="margin-top:12px">QR not available right now — show them the payment link below, or collect cash/UPI and tap Received.</div>`
+        : `<div class="live" style="margin-top:12px;background:#fff7ed;border-color:#fed7aa;color:#9a3412">QR not available — collect ₹${P.due} by cash or UPI and tap Received below. WeAid has been told.</div>`}
+      ${B.whatsapp ? `<a class="btn" id="waBill" style="background:#25d366" href="${esc(B.whatsapp)}" target="_blank" rel="noopener">💬 Send bill on WhatsApp</a>` : `<div class="mut" style="margin-top:10px">No WhatsApp number for the customer — show them the bill below.</div>`}
+      <div style="display:flex;gap:8px"><a class="btn light" style="flex:1" href="${esc(B.link || "#")}" target="_blank" rel="noopener">🧾 Show bill to customer</a><button class="btn light" style="flex:1" id="copyBill">Copy link</button></div>
       ${P.payUrl ? `<a class="btn light" href="${esc(P.payUrl)}" target="_blank" rel="noopener">Show them the payment link</a>` : ""}
-      <button class="btn teal" id="cash">💵 Received ₹${P.due} in cash / UPI</button>
-      <div class="mut" style="margin-top:8px">Your share is ₹${d.earnings}. WeAid's ₹${P.commission} comes off your next payout.</div><div class="err" id="err"></div>`;
+      <div style="margin-top:14px" class="mut"><b style="color:var(--ink)">Paid you in cash or UPI instead?</b> Tap below so WeAid knows.</div>
+      <button class="btn light" id="cash">💵 Received ₹${P.due} in cash / UPI</button>
+      <div class="mut" style="margin-top:8px">Your share is ₹${d.earnings}${P.qr || P.payUrl ? ", paid in your weekly WeAid payout" : ""}. If you take cash, WeAid's ₹${P.commission} comes off your next payout.</div>
+      <button class="btn light" id="editBill" style="font-size:14px;padding:10px">Change the bill</button><div class="err" id="err"></div>`;
+    const wab = act.querySelector("#waBill"); if (wab) wab.addEventListener("click", () => { post({ action: "bill_shared", via: "whatsapp" }).catch(() => {}); });
+    act.querySelector("#copyBill").onclick = async (e) => {
+      try { await navigator.clipboard.writeText(B.link || ""); e.target.textContent = "Copied ✓"; } catch { prompt("Copy the bill link:", B.link || ""); }
+      post({ action: "bill_shared", via: "link" }).catch(() => {});
+    };
+    act.querySelector("#editBill").onclick = () => { editBill = true; render(); };
     act.querySelector("#cash").onclick = async (e) => {
       if (!confirm(`The customer has paid you ₹${P.due} in cash or UPI?`)) return;
       e.target.disabled = true;
@@ -237,7 +304,8 @@ function render() {
     };
   } else {
     stopSharing();
-    act.innerHTML = d.stage === "done" ? `<h1>🎉 Thank you!</h1><div class="mut">This job is complete. ${d.payment && d.payment.mode === "pay_after" ? "The customer has paid." : "WeAid will settle your payment."}</div>
+    act.innerHTML = d.stage === "done" ? `<h1>🎉 Thank you!</h1><div class="mut">This job is complete. ${d.payment && d.payment.mode === "pay_after" ? `The customer has paid${d.bill && d.bill.total ? ` ₹${d.bill.total}` : ""}.` : "WeAid will settle your payment."}</div>
+      ${d.bill && d.bill.link ? `<a class="btn light" href="${esc(d.bill.link)}" target="_blank" rel="noopener">🧾 Show the bill / receipt</a>` : ""}
       <div style="margin-top:14px;text-align:center"><b>Ask the customer for a Google review</b><div class="mut">Show them this — they scan it with their phone camera. Every customer, happy or not: it's how new families find WeAid.</div>
       <img alt="QR code" style="margin-top:10px;width:200px;height:200px" src="https://api.qrserver.com/v1/create-qr-code/?size=400x400&margin=10&data=${encodeURIComponent("https://weaid.in/review")}"><div class="mut">weaid.in/review</div></div>` : `<div class="mut">This job is ${esc(d.words.toLowerCase())}.</div>`;
   }

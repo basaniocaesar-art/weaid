@@ -10,7 +10,8 @@ import { openTicket } from "../../lib/followup.js";
 import { photoLinks, confirmation, confirmJob } from "../../lib/proof.js";
 import { isQuoteJob, money, acceptQuote, declineQuote, payInfo, ADVANCE_PCT, VISIT_FEE } from "../../lib/quotes.js";
 import { isCourierJob, courierInfo, pickupCode, dropCode, receiverLink } from "../../lib/courier.js";
-import { amountDue, jobPayInfo } from "../../lib/payafter.js";
+import { amountDue, jobPayInfo, currentQr } from "../../lib/payafter.js";
+import { billView, billState, approveBill, disputeBill } from "../../lib/bill.js";
 
 export default async function handler(req, res) {
   const { b, k } = req.query;
@@ -46,7 +47,16 @@ export default async function handler(req, res) {
       if (body.action === "pay_job") {
         // Pay-after job: a Razorpay link for what is still due (or "pay the pro").
         if (booking.payment_mode !== "pay_after") return res.status(400).json({ error: "Not a pay-after job." });
-        return res.status(200).json(await jobPayInfo(booking, await eventsFor(b)));
+        const ev = await eventsFor(b);
+        if (billState(ev).state === "awaiting_approval") return res.status(400).json({ error: "Please approve the bill first." });
+        return res.status(200).json(await jobPayInfo(booking, ev));
+      }
+      if (body.action === "approve_bill" || body.action === "dispute_bill") {
+        // A final bill over the guard (lib/bill.js): the customer says yes, or asks for a person.
+        if (booking.payment_mode !== "pay_after") return res.status(400).json({ error: "Not a pay-after job." });
+        const ev = await eventsFor(b);
+        try { return res.status(200).json(body.action === "approve_bill" ? await approveBill(booking, ev) : await disputeBill(booking, ev, body.reason)); }
+        catch (e) { return res.status(400).json({ error: e.message }); }
       }
       if (body.action === "confirm") {
         try { return res.status(200).json(await confirmJob(booking, await eventsFor(b), body.rating, body.comment)); }
@@ -110,7 +120,10 @@ export default async function handler(req, res) {
         due: amountDue(booking, events),
         paid: Boolean(booking.paid_at),
         payUrl: events.filter((e) => e.event === "payment_due").pop()?.data?.payUrl || null,
+        qr: currentQr(events, amountDue(booking, events)),
       },
+      // The final bill (items, total, QR, link, whether it still needs their OK) — lib/bill.js.
+      bill: billView(booking, events),
       // Why it was cancelled, when WeAid cancelled it (nobody free), so the page can say so.
       cancelReason: ["cancelled", "refunded"].includes(stage) ? events.filter((e) => e.event === "cancelled").pop()?.data?.reason || null : null,
       times: { paid: booking.paid_at, assigned: at("assigned") || booking.accepted_at, on_the_way: at("on_the_way"), arrived: at("arrived"), done: booking.completed_at || at("done") },

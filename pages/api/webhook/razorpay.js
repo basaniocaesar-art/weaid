@@ -84,6 +84,24 @@ export default async function handler(req, res) {
       }
     }
 
+    /*
+     * The customer scanned the UPI QR for a pay-after job (lib/payafter.js
+     * jobQrInfo). The QR's notes carry the booking id. payment.captured
+     * arrives for the same money with the same payment id and the same
+     * notes, and recordJobPayment is idempotent on that id, so whichever
+     * event lands first records it and the other does nothing. Once fully
+     * paid, recordJobPayment closes the QR and cancels the link itself.
+     */
+    if (eventType === "qr_code.credited") {
+      const qr = payload.qr_code?.entity;
+      const payment = payload.payment?.entity;
+      const bookingId = qr?.notes?.booking_id || payment?.notes?.booking_id;
+      if (bookingId) {
+        await recordJobPayment(bookingId, { amount: (payment?.amount || qr?.payment_amount || 0) / 100, mode: "upi_qr", ref: payment?.id || qr?.id, receivedBy: "weaid", by: "customer",
+          patch: { razorpay_payment_id: payment?.id || null } });
+      }
+    }
+
     return res.status(200).json({ status: "ok" });
   } catch (err) {
     console.error("[webhook/razorpay]", err);

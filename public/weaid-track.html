@@ -208,18 +208,47 @@ function renderQuote(d) {
 }
 
 /* Pay-after: nothing was taken when they booked. Before the job this just says
- * so; after it, what is owed and the two ways to pay it. */
+ * so; after it, the pro's final bill, a UPI QR for exactly that amount, the
+ * online link, and cash to the pro as the fallback. A bill well over the
+ * quote (lib/bill.js) is shown for their OK first, and nothing is collected
+ * until they give it. */
 let payBusy = false;
 function renderPay(d) {
   const el = document.getElementById("payCard");
-  const p = d.payment;
+  const p = d.payment, B = d.bill;
   if (!p || p.mode !== "pay_after" || ["cancelled", "refunded"].includes(d.stage) || payBusy) { if (!p || p.mode !== "pay_after") el.hidden = true; return; }
   el.hidden = false;
   const pro = (d.pro && d.pro.name || "your pro").split(" ")[0];
-  if (p.paid || p.due <= 0) { el.innerHTML = `<b>✅ Paid — thank you.</b>`; return; }
-  if (d.stage !== "done") { el.innerHTML = `<b>Nothing to pay now.</b><div class="mut" style="margin-top:4px">You pay ₹${d.total} after the job — cash or UPI to ${pro}, or online with a link we'll send you.</div>`; return; }
-  el.innerHTML = `<b>₹${p.due} to pay for this job</b><div class="mut" style="margin-top:4px">Pay ${pro} by cash or UPI and they'll mark it received — or pay online now.</div>
-    <button class="btn" id="payNow" style="width:100%;border:0;font:inherit;font-weight:800;background:linear-gradient(90deg,#0d9488,#f97316)">Pay ₹${p.due} online</button><div id="payMsg" class="mut" style="margin-top:6px"></div>`;
+  const billLink = B && B.link ? `<a class="btn" href="${esc(B.link)}" target="_blank" rel="noopener" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:var(--ink)">🧾 View / download the bill</a>` : "";
+  if (p.paid || p.due <= 0) { el.innerHTML = `<b>✅ Paid — thank you.</b>${billLink}`; return; }
+  if (d.stage !== "done") { el.innerHTML = `<b>Nothing to pay now.</b><div class="mut" style="margin-top:4px">You pay after the job — about ₹${d.total}; ${pro} enters the final bill when it's done and we send you a QR to pay WeAid.</div>`; return; }
+  const items = B && B.items ? B.items.map((it) => `<div class="row"><span>${esc(it.text)}</span><span>${inr(it.amount)}</span></div>`).join("") : "";
+  const total = B ? B.total : p.due;
+  if (B && B.status === "awaiting_approval") {
+    el.innerHTML = `<b>Please approve the final bill</b><div class="mut" style="margin-top:4px">${esc(pro)} has finished, and the bill is <b>${inr(total)}</b> — more than the ${inr(B.original)} quoted. Nothing is charged until you say yes.</div>
+      <div style="margin-top:8px">${items}<div class="row"><b>Total</b><b>${inr(total)}</b></div></div>${B.note ? `<div class="mut" style="margin-top:6px">${esc(B.note)}</div>` : ""}
+      <button class="btn" id="bYes" style="width:100%;border:0;font:inherit;font-weight:800;background:linear-gradient(90deg,#0d9488,#f97316)">Approve ${inr(total)} and pay</button>
+      <button class="btn" id="bNo" style="width:100%;border:1.5px solid var(--line);font:inherit;font-weight:700;background:#fff;color:#b91c1c">I have a question about this bill</button><div id="payMsg" class="mut" style="margin-top:6px"></div>`;
+    document.getElementById("bYes").onclick = async (e) => {
+      e.target.disabled = true; payBusy = true;
+      try { await qPost({ action: "approve_bill" }); } catch (err) { document.getElementById("payMsg").textContent = err.message; }
+      payBusy = false; load();
+    };
+    document.getElementById("bNo").onclick = async () => {
+      const r = prompt("What would you like to ask about the bill? WeAid will call you.", ""); if (r === null) return;
+      payBusy = true;
+      try { const x = await qPost({ action: "dispute_bill", reason: r }); document.getElementById("payMsg").textContent = `Sent (ref ${x.ref}). WeAid will call you.`; } catch (err) { document.getElementById("payMsg").textContent = err.message; }
+      payBusy = false; load();
+    };
+    return;
+  }
+  if (B && B.status === "disputed") { el.innerHTML = `<b>Bill on hold</b><div class="mut" style="margin-top:4px">You've questioned the ${inr(total)} bill — WeAid will call you. Nothing is charged meanwhile.</div>`; return; }
+  el.innerHTML = `<b>${inr(p.due)} to pay WeAid for this job</b>
+    ${items ? `<div style="margin-top:8px">${items}<div class="row"><b>Total</b><b>${inr(total)}</b></div></div>` : ""}
+    ${p.qr ? `<div style="text-align:center;margin-top:12px"><img alt="UPI QR" src="${esc(p.qr.imageUrl)}" style="width:min(100%,280px);aspect-ratio:1;border:1px solid var(--line);border-radius:14px"><div style="font-weight:800;font-size:18px;margin-top:6px">Scan to pay ${inr(p.due)} to WeAid</div><div class="mut">Any UPI app. The pro and WeAid are told the moment it's paid.</div></div>` : ""}
+    <button class="btn" id="payNow" style="width:100%;border:0;font:inherit;font-weight:800;background:linear-gradient(90deg,#0d9488,#f97316)">Pay ${inr(p.due)} online</button>
+    ${billLink}
+    <div class="mut" style="margin-top:8px">Or pay ${esc(pro)} by cash or UPI and they'll mark it received.</div><div id="payMsg" class="mut" style="margin-top:6px"></div>`;
   document.getElementById("payNow").onclick = async (e) => {
     e.target.disabled = true; payBusy = true;
     try {

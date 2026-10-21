@@ -5,7 +5,9 @@
  *   POST /api/job?b=&k=  { action: "on_the_way", lat, lng, eta_minutes }
  *                        { action: "location", lat, lng }      every ~20 s while on the way
  *                        { action: "arrived", code }           the customer's 4-digit code
- *                        { action: "done", note }
+ *                        { action: "done", note, bill: { items, total } }   pay-after: the final bill is required
+ *                        { action: "final_bill", items, total, note }    re-enter the bill after Done
+ *                        { action: "bill_shared", via }                 the pro sent the bill on WhatsApp
  *                        { action: "cash_received", amount }   pay-after job: the customer paid the pro
  *
  * Every step is logged in booking_events and emailed to the owner.
@@ -15,7 +17,8 @@ import { checkToken, eventsFor, stageOf, STAGE_WORDS, arrivalCode, logEvent, sav
 import { savePhoto, photoCounts, arrivalDistance, FAR_METRES } from "../../lib/proof.js";
 import { isQuoteJob, submitQuote, money, ADVANCE_PCT, VISIT_FEE } from "../../lib/quotes.js";
 import { isCourierJob, courierInfo, pickupCode, dropCode } from "../../lib/courier.js";
-import { amountDue, collectAfterJob, recordJobPayment, jobPaid } from "../../lib/payafter.js";
+import { amountDue, collectAfterJob, recordJobPayment, jobPaid, currentQr } from "../../lib/payafter.js";
+import { reportFinalBill, cleanBill, billView, billState, billMessage, waLink, noteBillShared } from "../../lib/bill.js";
 
 export const config = { api: { bodyParser: { sizeLimit: "4.5mb" } } };
 
@@ -38,9 +41,21 @@ export default async function handler(req, res) {
       if (body.action === "cash_received") {
         // The one thing a pro can still do after Done: say the customer paid them.
         if (amountDue(booking, events) <= 0) return res.status(400).json({ error: "This job is already paid." });
+        const bs = billState(events).state;
+        if (bs === "awaiting_approval") return res.status(400).json({ error: "The customer hasn't approved the bill yet — nothing to collect until they do." });
+        if (bs === "disputed") return res.status(400).json({ error: "The customer has questioned the bill. WeAid will ring you both." });
         try { await recordJobPayment(b, { amount: Number(body.amount) || undefined, mode: "cash", receivedBy: "pro", by: "pro" }); }
         catch (e) { return res.status(400).json({ error: e.message }); }
         booking = await getBooking(b);
+      } else if (body.action === "final_bill") {
+        // After Done: correct the bill (the customer gets a fresh bill, QR and link for the new amount).
+        if (stage !== "done" || booking.payment_mode !== "pay_after") return res.status(400).json({ error: "Enter the bill when you tap Job done." });
+        if (booking.paid_at) return res.status(400).json({ error: "This job is already paid." });
+        try { await reportFinalBill(b, { items: body.items, total: body.total, note: body.note, by: "pro", source: "web" }); }
+        catch (e) { return res.status(400).json({ error: e.message }); }
+        booking = await getBooking(b);
+      } else if (body.action === "bill_shared") {
+        await noteBillShared(b, { by: "pro", via: body.via || "whatsapp" });
       } else if (["cancelled", "refunded", "done"].includes(stage)) {
         return res.status(409).json({ error: "This job is closed.", stage });
       }
@@ -94,18 +109,31 @@ export default async function handler(req, res) {
       } else if (body.action === "done") {
         if (stage !== "arrived" && stage !== "working") return res.status(400).json({ error: isQuoteJob(events) ? "Start the work first." : "Enter the customer's arrival code first." });
         if ((await photoCounts(b)).after < 1) return res.status(400).json({ error: "Add at least one photo of the finished work first." });
-        booking = await updateBooking(b, { status: "completed", completed_at: new Date().toISOString() });
-        await logEvent(b, "done", { note: String(body.note || "").slice(0, 500) });
-        await alertStep(booking, "done", body.note ? `Pro's note: ${String(body.note).slice(0, 300)}` : "");
-        // Pay-after: the customer is now sent the amount and a link; the pro sees it below.
-        await collectAfterJob(booking).catch((e) => console.error("[job] collect", e.message));
-      } else if (body.action !== "cash_received") {
+        if (booking.payment_mode === "pay_after") {
+          /*
+           * Pay-after: Done and the final bill are one step. The bill is checked
+           * before anything is written, then lib/bill.js completes the job,
+           * stores the bill, re-splits the money, and sends the customer the
+           * bill with a QR and a link (or asks them to approve it, over 3×).
+           */
+          try { cleanBill(body.bill || {}); } catch (e) { return res.status(400).json({ error: e.message }); }
+          try { await reportFinalBill(b, { ...(body.bill || {}), note: body.note, by: "pro", source: "web" }); }
+          catch (e) { return res.status(400).json({ error: e.message }); }
+          booking = await getBooking(b);
+        } else {
+          booking = await updateBooking(b, { status: "completed", completed_at: new Date().toISOString() });
+          await logEvent(b, "done", { note: String(body.note || "").slice(0, 500) });
+          await alertStep(booking, "done", body.note ? `Pro's note: ${String(body.note).slice(0, 300)}` : "");
+          await collectAfterJob(booking).catch((e) => console.error("[job] collect", e.message));
+        }
+      } else if (!["cash_received", "final_bill", "bill_shared"].includes(body.action)) {
         return res.status(400).json({ error: "unknown action" });
       }
       events = await eventsFor(b);
       stage = stageOf(booking, events);
     }
 
+    const bill = billView(booking, events);
     return res.status(200).json({
       stage,
       words: STAGE_WORDS[stage],
@@ -123,8 +151,12 @@ export default async function handler(req, res) {
       payment: booking.payment_mode === "pay_after"
         ? { mode: "pay_after", total: Math.round(booking.total || booking.amount || 0), due: amountDue(booking, events), received: jobPaid(events),
             payUrl: events.filter((e) => e.event === "payment_due").pop()?.data?.payUrl || null,
-            commission: Math.max(0, Math.round((booking.total || booking.amount || 0) - (booking.provider_earnings || 0))) }
+            qr: currentQr(events, amountDue(booking, events)),
+            commission: Math.max(0, Math.round((booking.total || booking.amount || 0) - (booking.provider_earnings || 0))),
+            billState: billState(events).state }
         : { mode: booking.payment_mode || "prepaid", due: 0 },
+      // The final bill, and a ready-made WhatsApp message to send it with (the pro's own WhatsApp, signed by them).
+      bill: bill ? { ...bill, whatsapp: bill.ready ? waLink(booking.customer_phone, billMessage(booking, bill, booking.provider_name || "your WeAid pro")) : null } : null,
       photos: await photoCounts(b),
       courier: isCourierJob(events) ? courierInfo(events) : null,
       quoteJob: isQuoteJob(events) ? { money: money(booking, events), quote: events.filter((e) => e.event === "quote").pop()?.data || null, advancePct: ADVANCE_PCT, visitFee: VISIT_FEE } : null,
