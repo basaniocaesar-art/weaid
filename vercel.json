@@ -88,6 +88,10 @@
       "destination": "/weaid-job.html"
     },
     {
+      "source": "/bill",
+      "destination": "/weaid-bill.html"
+    },
+    {
       "source": "/ops",
       "destination": "/weaid-ops.html"
     },

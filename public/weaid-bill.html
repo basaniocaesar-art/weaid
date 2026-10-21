@@ -1,0 +1,104 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Your WeAid bill</title>
+<link rel="icon" href="/favicon.ico">
+<style>
+/* No web fonts on purpose: this page is opened on a slow connection at a
+ * customer's door and printed to PDF. System fonts only. */
+:root{--orange:#f97316;--ink:#0b0f14;--mut:#5b6573;--line:#e7ebf0;--bg:#f6f8fa;--teal:#0d9488;--teal-d:#0f766e;--red:#b91c1c;--green:#166534}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:"DM Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;line-height:1.5}
+.top{background:#fff;border-bottom:1px solid var(--line)}.top div{max-width:640px;margin:0 auto;padding:12px 16px;display:flex;justify-content:space-between;align-items:center;font-weight:800;font-size:20px}.top b{color:var(--orange)}
+main{max-width:640px;margin:0 auto;padding:16px 16px 60px}
+.sheet{background:#fff;border:1px solid var(--line);border-radius:18px;padding:22px 20px;position:relative;overflow:hidden}
+h1{font-size:26px;margin:0;letter-spacing:-.01em}.mut{color:var(--mut);font-size:14px}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:10px 16px;margin-top:16px;font-size:14px}.meta b{display:block;font-size:12px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}
+table{width:100%;border-collapse:collapse;margin-top:18px;font-size:15px}td,th{padding:9px 0;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}th{font-size:12px;color:var(--mut);font-weight:600;text-transform:uppercase;letter-spacing:.04em}td.n,th.n{text-align:right;white-space:nowrap}
+tr.total td{border-bottom:0;border-top:2px solid var(--ink);font-weight:800;font-size:18px;padding-top:12px}
+.stamp{position:absolute;right:14px;top:14px;border:3px solid;border-radius:10px;padding:4px 12px;font-weight:900;font-size:22px;letter-spacing:.12em;transform:rotate(8deg);opacity:.9}
+.stamp.paid{color:var(--green);border-color:var(--green)}.stamp.unpaid{color:var(--red);border-color:var(--red)}.stamp.hold{color:#b45309;border-color:#b45309;font-size:16px}
+.pay{margin-top:18px;border:1px solid var(--line);border-radius:14px;padding:16px;text-align:center;background:#fafcff}
+.pay img{width:min(100%,280px);aspect-ratio:1;border:1px solid var(--line);border-radius:12px;background:#fff}
+.btn{display:block;width:100%;text-align:center;text-decoration:none;font:inherit;font-weight:800;font-size:17px;padding:14px;border-radius:14px;border:0;background:var(--ink);color:#fff;margin-top:10px;cursor:pointer}
+.btn.light{background:#fff;color:var(--ink);border:1.5px solid var(--line);font-size:15px;padding:12px}.btn.grad{background:linear-gradient(90deg,var(--teal),var(--orange))}
+.foot{margin-top:18px;font-size:12.5px;color:var(--mut);border-top:1px dashed var(--line);padding-top:12px}
+@media print{
+  @page{size:A4;margin:14mm}
+  body{background:#fff}.top,.noprint{display:none !important}
+  main{max-width:none;padding:0}.sheet{border:0;border-radius:0;padding:0}
+  .pay{break-inside:avoid}.stamp{opacity:1}
+}
+</style>
+</head>
+<body>
+<div class="top"><div><span><img src="/icon-192.png" alt="" style="width:30px;height:30px;vertical-align:middle;margin-right:6px;border-radius:7px">We<b>Aid</b></span><button class="btn light noprint" id="pdf" style="width:auto;margin:0;padding:8px 12px;font-size:14px" hidden>⬇ Download PDF</button></div></div>
+<main>
+  <div class="sheet" id="sheet"><div class="mut">Loading your bill…</div></div>
+  <div class="mut noprint" style="text-align:center;margin-top:14px">Questions about this bill? Call WeAid on <a href="tel:+918064267771">080 6426 7771</a></div>
+</main>
+<script>
+const q = new URLSearchParams(location.search);
+const B = q.get("b"), K = q.get("k");
+const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const inr = (n) => "₹" + Math.round(Number(n) || 0).toLocaleString("en-IN");
+const day = (iso) => iso ? new Date(iso).toLocaleDateString("en-IN", { day: "numeric", month: "long", year: "numeric" }) : "";
+let lastStatus = "";
+
+function render(d) {
+  const sheet = document.getElementById("sheet");
+  document.getElementById("pdf").hidden = !d.ready;
+  if (!d.ready) {
+    sheet.innerHTML = `<h1>Bill not ready yet</h1><div class="mut" style="margin-top:6px">Your ${esc(d.service)} job isn't finished. The bill appears here the moment ${esc(d.pro || "your pro")} finishes and enters it.</div>`;
+    return;
+  }
+  const paid = d.status === "paid";
+  const hold = d.status === "awaiting_approval" || d.status === "disputed";
+  const iss = d.issuer || {};
+  const rows = (d.items || []).map((it) => `<tr><td>${esc(it.text)}</td><td class="n">${inr(it.amount)}</td></tr>`).join("");
+  /* Tax lines come from the server (lib/bill.js billView → tax[]). None are
+   * shown until WeAid decides how its bills are taxed; nothing is computed here. */
+  const tax = (d.tax || []).map((t) => `<tr><td>${esc(t.label)}</td><td class="n">${inr(t.amount)}</td></tr>`).join("");
+  sheet.innerHTML = `
+    <div class="stamp ${paid ? "paid" : hold ? "hold" : "unpaid"}">${paid ? "PAID" : hold ? "AWAITING YOUR OK" : "UNPAID"}</div>
+    <div class="mut">Bill</div><h1>${esc(d.number)}</h1>
+    <div class="mut">${esc(day(d.date))}</div>
+    <div class="meta">
+      <div><b>Billed to</b>${esc(d.customer.name)}${d.customer.area ? `<br><span class="mut">${esc(d.customer.area)}</span>` : ""}</div>
+      <div><b>From</b>${esc(iss.name || "WeAid")}${iss.address ? `<br><span class="mut">${esc(iss.address)}</span>` : ""}${iss.gstin ? `<br><span class="mut">GSTIN ${esc(iss.gstin)}</span>` : ""}<br><span class="mut">${esc(iss.site || "weaid.in")} · ${esc(iss.phone || "")}</span></div>
+      <div><b>Service</b>${esc(d.service)}${d.description ? `<br><span class="mut">${esc(d.description)}</span>` : ""}</div>
+      <div><b>Done by</b>${esc(d.pro || "WeAid")}</div>
+    </div>
+    <table><thead><tr><th>Item</th><th class="n">Amount</th></tr></thead><tbody>${rows}${tax}
+      <tr class="total"><td>Total</td><td class="n">${inr(d.total)}</td></tr>
+      ${d.paid ? `<tr><td class="mut">Paid</td><td class="n">${inr(d.paid)}</td></tr>` : ""}
+      <tr><td class="mut">${paid ? "Balance" : "Amount due"}</td><td class="n" style="font-weight:800;color:${paid ? "var(--green)" : "var(--red)"}">${inr(d.due)}</td></tr>
+    </tbody></table>
+    ${d.original && d.original !== d.total ? `<div class="mut" style="margin-top:8px">Quoted ${inr(d.original)} when booked; the final figure is what the work actually cost.</div>` : ""}
+    ${paid ? `<div style="margin-top:16px;font-weight:700;color:var(--green)">✅ Paid in full — thank you for choosing WeAid.</div>` : ""}
+    ${hold ? `<div class="mut" style="margin-top:16px">${d.status === "disputed" ? "You've questioned this bill — WeAid will call you." : "This bill is more than the quote, so WeAid is waiting for your approval before collecting. Approve it on your job page."}</div>` : ""}
+    ${!paid && !hold ? `<div class="pay">
+      ${d.qr ? `<img alt="UPI QR" src="${esc(d.qr.imageUrl)}"><div style="font-weight:800;font-size:19px;margin-top:8px">Scan to pay ${inr(d.due)} to WeAid</div><div class="mut">GPay, PhonePe, Paytm — any UPI app.</div>` : `<div style="font-weight:700">${inr(d.due)} to pay WeAid</div>`}
+      ${d.payUrl ? `<a class="btn grad noprint" href="${esc(d.payUrl)}" target="_blank" rel="noopener">Pay ${inr(d.due)} online</a>` : ""}
+      ${!d.qr && !d.payUrl ? `<div class="mut" style="margin-top:6px">Pay ${esc(d.pro || "your pro")} by cash or UPI and they will mark it received.</div>` : `<div class="mut noprint" style="margin-top:8px">Or pay ${esc(d.pro || "your pro")} by cash or UPI.</div>`}
+    </div>` : ""}
+    <div class="foot">WeAid arranges the work and collects the payment; ${esc(d.pro || "the pro")} is paid by WeAid. Bill ${esc(d.number)}${d.version > 1 ? ` (revised, v${d.version})` : ""}. Any problem with the work: call 080 6426 7771 within 7 days.</div>`;
+}
+
+async function load() {
+  if (!B || !K) { document.getElementById("sheet").innerHTML = "<h1>Bill not found</h1><div class='mut'>Please use the link WeAid sent you.</div>"; return; }
+  let d;
+  try { const r = await fetch(`/api/bill?b=${encodeURIComponent(B)}&k=${encodeURIComponent(K)}`); d = await r.json(); if (!r.ok) throw d; }
+  catch (e) { document.getElementById("sheet").innerHTML = `<h1>Bill not found</h1><div class='mut'>${esc(e && e.reason || "Please use the link WeAid sent you.")}</div>`; return; }
+  const key = `${d.status}|${d.total}|${d.due}|${d.qr ? d.qr.id : ""}|${d.version}`;
+  if (key !== lastStatus) { lastStatus = key; render(d); }
+}
+document.getElementById("pdf").onclick = () => window.print();
+load();
+// While unpaid, the page notices the payment itself (the QR webhook marks it paid).
+setInterval(() => { if (!/^paid/.test(lastStatus)) load(); }, 10000);
+</script>
+</body>
+</html>
