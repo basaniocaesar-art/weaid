@@ -7,6 +7,8 @@
  *        { action: "mark_paid", bookingId, how }    cash / UPI taken outside Razorpay, before the job
  *        { action: "dispatch_unpaid", bookingId }   a booking stuck waiting for payment: make it pay-after and find a pro now
  *        { action: "job_payment_received", bookingId, amount, how, receivedBy }   pay-after job: money collected
+ *        { action: "final_bill", bookingId, items, total, note }   enter/correct the pro's final bill (lib/bill.js)
+ *        { action: "bill_shared", bookingId, via }     the owner sent the bill from their own WhatsApp
  *        { action: "owed_settled", providerId, amount, how }   a pro paid WeAid the commission they were holding
  *        { action: "cancel", bookingId, reason }
  *
@@ -27,6 +29,7 @@ import { confirmSeat, seatLink } from "../../lib/carpool.js";
 import { activatePlan, PLANS as JP_PLANS } from "../../lib/jobportal.js";
 import { startDispatch, confirmBooking } from "../../lib/orchestrator.js";
 import { amountDue, recordJobPayment, owedBalances, addLedger, PRO_OWED_LIMIT } from "../../lib/payafter.js";
+import { billView, billMessage, waLink, noteBillShared, reportFinalBill } from "../../lib/bill.js";
 
 const ten = (p) => String(p || "").replace(/\D/g, "").slice(-10);
 const wa = (phone, text) => (ten(phone).length === 10 ? `https://wa.me/91${ten(phone)}?text=${encodeURIComponent(text)}` : null);
@@ -52,7 +55,22 @@ async function listJobs() {
     const payment = b.payment_mode === "pay_after"
       ? { mode: "pay_after", due: amountDue(b, events), payUrl: events.filter((e) => e.event === "payment_due").pop()?.data?.payUrl || null }
       : { mode: b.payment_mode || "prepaid", due: 0 };
-    return { ...b, stage, words: STAGE_WORDS[stage], links: jobLinks(b.id), code: arrivalCode(b.id), refunded: refunded > 0, refundDue: refundDue > 0, payment, proof: confirmation(b, events), quote: isQuoteJob(events) ? { money: money(b, events), q: events.filter((e) => e.event === "quote").pop()?.data || null } : null };
+    /*
+     * The final bill (lib/bill.js), with the WhatsApp messages ready to send
+     * from the owner's own phone: the bill to the customer, signed WeAid, and
+     * a note to the pro saying where the money stands. Whether anybody has
+     * sent the bill yet is shown, so the ones nobody sent can be sent by hand.
+     */
+    const bv = billView(b, events);
+    const bill = bv && bv.ready ? {
+      number: bv.number, total: bv.total, due: bv.due, status: bv.status, items: bv.items, link: bv.link, version: bv.version,
+      shared: bv.shared, sent: bv.shared.length > 0,
+      whatsappCustomer: waLink(b.customer_phone, billMessage(b, bv, "WeAid")),
+      whatsappPro: waLink(b.provider_phone, bv.status === "paid"
+        ? `Hi ${(b.provider_name || "").split(" ")[0]}, WeAid here: ${b.customer_name || "the customer"} has paid ₹${bv.total} for the ${bv.service} job. Your share ₹${Math.round(b.provider_earnings || 0)} comes in your weekly payout. Thank you!`
+        : `Hi ${(b.provider_name || "").split(" ")[0]}, WeAid here about the ${bv.service} job for ${b.customer_name || "the customer"}: bill ₹${bv.total}, ₹${bv.due} still unpaid${bv.status === "awaiting_approval" ? " (waiting for the customer to approve it)" : ""}. Bill: ${bv.link}`),
+    } : null;
+    return { ...b, stage, words: STAGE_WORDS[stage], links: jobLinks(b.id), code: arrivalCode(b.id), refunded: refunded > 0, refundDue: refundDue > 0, payment, bill, proof: confirmation(b, events), quote: isQuoteJob(events) ? { money: money(b, events), q: events.filter((e) => e.event === "quote").pop()?.data || null } : null };
   });
 }
 
@@ -182,6 +200,16 @@ export default async function handler(req, res) {
         const r = await recordJobPayment(booking.id, { amount: Number(body.amount) || undefined, mode: String(body.how || "cash").slice(0, 20), receivedBy: body.receivedBy === "weaid" ? "weaid" : "pro", by: "WeAid" });
         return res.status(200).json(r);
       } catch (e) { return res.status(400).json({ error: e.message }); }
+    }
+    if (body.action === "bill_shared") {
+      // The owner sent the bill (or a nudge) from their own WhatsApp.
+      await noteBillShared(booking.id, { by: "weaid", via: String(body.via || "whatsapp") });
+      return res.status(200).json({ ok: true });
+    }
+    if (body.action === "final_bill") {
+      // Enter or correct the final bill on the pro's behalf (after a phone call, or a disputed bill).
+      try { return res.status(200).json(await reportFinalBill(booking.id, { items: body.items, total: body.total, note: body.note, by: "ops", source: "ops" })); }
+      catch (e) { return res.status(400).json({ error: e.message }); }
     }
     if (body.action === "owed_settled") {
       const amt = Math.round(Number(body.amount) || 0);

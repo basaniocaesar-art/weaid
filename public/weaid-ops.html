@@ -47,9 +47,11 @@ const when = (iso) => iso ? new Date(iso).toLocaleString("en-IN", { weekday: "sh
 let KEY = ""; try { KEY = localStorage.getItem("weaid_ops_key") || ""; } catch {}
 const fromHash = new URLSearchParams(location.hash.slice(1)).get("k"); if (fromHash) { KEY = fromHash; try { localStorage.setItem("weaid_ops_key", KEY); } catch {} history.replaceState(null, "", "/ops"); }
 let jobs = [], tab = "open", openPanel = null;
-const TABS = { open: "Needs action", live: "In progress", done: "Done", all: "All", issues: "Issues", pros: "Pros", calls: "Call list", jobsportal: "WeAid Jobs", carpool: "Carpool" };
+const TABS = { open: "Needs action", bills: "Bill not sent", live: "In progress", done: "Done", all: "All", issues: "Issues", pros: "Pros", calls: "Call list", jobsportal: "WeAid Jobs", carpool: "Carpool" };
 const dueAfter = (j) => Boolean(j.payment && j.payment.mode === "pay_after" && j.stage === "done" && j.payment.due > 0);
-const inTab = (j) => tab === "all" || (tab === "open" ? ["unpaid", "finding", "awaiting_advance"].includes(j.stage) || (j.quote && j.stage === "done" && j.quote.money.balanceDue) || dueAfter(j) : tab === "live" ? ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"].includes(j.stage) : ["done", "cancelled", "refunded"].includes(j.stage));
+// A finished pay-after job whose bill nobody has sent on WhatsApp yet (the pro or us) and that is still unpaid.
+const billUnsent = (j) => Boolean(j.bill && !j.bill.sent && j.bill.status !== "paid");
+const inTab = (j) => tab === "all" || (tab === "open" ? ["unpaid", "finding", "awaiting_advance"].includes(j.stage) || (j.quote && j.stage === "done" && j.quote.money.balanceDue) || dueAfter(j) : tab === "bills" ? billUnsent(j) : tab === "live" ? ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"].includes(j.stage) : ["done", "cancelled", "refunded"].includes(j.stage));
 
 async function api(path, body) {
   const r = await fetch(path, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", "X-Ops-Key": KEY }, body: body ? JSON.stringify(body) : undefined });
@@ -61,7 +63,7 @@ document.getElementById("enter").onclick = () => { KEY = document.getElementById
 
 function render() {
   const GROUP = { open: ["unpaid", "finding", "awaiting_advance"], live: ["assigned", "on_the_way", "arrived", "visiting", "quoted", "scheduled", "working"], done: ["done", "cancelled", "refunded"] };
-  const count = (k) => (["pros", "calls", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : jobs.filter((j) => GROUP[k].includes(j.stage) || (k === "open" && dueAfter(j))).length})`);
+  const count = (k) => (["pros", "calls", "issues", "carpool", "jobsportal"].includes(k) ? "" : ` (${k === "all" ? jobs.length : k === "bills" ? jobs.filter(billUnsent).length : jobs.filter((j) => GROUP[k].includes(j.stage) || (k === "open" && dueAfter(j))).length})`);
   document.getElementById("tabs").innerHTML = Object.entries(TABS).map(([k, v]) => `<button data-t="${k}" class="${k === tab ? "on" : ""}">${v}${count(k)}</button>`).join("");
   document.querySelectorAll("[data-t]").forEach((b) => b.onclick = () => { tab = b.dataset.t; render(); });
   if (tab === "pros") { renderPros(); return; }
@@ -88,12 +90,17 @@ function card(j) {
     ${j.quote ? `<div style="margin-top:6px;font-size:14px;background:#f0fdfa;border-radius:10px;padding:8px 10px">📐 <b>Quote job</b>${j.quote.q ? ` · quote ₹${j.quote.q.total.toLocaleString("en-IN")} · ${j.quote.q.days} day(s)` : " · site visit"}<br>Paid ₹${j.quote.money.paid.toLocaleString("en-IN")} (visit ₹${j.quote.money.visit}, advance ₹${j.quote.money.advance}, balance ₹${j.quote.money.balance})${j.quote.money.advanceDue && ["awaiting_advance"].includes(j.stage) ? ` · <b style="color:var(--red)">advance due ₹${j.quote.money.advanceDue}</b>` : ""}${j.quote.money.balanceDue && j.stage === "done" ? ` · <b style="color:var(--red)">balance due ₹${j.quote.money.balanceDue}</b>` : ""}</div>` : ""}
     <div id="ph${j.id}"></div>
     ${j.payment && j.payment.mode === "pay_after" && !["cancelled", "refunded"].includes(j.stage) ? `<div style="margin-top:6px;font-size:14px">💵 <b>Pay after the job</b> · ${j.paid_at ? "paid" : j.stage === "done" ? `<b style="color:var(--red)">₹${j.payment.due} due from the customer</b>${j.payment.payUrl ? ` · <a href="${esc(j.payment.payUrl)}" target="_blank">link sent</a>` : ""}` : `₹${j.payment.due} to collect when done`}</div>` : ""}
+    ${j.bill ? `<div style="margin-top:6px;font-size:14px;background:#fff7ed;border-radius:10px;padding:8px 10px">🧾 <b>Bill ${esc(j.bill.number)}</b> · ₹${j.bill.total.toLocaleString("en-IN")} · ${{ paid: "<b style='color:#166534'>paid</b>", unpaid: `<b style="color:var(--red)">₹${j.bill.due} unpaid</b>`, awaiting_approval: "<b style='color:var(--amber)'>over 3× the quote — waiting for the customer's OK</b>", disputed: "<b style='color:var(--red)'>questioned by the customer</b>" }[j.bill.status] || esc(j.bill.status)}${j.bill.version > 1 ? ` · v${j.bill.version}` : ""}<br><span class="mut">${j.bill.items.map((i) => `${esc(i.text)} ₹${i.amount}`).join(" · ")}</span><br>${j.bill.sent ? `<span style="color:#166534">✓ Bill sent on WhatsApp by ${esc([...new Set(j.bill.shared.map((s) => s.by === "weaid" ? "WeAid" : "the pro"))].join(" and "))}</span>` : `<span class="pill unpaid">Bill not sent</span> <span class="mut">nobody has WhatsApped it yet — send it below</span>`}</div>` : ""}
     ${j.refundDue ? `<div style="margin-top:6px;font-size:14px;color:var(--red)"><b>💸 Refund due — send it by UPI, then tap "Refund sent".</b></div>` : j.refunded ? `<div class="mut" style="margin-top:6px">Refunded via Razorpay</div>` : ""}
     ${j.provider_name ? `<div style="margin-top:6px;font-size:14px">Pro: <b>${esc(j.provider_name)}</b> ${esc(j.provider_phone || "")} · arrival code <b>${j.code}</b></div>` : ""}
     <div class="btns">
       ${["unpaid", "finding", "assigned"].includes(j.stage) ? `<button class="btn dark" data-a="assign">${j.provider_name ? "Change pro" : "Assign a pro"}</button>` : ""}
       ${j.stage === "unpaid" ? `<button class="btn dark" data-a="dispatch_unpaid">Find a pro now (pay after)</button><button class="btn" data-a="paid">Mark paid (cash/UPI)</button>` : ""}
       ${dueAfter(j) ? `<button class="btn dark" data-a="job_paid">✓ Payment received</button>` : ""}
+      ${j.bill ? (j.bill.whatsappCustomer ? `<a class="btn wa" href="${esc(j.bill.whatsappCustomer)}" target="_blank" data-shared="whatsapp">💬 WhatsApp bill to customer</a>` : `<span class="btn" style="opacity:.6">No WhatsApp number (customer)</span>`) : ""}
+      ${j.bill ? (j.bill.whatsappPro ? `<a class="btn wa" href="${esc(j.bill.whatsappPro)}" target="_blank">💬 WhatsApp pro</a>` : `<span class="btn" style="opacity:.6">No WhatsApp number (pro)</span>`) : ""}
+      ${j.bill ? `<a class="btn" href="${esc(j.bill.link)}" target="_blank">Bill</a>` : ""}
+      ${dueAfter(j) ? `<button class="btn" data-a="bill">✎ ${j.bill && j.bill.version ? "Correct" : "Enter"} the bill</button>` : ""}
       <a class="btn" href="${j.links.track}" target="_blank">Customer view</a>
       ${j.provider_name ? `<a class="btn" href="${j.links.job}" target="_blank">Pro view</a>` : ""}
       ${j.customer_phone ? `<a class="btn" href="tel:${esc(j.customer_phone)}">Call customer</a>` : ""}
@@ -110,8 +117,20 @@ function card(j) {
 function areaOf(j) { const p = (j.address || "").split(",").map((s) => s.trim()).filter(Boolean); return p.length > 1 ? p[p.length - 2] : p[0] || ""; }
 function wire(j) {
   const el = document.getElementById("j" + j.id);
+  // Sending the bill from the owner's WhatsApp is remembered, so the "Bill not sent" tab empties as it is done.
+  el.querySelectorAll("[data-shared]").forEach((a) => a.addEventListener("click", () => { api("/api/ops", { action: "bill_shared", bookingId: j.id, via: a.dataset.shared }).then(refresh).catch(() => {}); }));
   el.querySelectorAll("[data-a]").forEach((b) => b.onclick = async () => {
     const a = b.dataset.a;
+    if (a === "bill") {
+      const lines = prompt("Bill lines as 'text amount', one per line (optional). Example:\nLabour 600\nCapacitor 350", (j.bill && j.bill.version ? j.bill.items.map((i) => `${i.text} ${i.amount}`).join("\n") : ""));
+      if (lines === null) return;
+      const items = lines.split("\n").map((l) => l.trim()).filter(Boolean).map((l) => { const m = l.match(/^(.*?)\s*(\d+)\s*$/); return m ? { text: m[1] || "Work", amount: Number(m[2]) } : null; }).filter(Boolean);
+      const sum = items.reduce((n, i) => n + i.amount, 0);
+      const total = prompt("Total the customer pays WeAid (₹):", String(sum || (j.bill ? j.bill.total : j.payment.due))); if (!total) return;
+      try { const d = await api("/api/ops", { action: "final_bill", bookingId: j.id, items, total: Number(total) }); alert(d.needsApproval ? `Bill ₹${d.total} is over 3× the quote (₹${d.original}) — the customer has been asked to approve it.` : `Bill ₹${d.total} sent.${d.qr ? " QR made." : " No QR (Razorpay not set up)."}`); }
+      catch (e) { alert(e.message); }
+      return refresh();
+    }
     if (a === "paid") { const how = prompt("How did they pay? (cash / UPI)", "UPI"); if (!how) return; await api("/api/ops", { action: "mark_paid", bookingId: j.id, how }); return refresh(); }
     if (a === "dispatch_unpaid") {
       if (!confirm("Start finding a pro now, with the customer paying after the job? Nothing is charged up front.")) return;
