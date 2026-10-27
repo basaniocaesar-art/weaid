@@ -1,5 +1,6 @@
 /** /jobs-in-kochi — WeAid Jobs: every live job, filterable (?role=&area=&q=). */
 import { ROLES } from "../lib/jobs-config.js";
+import { NICHES } from "../lib/job-niches.js";
 import { Page, crumbsLd } from "../components/Seo.js";
 
 const money = (a, b) => (a ? `₹${a.toLocaleString("en-IN")}${b && b !== a ? ` – ₹${b.toLocaleString("en-IN")}` : ""}` : "");
@@ -12,6 +13,7 @@ export default function JobsList({ jobs, role, area, q }) {
       <div className="crumb">WeAid Jobs</div>
       <h1>{where ? `${where} — jobs` : "Jobs in Kochi"}</h1>
       <p className="lead">Apply free — WeAid never charges candidates. <a href="/candidate">Create your profile</a> once and apply with one tap. Hiring? <a href="/hire">Post a job</a>.</p>
+      <div className="links" style={{ marginTop: 12 }}>{Object.entries(NICHES).map(([s, o]) => <a key={s} href={`/${s}`}>{o.brand}</a>)}</div>
       <form className="box" style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 14 }}>
         <input name="q" defaultValue={q} placeholder="Search jobs" style={{ flex: 2, minWidth: 160, padding: 10, borderRadius: 10, border: "1.5px solid #e7ebf0", font: "inherit" }} />
         <select name="role" defaultValue={role} style={{ flex: 1, minWidth: 140, padding: 10, borderRadius: 10, border: "1.5px solid #e7ebf0", font: "inherit" }}><option value="">Any role</option>{ROLES.map((r) => <option key={r}>{r}</option>)}</select>

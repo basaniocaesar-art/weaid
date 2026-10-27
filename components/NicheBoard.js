@@ -1,6 +1,7 @@
 /** A single-field job board page (see lib/job-niches.js). Server-rendered list; the search filters in the browser. */
 import Head from "next/head";
 import { SITE } from "../lib/seo-config.js";
+import { NICHES } from "../lib/job-niches.js";
 
 const money = (a, b) => (a ? `₹${a.toLocaleString("en-IN")}${b && b !== a ? ` – ₹${b.toLocaleString("en-IN")}` : ""}` : "Salary on request");
 const ago = (iso) => {
@@ -62,7 +63,7 @@ export default function NicheBoard({ n, slug, jobs }) {
       </Head>
       <style dangerouslySetInnerHTML={{ __html: css }} />
       <header className="top"><div className="w">
-        <a className="brand" href={`/${slug}`}><i>+</i>{n.brand} <small>by WeAid</small></a>
+        <a className="brand" href={`/${slug}`}><i>{n.icon || "+"}</i>{n.brand} <small>by WeAid</small></a>
         <nav className="nav"><a className="browse" href="#jobs">Browse jobs</a><a className="post" href={`/hire?role=${encodeURIComponent(n.postRole)}`}>Post a job — free</a></nav>
       </div></header>
       <main className="w">
@@ -108,7 +109,7 @@ export default function NicheBoard({ n, slug, jobs }) {
         <h2>Questions</h2>
         {n.faq.map(([q, a]) => <details key={q}><summary>{q}</summary><p className="m" style={{ marginBottom: 0 }}>{a}</p></details>)}
       </main>
-      <footer className="foot"><div className="w">{n.brand} is part of <a href="/">WeAid</a>, Kochi. · <a href="/jobs-in-kochi">All jobs in Kochi</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></div></footer>
+      <footer className="foot"><div className="w"><div style={{ marginBottom: 8 }}>More boards: {Object.entries(NICHES).filter(([s]) => s !== slug).map(([s, o], i) => <span key={s}>{i ? " · " : ""}<a href={`/${s}`}>{o.brand}</a></span>)}</div>{n.brand} is part of <a href="/">WeAid</a>, Kochi. · <a href="/jobs-in-kochi">All jobs in Kochi</a> · <a href="/terms">Terms</a> · <a href="/privacy">Privacy</a></div></footer>
       <script dangerouslySetInnerHTML={{ __html: `
 (function(){var q=document.getElementById('nbq'),a=document.getElementById('nba'),c=document.getElementById('nbc'),e=document.getElementById('nbe');
 function f(){var s=q.value.trim().toLowerCase(),ar=a.value.toLowerCase(),n=0;
