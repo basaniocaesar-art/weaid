@@ -26,6 +26,7 @@ export default function Job({ j, open }) {
         <div className="meta" style={{ marginTop: 6 }}>{[j.type?.replace("_", " "), j.experience && `Experience: ${j.experience}`, j.education && `Education: ${j.education}`, j.shift && `Shift: ${j.shift}`, j.openings > 1 && `${j.openings} openings`, j.gender && j.gender !== "any" && `${j.gender} candidates`].filter(Boolean).join(" · ")}</div>
       </div>
       {j.description && <><h2>About the job</h2><p style={{ whiteSpace: "pre-wrap", fontSize: 16 }}>{j.description}</p></>}
+      {j.sourceUrl && <p className="meta" style={{ marginTop: 14 }}>WeAid listed this opening from {j.employer || "the employer"}&apos;s public job posting. Apply here and we pass your profile on — or <a href={j.sourceUrl} rel="nofollow noopener" target="_blank">see the original posting →</a></p>}
       {open ? <>
         <div id="applyBox" className="box" style={{ marginTop: 18, borderColor: "#99f6e4", background: "#f0fdfa" }}>
           <button id="applyBtn" className="btn call" style={{ display: "block", width: "100%", cursor: "pointer", fontSize: 17 }}>Apply now — free</button>
