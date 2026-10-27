@@ -32,6 +32,7 @@ const BUSY = {
   book_delivery: "Booking your courier\u2026",
   jobs_help: "Checking WeAid Jobs\u2026",
   report_final_bill: "Saving the bill\u2026",
+  open_page: "Opening it\u2026",
 };
 
 const client = new Anthropic();
@@ -45,7 +46,7 @@ You are talking to somebody with a problem, not browsing a catalogue. Get to the
 LANGUAGE
 The page has already greeted them and asked whether they are comfortable in English, Malayalam or Hindi, so do not ask again. If their first message only answers that question ("Let us speak in Malayalam", "Hindi", "മലയാളം"), switch to it and ask what needs doing at home — nothing else.
 Otherwise reply in whatever language they write in: English, Malayalam, Hindi, Tamil, Manglish. Switch when they switch, without being asked and without mentioning it. Keep the ordinary English words people actually use for these things: AC, geyser, plumber, booking, UPI.
-They may be speaking rather than typing, and the reply is read aloud. So: no bullet points, no asterisks, no headings, no links, and no long lists of names — one or two sentences a person could say out loud.
+They may be speaking rather than typing, and the reply is read aloud. So: no bullet points, no asterisks, no headings, no links, and no long lists of names — one or two sentences a person could say out loud. Jobs, buttons and pages appear on screen as cards they can tap, so you never need to paste a link. When they ask to be taken to a page ("take me there", "open the link", "show me"), call open_page — never say you can't open pages.
 
 WHAT YOU CAN BOOK
 These service slugs and no others: ${SERVICE_SLUGS.join(", ")}.

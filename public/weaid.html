@@ -143,6 +143,15 @@ body.talking .tmarquee,body.talking .sec,body.talking footer{display:none!import
 .msgrow button:hover{border-color:var(--teal);color:var(--teal);}
 .msgrow button.pay{background:var(--teal);border-color:var(--teal);color:#fff;padding:12px 24px;font-size:0.92rem;font-weight:700;}
 .msgrow button[disabled]{opacity:0.5;cursor:default;}
+.jobcards{display:flex;flex-direction:column;gap:8px;margin:0 0 10px;max-width:92%;}
+.jobcard{display:block;text-decoration:none;background:var(--bg2);border:1.5px solid var(--bdr);border-radius:14px;padding:11px 14px;color:var(--text);}
+.jobcard:hover{border-color:var(--teal);}
+.jobcard b{display:block;font-size:0.95rem;}
+.jobcard .jm{font-size:0.82rem;opacity:0.75;}
+.jobcard .jp{font-size:0.88rem;font-weight:700;color:var(--teal);}
+.msgrow a.lnk{padding:9px 16px;border:1.5px solid var(--teal);color:var(--teal);border-radius:100px;font-size:0.88rem;font-weight:700;text-decoration:none;}
+.msgrow a.lnk.pri{background:var(--teal);color:#fff;}
+.msg.her a{color:var(--teal);text-decoration:underline;}
 @media (prefers-reduced-motion:reduce){.hero-mic{animation:none}.hero-mic.on{animation:none}}
 
 /* TILES */
@@ -1088,7 +1097,7 @@ function chatSend(text){
             if(ev==='delta'&&d.text){if(!shown&&voiceMode)setStatus('\ud83d\udcad Thinking\u2026');shown+=d.text;her.textContent=shown;convoScroll();if(voiceMode)sayStream(state,d.text);}
             else if(ev==='status'&&d.text&&!shown){her.textContent=d.text;setStatus(d.text);}
             else if(ev==='remember'&&d){known={...known,...d};}
-            else if(ev==='card'&&(d.kind==='pay'||d.kind==='paychoice'||d.kind==='map'||d.kind==='location'))cards.push(d);
+            else if(ev==='card'&&['pay','paychoice','map','location','jobs','links','open'].includes(d.kind))cards.push(d);
             else if(ev==='done'){if(d.reply){her.textContent=d.reply;shown=d.reply;}if(d.messages)chatHistory=d.messages;}
             else if(ev==='error'){her.textContent=d.error;her.className='msg err';shown=d.error;failed=true;}
           });
@@ -1099,7 +1108,8 @@ function chatSend(text){
     })
     .then(()=>{
       if(!shown)her.textContent='Nothing came back. Try asking that another way?';
-      cards.forEach(c=>c.kind==='location'?showLocationPicker():c.kind==='map'?showMap(c):c.kind==='paychoice'?showPayChoice(c):showPayButton(c));convoScroll();
+      if(shown&&!failed)linkify(her);
+      cards.forEach(c=>c.kind==='location'?showLocationPicker():c.kind==='map'?showMap(c):c.kind==='paychoice'?showPayChoice(c):c.kind==='jobs'?showJobs(c):c.kind==='links'?showLinks(c.links):c.kind==='open'?openPage(c):showPayButton(c));convoScroll();
       if(voiceMode)sayFlush(state,()=>{if(voiceMode)listen();});
     })
     .catch(e=>{
@@ -1318,6 +1328,45 @@ function showMap(card){
       .then(()=>{if(!stop)setTimeout(poll,6000);});
   }
   poll();
+}
+
+/* ── Jobs and pages, in the same box ─────────────────────────────────────────
+ * jobs_help sends the matching jobs as cards and open_page sends a page to go
+ * to, so nobody has to copy a link out of a reply (2026-10-27). Only weaid.in
+ * addresses come this way; everything is built with textContent. */
+const weaidUrl=u=>{try{const x=new URL(u);return /(^|\.)weaid\.in$/.test(x.hostname)?x.toString():null;}catch(e){return null;}};
+function showJobs(card){
+  const box=document.createElement('div');box.className='jobcards';
+  (card.jobs||[]).forEach(j=>{const url=weaidUrl(j.url);if(!url)return;
+    const a=document.createElement('a');a.className='jobcard';a.href=url;
+    const t=document.createElement('b');t.textContent=j.title;a.appendChild(t);
+    const m=document.createElement('div');m.className='jm';m.textContent=[j.employer,j.area].filter(Boolean).join(' · ');a.appendChild(m);
+    if(j.pay){const p=document.createElement('div');p.className='jp';p.textContent=j.pay+' a month';a.appendChild(p);}
+    box.appendChild(a);});
+  if(box.children.length)convo.appendChild(box);
+  showLinks(card.links);
+}
+function showLinks(links){
+  const row=document.createElement('div');row.className='msgrow';
+  (links||[]).forEach((l,i)=>{const url=weaidUrl(l.url);if(!url)return;
+    const a=document.createElement('a');a.className='lnk'+(i===0?' pri':'');a.href=url;a.textContent=l.label;row.appendChild(a);});
+  if(row.children.length){convo.appendChild(row);convoScroll();}
+}
+function openPage(card){
+  const url=weaidUrl(card.url);if(!url)return;
+  showLinks([{label:'Open '+card.label,url}]);
+  memSave();
+  // Long enough to hear "opening it"; the button stays if the browser balks.
+  setTimeout(()=>{location.href=url;},voiceMode?1800:600);
+}
+/* A reply that still names an address: make it tappable rather than text to copy. */
+function linkify(el){
+  const text=el.textContent;if(!/https?:\/\//.test(text))return;
+  el.textContent='';
+  text.split(/(https?:\/\/[^\s)]+)/g).forEach(part=>{
+    if(/^https?:\/\//.test(part)){const clean=part.replace(/[.,;:!?]+$/,'');const a=document.createElement('a');a.href=clean;a.textContent=clean.replace(/^https?:\/\/(www\.)?/,'');if(!weaidUrl(clean)){a.target='_blank';a.rel='noopener nofollow';}el.appendChild(a);if(clean.length<part.length)el.appendChild(document.createTextNode(part.slice(clean.length)));}
+    else el.appendChild(document.createTextNode(part));
+  });
 }
 
 /* ── Paying, in the same box ─────────────────────────────────────────────────
