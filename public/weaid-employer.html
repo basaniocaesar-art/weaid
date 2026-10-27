@@ -88,7 +88,7 @@ function renderBody() {
   if (tab === "post") {
     b.innerHTML = `<div class="card"><div class="grid">
       <label>Job title<input id="jt" placeholder="e.g. Fitness Trainer"></label>
-      <label>Role<select id="jr">${ROLES.map((r) => `<option>${esc(r)}</option>`).join("")}</select></label>
+      <label>Role<select id="jr">${ROLES.map((r) => `<option${r === new URLSearchParams(location.search).get("role") ? " selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
       <label>Area<input id="ja" value="${esc(D.employer.area || "")}"></label>
       <label>Salary from (₹/month)<input id="js1" type="number"></label><label>Salary up to (₹/month)<input id="js2" type="number"></label>
       <label>Experience<select id="je"><option value="">Any</option><option>Fresher</option><option>1+ year</option><option>2+ years</option><option>5+ years</option></select></label>

@@ -19,7 +19,7 @@ export async function getServerSideProps({ res }) {
     ["/", "1.0"], ["/kochi", "0.9"], ["/directory", "0.6"], ["/list-business", "0.5"],
     ...Object.values(SERVICES).map((s) => [`/kochi/${s.slug}`, "0.9"]),
     ["/guides", "0.7"], ...GUIDES.map((g) => [`/guides/${g.slug}`, "0.7"]),
-    ["/jobs-in-kochi", "0.8"], ["/hire", "0.6"], ["/candidate", "0.5"],
+    ["/jobs-in-kochi", "0.8"], ["/home-nurse-jobs", "0.8"], ["/hire", "0.6"], ["/candidate", "0.5"],
     ...(await liveJobSlugs()).map((sl) => [`/job/${sl}`, "0.6"]),
     ["/work", "0.7"], ["/work/courier-delivery", "0.6"],
     ...Object.values(SERVICES).map((s) => [`/work/${s.slug}`, "0.6"]),
