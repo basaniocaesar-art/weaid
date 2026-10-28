@@ -103,6 +103,7 @@ export default function NicheBoard({ n, slug, jobs }) {
             <b>Hiring a {n.one}?</b>
             <div className="m">Post your opening in 2 minutes. Your first post is free; applicants' profiles and phone numbers come straight to your email.</div>
             <a className="btn" href={`/hire?role=${encodeURIComponent(n.postRole)}`}>Post a job — free</a>
+            {n.workers && <a className="btn g" style={{ marginLeft: 8 }} href={`/workers/${n.workers.slug}`}>See available {n.workers.title.split(",")[0]}</a>}
           </div>
         </div>
 

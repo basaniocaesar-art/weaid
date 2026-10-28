@@ -106,7 +106,7 @@ async function load() {
   app.innerHTML = `
     <div class="card" style="display:flex;gap:14px;align-items:center">${me.photo ? `<img class="ph" src="${esc(me.photo)}">` : `<div class="ph"></div>`}
       <div><h1 style="margin:0">${esc(me.name)}</h1><div class="mut">${esc((me.roles.length ? me.roles : [me.role]).join(" · "))}${me.area ? ` · ${esc(me.area)}` : ""}</div>${me.verified ? '<span class="pill g">✓ ID checked</span>' : ""}</div></div>
-    <div class="card"><b>Make your profile stand out</b><div class="mut">Employers pick profiles with a photo and CV first.</div>
+    <div class="card"><b>Make your profile stand out</b><div class="mut">Complete profiles show at the top for employers — add a photo, your CV or a voice intro.</div>
       <label style="display:block"><input type="file" accept="image/*" capture="user" id="fphoto" hidden><span class="btn light" role="button">📷 ${me.photo ? "Change photo" : "Add your photo"}</span></label>
       <label style="display:block"><input type="file" accept="application/pdf,image/*" id="fcv" hidden><span class="btn light" role="button">📄 ${me.hasCv ? "Replace CV ✓" : "Upload CV (PDF or photo)"}</span></label>
       <button class="btn light" id="voice">🎙️ ${me.hasVoice ? "Re-record voice intro ✓" : "Record a 30-second voice intro"}</button>
@@ -127,7 +127,7 @@ async function load() {
   app.querySelectorAll("[data-slot]").forEach((b) => b.onclick = async () => { try { await api("choose_slot", { appId: b.dataset.app, slot: b.dataset.slot }); load(); } catch (x) { alert(x.message); } });
 }
 function renderNew() {
-  app.innerHTML = `<h1>Get hired in Kochi</h1><div class="mut">Free for job seekers — WeAid never charges candidates. Make your profile once, apply with one tap, and let employers find you.</div>
+  app.innerHTML = `<h1>Get hired in Kochi</h1><div class="mut">Free for job seekers — WeAid never charges candidates. Make your profile once, apply with one tap, and let employers find you.</div><div class="mut" style="font-size:13px;margin-top:4px">Employers on WeAid see your first name, the work you want, experience, area and expected pay. Your phone number, full name and CV stay hidden until an employer you applied to — or one on a paid plan — opens them.</div>
     ${Q.get("apply") ? `<div class="card ok">Create your profile to finish applying for the job.</div>` : ""}${form()}`;
   wireForm();
 }

@@ -1,6 +1,7 @@
 /** /sitemap.xml — every search page and provider profile that may be public, for Google Search Console. */
 import { SERVICES, SITE, loadDirectory, serviceAreaPages } from "../lib/seo.js";
 import { GUIDES } from "../lib/guides.js";
+import { NICHES } from "../lib/job-niches.js";
 
 export default function Sitemap() { return null; }
 
@@ -19,7 +20,7 @@ export async function getServerSideProps({ res }) {
     ["/", "1.0"], ["/kochi", "0.9"], ["/directory", "0.6"], ["/list-business", "0.5"],
     ...Object.values(SERVICES).map((s) => [`/kochi/${s.slug}`, "0.9"]),
     ["/guides", "0.7"], ...GUIDES.map((g) => [`/guides/${g.slug}`, "0.7"]),
-    ["/jobs-in-kochi", "0.8"], ["/home-nurse-jobs", "0.8"], ["/driver-jobs", "0.8"], ["/hotel-jobs", "0.8"], ["/sales-jobs", "0.8"], ["/office-jobs", "0.8"], ["/home-help-jobs", "0.8"], ["/security-jobs", "0.8"], ["/technician-jobs", "0.8"], ["/construction-jobs", "0.8"], ["/beauty-fitness-jobs", "0.8"], ["/teacher-jobs", "0.8"], ["/warehouse-jobs", "0.8"], ["/tailor-jobs", "0.8"], ["/it-jobs", "0.8"], ["/marketing-jobs", "0.8"], ["/healthcare-jobs", "0.8"], ["/engineering-jobs", "0.8"], ["/customer-support-jobs", "0.8"], ["/hire", "0.6"], ["/candidate", "0.5"],
+    ["/jobs-in-kochi", "0.8"], ...Object.keys(NICHES).map((k) => [`/${k}`, "0.8"]), ["/workers", "0.7"], ...Object.values(NICHES).map((n) => [`/workers/${n.workers.slug}`, "0.7"]), ["/hire", "0.6"], ["/candidate", "0.5"],
     ...(await liveJobSlugs()).map((sl) => [`/job/${sl}`, "0.6"]),
     ["/work", "0.7"], ["/work/courier-delivery", "0.6"],
     ...Object.values(SERVICES).map((s) => [`/work/${s.slug}`, "0.6"]),

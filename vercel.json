@@ -160,6 +160,10 @@
     {
       "path": "/api/cron/errand-tick",
       "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/jp-alerts",
+      "schedule": "0 4 * * *"
     }
   ],
   "headers": [

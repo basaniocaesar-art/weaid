@@ -34,8 +34,10 @@ const esc = (s) => String(s ?? "").replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<
 const inr = (n) => "₹" + Number(n || 0).toLocaleString("en-IN");
 const H = new URLSearchParams(location.hash.slice(1));
 let T = null; try { T = H.get("t") || localStorage.getItem("weaid_emp"); if (T) localStorage.setItem("weaid_emp", T); } catch {}
+// Read the query before the address is tidied — ?tab=search&role=… and ?role=… come from the job boards.
+const QS = new URLSearchParams(location.search);
 const focusApp = H.get("a"); history.replaceState(null, "", location.pathname);
-let ROLES = [], PLANS = {}, D = null, tab = focusApp ? "applicants" : "jobs";
+let ROLES = [], PLANS = {}, D = null, tab = focusApp ? "applicants" : QS.get("tab") === "search" ? "search" : "jobs";
 const app = document.getElementById("app");
 async function api(a, body) {
   const r = await fetch("/api/jp/" + a, { method: body ? "POST" : "GET", headers: { "Content-Type": "application/json", ...(T ? { "X-Emp-Token": T } : {}) }, body: body ? JSON.stringify(body) : undefined });
@@ -65,7 +67,7 @@ function landing() {
     <h2>Plans</h2>${plansHtml(false)}`;
   document.getElementById("go").onclick = async (e) => {
     e.target.disabled = true; const v = (id) => document.getElementById(id).value;
-    try { const d = await api("emp_save", { business: { business_name: v("bn"), contact_name: v("cn"), phone: v("ph"), email: v("em"), area: v("ar"), kind: v("kd") } }); T = d.token; try { localStorage.setItem("weaid_emp", T); } catch {} tab = "post"; load(); }
+    try { const d = await api("emp_save", { business: { business_name: v("bn"), contact_name: v("cn"), phone: v("ph"), email: v("em"), area: v("ar"), kind: v("kd") } }); T = d.token; try { localStorage.setItem("weaid_emp", T); } catch {} tab = QS.get("tab") === "search" ? "search" : "post"; load(); }
     catch (x) { document.getElementById("err").textContent = x.message; e.target.disabled = false; }
   };
 }
@@ -88,7 +90,7 @@ function renderBody() {
   if (tab === "post") {
     b.innerHTML = `<div class="card"><div class="grid">
       <label>Job title<input id="jt" placeholder="e.g. Fitness Trainer"></label>
-      <label>Role<select id="jr">${ROLES.map((r) => `<option${r === new URLSearchParams(location.search).get("role") ? " selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
+      <label>Role<select id="jr">${ROLES.map((r) => `<option${r === QS.get("role") ? " selected" : ""}>${esc(r)}</option>`).join("")}</select></label>
       <label>Area<input id="ja" value="${esc(D.employer.area || "")}"></label>
       <label>Salary from (₹/month)<input id="js1" type="number"></label><label>Salary up to (₹/month)<input id="js2" type="number"></label>
       <label>Experience<select id="je"><option value="">Any</option><option>Fresher</option><option>1+ year</option><option>2+ years</option><option>5+ years</option></select></label>
@@ -133,7 +135,7 @@ function renderBody() {
     });
     if (focusApp) { const el = document.getElementById("ap" + focusApp); if (el) el.scrollIntoView({ behavior: "smooth" }); }
   } else if (tab === "search") {
-    b.innerHTML = `<div class="card"><div class="grid"><label>Role<select id="sr"><option value="">Any</option>${ROLES.map((r) => `<option>${esc(r)}</option>`).join("")}</select></label><label>Area<input id="sa"></label><label>Keyword<input id="sq"></label></div><button class="btn block" id="sg">Search</button></div><div id="sres"></div>`;
+    b.innerHTML = `<div class="card"><div class="grid"><label>Role<select id="sr"><option value="">Any</option>${ROLES.map((r) => `<option${r === QS.get("role") ? " selected" : ""}>${esc(r)}</option>`).join("")}</select></label><label>Area<input id="sa"></label><label>Keyword<input id="sq"></label></div><button class="btn block" id="sg">Search</button></div><div id="sres"></div>`;
     document.getElementById("sg").onclick = async () => {
       const out = document.getElementById("sres"); out.innerHTML = '<div class="mut" style="padding:10px">Searching…</div>';
       try {
@@ -142,6 +144,7 @@ function renderBody() {
         out.querySelectorAll("[data-un]").forEach((x) => x.onclick = async () => { try { await api("unlock", { candidateId: x.dataset.un }); document.getElementById("sg").click(); load(); } catch (e) { alert(e.message); } });
       } catch (e) { out.innerHTML = `<div class="err">${esc(e.message)}</div>`; }
     };
+    if (QS.get("role") && !window.__searched) { window.__searched = true; document.getElementById("sg").click(); }
   } else if (tab === "plans") { b.innerHTML = plansHtml(true); }
 }
 function render() { app.innerHTML = header(); app.querySelectorAll("[data-t]").forEach((x) => x.onclick = () => { tab = x.dataset.t; render(); }); renderBody(); }
