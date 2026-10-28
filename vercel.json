@@ -164,6 +164,14 @@
     {
       "path": "/api/cron/jp-alerts",
       "schedule": "0 4 * * *"
+    },
+    {
+      "path": "/api/cron/jp-feed",
+      "schedule": "30 0 * * *"
+    },
+    {
+      "path": "/api/cron/jp-clean",
+      "schedule": "0 21 * * *"
     }
   ],
   "headers": [
