@@ -47,14 +47,14 @@ function plansHtml(current) {
   const P = PLANS;
   return `<div class="grid">${Object.entries(P).map(([k, p]) => `<div class="plan ${k === "y1" ? "best" : ""}"><b>${p.label}</b> ${k === "y1" ? '<span class="pill g">Best value</span>' : ""}
     <div class="price">${inr(p.price)}</div><div class="mut">${inr(Math.round(p.price / (p.days / 30)))}/month</div>
-    <ul><li>Post unlimited jobs, unlimited applications</li><li>Keep 1 job live at a time</li><li>Unlock <b>${p.unlocks}</b> candidates' contacts</li><li>Boost your job <b>${p.boosts}×</b> to the top</li><li>Valid ${p.days} days · Kochi</li></ul>
+    <ul><li>Post unlimited jobs, unlimited applications</li><li>See every applicant's phone & CV</li><li>Keep 1 job live at a time</li><li>Unlock <b>${p.unlocks}</b> candidates' contacts</li><li>Boost your job <b>${p.boosts}×</b> to the top</li><li>Valid ${p.days} days · Kochi</li></ul>
     ${current ? `<a class="btn block" href="https://wa.me/918064267771?text=${encodeURIComponent(`Hi WeAid, I'd like the WeAid Jobs ${p.label} plan (${inr(p.price)}) for ${D.employer.name} ${D.employer.phone}`)}">Get this plan</a>` : ""}</div>`).join("")}</div>
     <div class="mut" style="margin-top:8px">Pay by UPI — WeAid activates your plan the same day. Your first job post is free.</div>`;
 }
 function landing() {
   app.innerHTML = `<h1>Hire staff in Kochi</h1>
     <div class="mut">Drivers, cooks, maids, home nurses, delivery staff, sales, telecallers, trainers, technicians — post a job and get applications from local candidates, many with ✓ ID checked by WeAid.</div>
-    <div class="grid" style="margin-top:14px">${[["1. Post a job", "Title, salary, area — 2 minutes. Your first post is free."], ["2. Get applications", "Each applicant's profile, phone and CV comes to your email and dashboard."], ["3. Interview & hire", "Offer interview times; candidates pick one. Search and unlock more candidates on a plan."]].map(([a, b]) => `<div class="card" style="margin:0"><b>${a}</b><div class="mut">${b}</div></div>`).join("")}</div>
+    <div class="grid" style="margin-top:14px">${[["1. Post a job", "Title, salary, area — 2 minutes. Your first post is free."], ["2. Get applications", "Each applicant's profile comes to your email and dashboard — your first 2 with phone and CV free."], ["3. Interview & hire", "Offer interview times; candidates pick one. Search and unlock more candidates on a plan."]].map(([a, b]) => `<div class="card" style="margin:0"><b>${a}</b><div class="mut">${b}</div></div>`).join("")}</div>
     <h2>Create your employer account</h2>
     <div class="card"><div class="grid">
       <label>Business name<input id="bn" placeholder="e.g. Caesars Fitness (or your name for a household)"></label>
@@ -122,8 +122,10 @@ function renderBody() {
     b.innerHTML = D.applicants.length ? D.applicants.map((a) => `<div class="card" id="ap${a.id}" style="${a.id === focusApp ? "border-color:var(--teal);border-width:2px" : ""}"><div class="mut">For <b>${esc(jt[a.jobId] || "")}</b> · ${new Date(a.at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })} · <span class="pill">${esc(a.status)}</span></div>
       ${candHtml(a.candidate, `
         ${a.chosen ? `<div style="margin-top:8px;color:var(--teal-d);font-weight:700">📅 Interview: ${new Date(a.chosen).toLocaleString("en-IN", { weekday: "short", day: "numeric", month: "short", hour: "numeric", minute: "2-digit" })}</div>` : a.slots && a.slots.length ? `<div class="mut" style="margin-top:8px">Waiting for them to pick a time.</div>` : ""}
-        <div class="row"><button class="btn" data-slots="${a.id}">📅 Schedule interview</button><button class="btn light" data-st="${a.id}" data-v="shortlisted">Shortlist</button><button class="btn light" data-st="${a.id}" data-v="hired">Hired</button><button class="btn light" data-st="${a.id}" data-v="rejected">Not suitable</button></div>
+        ${a.locked ? `<div class="row"><button class="btn" data-plans>🔓 See phone & CV — choose a plan</button></div>` : ""}
+        <div class="row">${a.locked ? "" : `<button class="btn" data-slots="${a.id}">📅 Schedule interview</button>`}<button class="btn light" data-st="${a.id}" data-v="shortlisted">Shortlist</button><button class="btn light" data-st="${a.id}" data-v="hired">Hired</button><button class="btn light" data-st="${a.id}" data-v="rejected">Not suitable</button></div>
         <div id="sl${a.id}"></div>`)}</div>`).join("") : `<div class="card mut">No applications yet. Make sure your job is live — and boost it to reach more candidates.</div>`;
+    b.querySelectorAll("[data-plans]").forEach((x) => x.onclick = () => { tab = "plans"; render(); });
     b.querySelectorAll("[data-st]").forEach((x) => x.onclick = async () => { try { await api("app_status", { appId: x.dataset.st, status: x.dataset.v }); load(); } catch (e) { alert(e.message); } });
     b.querySelectorAll("[data-slots]").forEach((x) => x.onclick = () => {
       const box = document.getElementById("sl" + x.dataset.slots);

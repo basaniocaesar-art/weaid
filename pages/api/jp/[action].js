@@ -57,7 +57,8 @@ export default async function handler(req, res) {
       const { data: jobs } = await supabase.from("jp_jobs").select("*").eq("employer_id", emp.id).order("created_at", { ascending: false }).limit(30);
       const ids = (jobs || []).map((j) => j.id);
       const { data: apps } = ids.length ? await supabase.from("jp_applications").select("*, jp_candidates!inner(*)").in("job_id", ids).order("created_at", { ascending: false }) : { data: [] };
-      const applicants = await Promise.all((apps || []).map(async (x) => ({ id: x.id, jobId: x.job_id, status: x.status, slots: x.slots, chosen: x.slot_chosen, at: x.created_at, candidate: await J.candidateCard(x.jp_candidates, { showContact: true }) })));
+      const open = await J.contactRule(emp);
+      const applicants = await Promise.all((apps || []).map(async (x) => ({ id: x.id, jobId: x.job_id, status: x.status, slots: x.slots, chosen: x.slot_chosen, at: x.created_at, locked: !open(x), candidate: await J.candidateCard(x.jp_candidates, { showContact: open(x) }) })));
       return res.status(200).json({
         employer: { name: emp.business_name, contact: emp.contact_name, phone: emp.phone, email: emp.email, area: emp.area, kind: emp.kind, plan: J.planActive(emp) ? { key: emp.plan, ...J.PLANS[emp.plan], until: emp.plan_until, unlocksLeft: emp.unlocks_left, boostsLeft: emp.boosts_left } : null },
         jobs: (jobs || []).map((j) => ({ ...J.publicJob(j), status: j.status, screen: j.screen?.verdict === "reject" ? j.screen.reason : null, applicants: applicants.filter((x) => x.jobId === j.id).length })),
