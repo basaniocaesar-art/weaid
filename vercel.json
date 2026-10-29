@@ -172,6 +172,10 @@
     {
       "path": "/api/cron/jp-clean",
       "schedule": "0 21 * * *"
+    },
+    {
+      "path": "/api/cron/jp-applicants",
+      "schedule": "30 4 * * *"
     }
   ],
   "headers": [
