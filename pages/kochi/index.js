@@ -1,5 +1,6 @@
 /** /kochi — every service and area WeAid covers in Kochi. */
-import { SERVICES, loadDirectory, providersFor, serviceAreaPages } from "../../lib/seo.js";
+import { SERVICES } from "../../lib/seo-config.js";
+import { loadDirectory, providersFor, serviceAreaPages } from "../../lib/seo.js";
 import { Page, Arrange, crumbsLd } from "../../components/Seo.js";
 
 export default function Kochi({ services, areas, total }) {

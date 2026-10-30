@@ -3,7 +3,8 @@
  * Server-rendered with the listings in the HTML; rebuilt every 6 hours (ISR) so new
  * providers and changes appear without a deploy. Only pages with enough providers exist.
  */
-import { SERVICES, SERVICE_BY_SLUG, MIN_PER_PAGE, loadDirectory, providersFor, serviceAreaPages, nearbyAreas, publicProvider, listable } from "../../../lib/seo.js";
+import { SERVICES, SERVICE_BY_SLUG, MIN_PER_PAGE } from "../../../lib/seo-config.js";
+import { loadDirectory, providersFor, serviceAreaPages, nearbyAreas, publicProvider, listable } from "../../../lib/seo.js";
 import { Page, ProviderCard, Faq, Arrange, HowItWorks, faqLd, crumbsLd, listLd } from "../../../components/Seo.js";
 
 export default function ServiceArea({ service, svc, area, providers, count, nearby, otherServices, areas, stats }) {

@@ -1,5 +1,6 @@
 /** /kochi/area/kakkanad — every home service in one area. */
-import { SERVICES, loadDirectory, providersFor, serviceAreaPages, nearbyAreas, publicProvider, listable } from "../../../lib/seo.js";
+import { SERVICES } from "../../../lib/seo-config.js";
+import { loadDirectory, providersFor, serviceAreaPages, nearbyAreas, publicProvider, listable } from "../../../lib/seo.js";
 import { Page, ProviderCard, Arrange, HowItWorks, crumbsLd } from "../../../components/Seo.js";
 
 export default function AreaHub({ area, sections, nearby, areas, total }) {

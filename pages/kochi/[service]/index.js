@@ -1,5 +1,6 @@
 /** /kochi/electricians — "Electricians in Kochi": every area page + the WeAid "we arrange it" action. */
-import { SERVICES, SERVICE_BY_SLUG, MIN_PER_PAGE, loadDirectory, providersFor, serviceAreaPages, publicProvider, listable } from "../../../lib/seo.js";
+import { SERVICES, SERVICE_BY_SLUG, MIN_PER_PAGE } from "../../../lib/seo-config.js";
+import { loadDirectory, providersFor, serviceAreaPages, publicProvider, listable } from "../../../lib/seo.js";
 import { Page, ProviderCard, Faq, Arrange, HowItWorks, faqLd, crumbsLd, listLd } from "../../../components/Seo.js";
 import { GUIDES } from "../../../lib/guides.js";
 
