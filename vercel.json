@@ -176,6 +176,10 @@
     {
       "path": "/api/cron/jp-applicants",
       "schedule": "30 4 * * *"
+    },
+    {
+      "path": "/api/cron/jp-listed",
+      "schedule": "*/10 * * * *"
     }
   ],
   "headers": [
