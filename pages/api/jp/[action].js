@@ -38,7 +38,7 @@ export default async function handler(req, res) {
     // ---- candidates ----
     const cand = await J.candidateByToken(req.headers["x-cand-token"]);
     if (a === "cand_save") { const c = await J.saveCandidate(cand, b.profile || {}); return res.status(200).json({ token: c.token, candidate: await J.candidateCard(c, { showContact: true }) }); }
-    if (["cand_me", "cand_file", "apply", "choose_slot"].includes(a)) {
+    if (["cand_me", "cand_file", "apply", "choose_slot", "cand_email"].includes(a)) {
       if (!cand) return res.status(401).json({ error: "Create your profile first." });
       if (a === "cand_me") {
         const { data: apps } = await supabase.from("jp_applications").select("*, jp_jobs!inner(title, area, slug, status, salary_min, salary_max, jp_employers!inner(business_name))").eq("candidate_id", cand.id).order("created_at", { ascending: false });
@@ -46,6 +46,7 @@ export default async function handler(req, res) {
       }
       if (a === "cand_file") return res.status(200).json({ path: await J.saveFile(cand.id, b.kind, b.mime, b.data) });
       if (a === "apply") return res.status(200).json(await J.apply(cand, b.jobId));
+      if (a === "cand_email") return res.status(200).json(await J.setCandidateEmail(cand, b.email));
       if (a === "choose_slot") return res.status(200).json(await J.chooseSlot(cand, b.appId, b.slot));
     }
 

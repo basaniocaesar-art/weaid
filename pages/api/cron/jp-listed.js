@@ -74,7 +74,7 @@ export default async function handler(req, res) {
         if (a.jp_candidates.email) { const s = sentEmail({ cand: a.jp_candidates, job, emp }); await sendEmail(a.jp_candidates.email, s.subject, s.html).catch(() => {}); }
       }
       await sendAdminNotification(`[WeAid Jobs] Sent ${fresh.length} applicant${fresh.length > 1 ? "s" : ""} to ${emp.business_name}`,
-        `<p style="font-family:sans-serif">${fresh.map((a) => esc(a.jp_candidates.name)).join(", ")} → <b>${esc(email)}</b> for ${esc(job.title)}.${screen.contact?.source ? `<br>Email found on: ${esc(screen.contact.source)}` : ""}<br>The "your account is ready" email follows in 2 days.</p>`).catch(() => {});
+        `<p style="font-family:sans-serif">${fresh.map((a) => esc(a.jp_candidates.name)).join(", ")} → <b>${esc(email)}</b> for ${esc(job.title)}.<br><br>Tell them on WhatsApp: ${fresh.map((a) => `<a href="https://wa.me/${String(a.jp_candidates.whatsapp || a.jp_candidates.phone).replace(/\D/g, "")}?text=${encodeURIComponent(`Hi ${a.jp_candidates.name.split(" ")[0]}, this is WeAid Jobs. Your application for ${job.title} at ${emp.business_name} has been sent to their hiring team today. If they're interested they'll contact you directly — keep your phone on. More jobs: weaid.in/jobs`)}">${esc(a.jp_candidates.name)}</a>`).join(" · ")}<br>${screen.contact?.source ? `<br>Email found on: ${esc(screen.contact.source)}` : ""}<br>The "your account is ready" email follows in 2 days.</p>`).catch(() => {});
     }
 
     // 3. Two days after the first forward, invite them once.
